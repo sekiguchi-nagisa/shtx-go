@@ -10,7 +10,7 @@ import (
 )
 
 type Options struct {
-	DumpAST string `short:"d" long:"dump" description:"dump internal ast to specified file (default to stderr)" optional:"true" optional-value:"/dev/stderr"`
+	DumpAST string `short:"d" long:"dump" description:"Dump internal ast to specified file (default to stderr)" optional:"true" optional-value:"/dev/stderr"`
 	Args    struct {
 		SCRIPT string
 	} `positional-args:"yes" required:"yes"`
@@ -23,6 +23,7 @@ func dump(r io.Reader, w io.Writer) {
 		os.Exit(1)
 	}
 	syntax.DebugPrint(w, f)
+	fmt.Fprintln(w)
 }
 
 func translate(r io.Reader, w io.Writer) {
@@ -43,13 +44,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("%s\n", options.DumpAST)
-	fmt.Printf("%s\n", options.Args)
-
-	f, e := os.Open(options.Args.SCRIPT)
+	script := options.Args.SCRIPT
+	if script == "-" {
+		script = "/dev/stdin"
+	}
+	f, e := os.Open(script)
 	defer f.Close()
 	if e != nil {
-		fmt.Fprintf(os.Stderr, "cannot open file: %s, caused by `%s'\n", options.Args.SCRIPT, e.Error())
+		fmt.Fprintf(os.Stderr, "%s\n", e.Error())
 		os.Exit(1)
 	}
 
@@ -57,10 +59,10 @@ func main() {
 	if len(options.DumpAST) == 0 {
 		translate(b, os.Stdout)
 	} else {
-		d, e := os.Open(options.DumpAST)
+		d, e := os.Create(options.DumpAST)
 		defer d.Close()
 		if e != nil {
-			fmt.Fprintf(os.Stderr, "cannot open file: %s, caused by `%s'\n", options.DumpAST, e.Error())
+			fmt.Fprintf(os.Stderr, "%s\n", e.Error())
 			os.Exit(1)
 		}
 		dump(b, d)
