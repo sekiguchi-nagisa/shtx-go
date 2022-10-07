@@ -1,4 +1,4 @@
-module shtx
+module shtx-go
 
 go 1.18
 
