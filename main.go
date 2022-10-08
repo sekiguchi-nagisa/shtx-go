@@ -11,6 +11,7 @@ import (
 type Options struct {
 	DumpAST string `short:"d" long:"dump" description:"Dump internal ast to specified file (default to stderr)" optional:"true" optional-value:"/dev/stderr"`
 	Version bool   `short:"v" long:"version" description:"Show version info"`
+	Echo    bool   `long:"echo" description:"Echo input with pretty print (no translation)"`
 	Args    struct {
 		SCRIPT string
 	} `positional-args:"yes"`
@@ -54,7 +55,7 @@ func main() {
 	f, e := os.Open(script)
 	defer f.Close()
 	if e != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", e.Error())
+		fmt.Fprintln(os.Stderr, e.Error())
 		os.Exit(1)
 	}
 
@@ -64,10 +65,13 @@ func main() {
 		d, e := os.Create(options.DumpAST)
 		defer d.Close()
 		if e != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", e.Error())
+			fmt.Fprintln(os.Stderr, e.Error())
 			os.Exit(1)
 		}
 		tx.SetDump(d)
+	}
+	if options.Echo {
+		tx.SetOption(NoTranslate)
 	}
 
 	if e := tx.Translate(b, os.Stdout); e != nil {
