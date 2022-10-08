@@ -15,3 +15,6 @@ shtx-go
 # Dependency directories (remove the comment below to include it)
 # vendor/
 .idea/
+
+bin/*
+!bin/.gitkeep
