@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	flags "github.com/jessevdk/go-flags"
-	"io"
-	"mvdan.cc/sh/v3/syntax"
 	"os"
 	"runtime/debug"
 )
@@ -16,25 +14,6 @@ type Options struct {
 	Args    struct {
 		SCRIPT string
 	} `positional-args:"yes"`
-}
-
-func dump(r io.Reader, w io.Writer) {
-	f, e := syntax.NewParser().Parse(r, "")
-	if e != nil {
-		fmt.Fprintf(os.Stderr, "[error] %s\n", e.Error())
-		os.Exit(1)
-	}
-	syntax.DebugPrint(w, f)
-	fmt.Fprintln(w)
-}
-
-func translate(r io.Reader, w io.Writer) {
-	f, e := syntax.NewParser().Parse(r, "")
-	if e != nil {
-		fmt.Fprintf(os.Stderr, "[error] %s\n", e.Error())
-		os.Exit(1)
-	}
-	syntax.NewPrinter().Print(w, f)
 }
 
 func getVersion() string {
@@ -80,15 +59,19 @@ func main() {
 	}
 
 	b := bufio.NewReader(f)
-	if len(options.DumpAST) == 0 {
-		translate(b, os.Stdout)
-	} else {
+	tx := NewTranslator()
+	if len(options.DumpAST) != 0 {
 		d, e := os.Create(options.DumpAST)
 		defer d.Close()
 		if e != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", e.Error())
 			os.Exit(1)
 		}
-		dump(b, d)
+		tx.SetDump(d)
+	}
+
+	if e := tx.Translate(b, os.Stdout); e != nil {
+		fmt.Fprintln(os.Stderr, e.Error())
+		os.Exit(1)
 	}
 }
