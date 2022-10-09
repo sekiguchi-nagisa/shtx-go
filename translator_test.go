@@ -28,6 +28,16 @@ false;
 	{"# this is a comment", `function(args : [String]) => {
 }
 `},
+	{"echo AAA; echo BBB; echo CCC;", `function(args : [String]) => {
+  echo AAA
+  echo BBB
+  echo CCC
+}
+`},
+	{`echo hello'he\y'$'\x00qq\na'`, `function(args : [String]) => {
+  echo hello'he\y'$'\x00qq\na'
+}
+`},
 }
 
 func TestBase(t *testing.T) {

@@ -6,6 +6,14 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+func todo(s string) {
+	panic(fmt.Sprintf("[TODO] %s", s))
+}
+
+func fixmeCase(a any) {
+	panic(fmt.Sprintf("[FIXME] unsupported switch-case type %T", a))
+}
+
 type TranslatorOptions uint
 
 const (
@@ -95,6 +103,7 @@ func (t *Translator) visitFile(file *syntax.File) {
 func (t *Translator) visitStmt(stmt *syntax.Stmt) {
 	t.indent()
 	t.visitCommand(stmt.Cmd, stmt.Redirs)
+	t.newline()
 }
 
 func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect) {
@@ -105,22 +114,20 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 	case *syntax.CallExpr:
 		t.visitCallExpr(n)
 	default:
-		panic(fmt.Sprintf("unsupported node type %T", n))
+		fixmeCase(n)
 	}
 	if redirs != nil {
-		panic("FIXME: unsupported: redirection")
-	} else {
-		t.newline()
+		todo("support redirection")
 	}
 }
 
 func (t *Translator) visitAssigns(assigns []*syntax.Assign) {
 	if len(assigns) > 0 {
-		panic("FIXME: unsupported: env assignment")
+		todo("support env assignment")
 	}
 }
 
-func isCmdName(word *syntax.Word) bool {
+func isCmdLiteral(word *syntax.Word) bool {
 	if len(word.Parts) != 1 {
 		return false
 	}
@@ -135,18 +142,19 @@ func isCmdName(word *syntax.Word) bool {
 	}
 }
 
+func (t *Translator) visitCmdName(word *syntax.Word) {
+	if isCmdLiteral(word) {
+		t.emit(word.Parts[0].(*syntax.Lit).Value)
+	} else {
+		todo("support non-command literal")
+	}
+}
+
 func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 	t.visitAssigns(expr.Assigns)
-	if len(expr.Args) == 0 {
-		return
-	}
 	for i, arg := range expr.Args {
 		if i == 0 {
-			if isCmdName(arg) {
-				t.emit(arg.Parts[0].(*syntax.Lit).Value)
-			} else {
-				panic("FIXME: non command literal")
-			}
+			t.visitCmdName(arg)
 		} else {
 			t.emit(" ")
 			t.visitWordParts(arg.Parts)
@@ -159,8 +167,15 @@ func (t *Translator) visitWordParts(parts []syntax.WordPart) {
 		switch n := part.(type) {
 		case *syntax.Lit:
 			t.emit(n.Value)
+		case *syntax.SglQuoted:
+			if n.Dollar {
+				t.emit("$")
+			}
+			t.emit("'")
+			t.emit(n.Value)
+			t.emit("'")
 		default:
-			panic(fmt.Sprintf("unsupported node type %T", n))
+			fixmeCase(n)
 		}
 	}
 }
