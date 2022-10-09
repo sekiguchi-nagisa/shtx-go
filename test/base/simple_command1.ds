@@ -1,0 +1,19 @@
+# RUN: eval $cmd $self
+
+source ../../shtx
+
+assert "$(fake_eval "echo hello world")" == 'hello world'
+assert $? == 0
+
+assert "$(fake_eval 'true; echo hello
+echo world
+false
+')" == $'hello\nworld'
+
+assert $? == 1
+
+true
+
+# CHECK_RE" ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

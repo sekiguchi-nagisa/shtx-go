@@ -1,4 +1,3 @@
-
 #!/usr/bin/env ydsh
 
 # Copyright (C) 2022 Nagisa Sekiguchi
@@ -14,3 +13,46 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+
+var SHTX_DEV_MODE = $false
+
+var _SHTX_GO_BIN_PATH = ""
+
+_error() : Nothing {
+    echo 2>&1 $@
+    exit 1
+}
+
+_try_fetch_bin() {
+    if $SHTX_DEV_MODE || (checkenv SHTX_DEV_MODE) {
+        assert command -v go &> /dev/null
+        if !(test -x $SCRIPT_DIR/shtx-go) {
+            # rebuild
+            (cd $SCRIPT_DIR && go build &) .wait()
+            test -x $SCRIPT_DIR/shtx-go || _error cannot build shtx-go
+        }
+        $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go"
+    } else {
+        shctl set traceonexit
+        _error TODO: download released binary
+    }
+}
+
+# evaluate bash script
+fake_eval() {
+    $@.empty() && return 0
+
+    _try_fetch_bin
+
+    var input = $@.shift()
+    var output = "$(eval $_SHTX_GO_BIN_PATH - <<< $input)"
+    if $? != 0 {
+        return 1
+    }
+
+    var func = $MODULE._func($output)()! as ([String]) -> Void
+    $func($@)
+}
+
+shctl is-sourced || fake_eval $@

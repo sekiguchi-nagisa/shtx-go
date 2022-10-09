@@ -1,0 +1,70 @@
+#!/usr/bin/env ydsh
+
+_usage() : Nothing {
+    echo 1>&2 $@
+    echo 1>&2 usage: $SCRIPT_NAME -b litecheck test_dir
+    exit 2
+}
+
+_main() {
+    # parse command argument
+    var litecheck = ""
+    var target_dir = ""
+    for (var i = 0; $i < $#; $i++) {
+        let arg = $@[$i]
+        case $arg {
+            "-b" =>
+                if $i + 1 < $# {
+                    $i++
+                    $litecheck = $@[$i]
+                } else {
+                    _usage -b option require litecheck path
+                }
+            $/^-.*/ => _usage "invalid option: $arg"
+            else => {
+                $target_dir = $arg
+                break
+            }
+        }
+    }
+    assert (test -f "$litecheck") : "require litecheck"
+    assert (test -d "$target_dir") : "require test directory"
+
+    # run each test script
+    shctl set nullglob
+    var targets : [String]
+    for target in @($target_dir/*) {
+        test -d $target && continue
+        $targets.add($target)
+    }
+
+    $targets.empty() && {
+        echo no test cases are found in $target_dir
+        return 125
+    }
+
+    if (checkenv SHTX_DEV_MODE) {
+        echo found ${$targets.size()} test cases in $target_dir with SHTX_DEV_MODE=on
+    } else {
+        echo found ${$targets.size()} test cases in $target_dir 
+    }
+    var failed : [String]
+    for target in $targets {
+        var r = eval $YDSH_BIN $litecheck -b $YDSH_BIN $target
+        echo ${$r ? "[OK]" : "[NG]"} $target
+        if !$r {
+            $failed.add($target)
+        }
+    }
+
+    if !$failed.empty() {
+        echo
+        echo the following test cases failed
+        for target in $failed {
+            echo "   " $target
+        }
+    }
+    return $failed.empty() ? 0 : 1
+}
+
+shctl is-sourced || _main $@

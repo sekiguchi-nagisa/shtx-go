@@ -1,0 +1,20 @@
+name: "End-to-End test"
+
+on: [ push ]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: End-to-end test target
+        uses: ./test/

@@ -1,0 +1,33 @@
+#!/usr/bin/env ydsh
+
+source path
+
+var debug = $false
+var file = "."
+
+for $arg in $@ {
+    case $arg {
+    '--debug' => $debug = $true;
+    else => if !$arg.startsWith('-') { $file = $arg; }
+    }
+}
+
+var root = $file.realpath()!
+if !(test -d $root) {
+    $root = $dirname($root)
+}
+
+let workdir = "$SCRIPT_DIR/../".realpath()!
+
+var name = "build_${$basename($root)}:1"
+echo Dockfile path: "`$root/Dockerfile'"
+echo build docker image: "`$name'"
+
+docker build -t $name -f $root/Dockerfile $workdir || exit $?
+
+if $debug {
+    docker run --rm -it $name /bin/sh
+} else {
+    docker run --rm -t $name
+}
+
