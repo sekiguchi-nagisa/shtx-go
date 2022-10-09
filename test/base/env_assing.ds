@@ -1,0 +1,27 @@
+# RUN: eval $cmd $self
+
+source ../../shtx
+
+## no env
+assert !checkenv ZZZZ
+assert "$(fake_eval "printenv ZZZZ")" == ''
+assert $? == 1
+assert !checkenv ZZZZ
+
+## assign env
+assert !checkenv ZZZZ
+assert !checkenv AAAA
+assert "$(fake_eval "AAAA=1234 \
+    ZZZZ='echo 'hell \
+    printenv \
+    ZZZZ \
+    AAAA")" == $'echo hell\n1234'
+assert $? == 0
+assert !checkenv ZZZZ
+assert !checkenv AAAA
+
+true
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

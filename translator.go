@@ -6,7 +6,7 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-func todo(s string) {
+func todo(s string) bool {
 	panic(fmt.Sprintf("[TODO] %s", s))
 }
 
@@ -122,8 +122,15 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 }
 
 func (t *Translator) visitAssigns(assigns []*syntax.Assign) {
-	if len(assigns) > 0 {
-		todo("support env assignment")
+	for _, assign := range assigns {
+		_ = assign.Append && todo("support +=")
+		_ = assign.Naked && todo("support Naked")
+		_ = assign.Index != nil && todo("support indexed assign")
+		_ = assign.Array != nil && todo("support array literal assign")
+		t.emit(assign.Name.Value)
+		t.emit("=")
+		t.visitWordParts(assign.Value.Parts)
+		t.emit(" ")
 	}
 }
 
@@ -151,6 +158,10 @@ func (t *Translator) visitCmdName(word *syntax.Word) {
 }
 
 func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
+	if len(expr.Assigns) > 0 && len(expr.Args) == 0 {
+		todo("support normal assignment")
+	}
+
 	t.visitAssigns(expr.Assigns)
 	for i, arg := range expr.Args {
 		if i == 0 {

@@ -26,6 +26,6 @@ assert $? == 0
 
 true
 
-# CHECK_RE" ^$
+# CHECK_RE: ^$
 # CHECKERR_RE: ^$
 # STATUS: 0
