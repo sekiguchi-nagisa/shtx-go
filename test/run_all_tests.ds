@@ -8,5 +8,8 @@ assert test -x ./run_test.ds
 
 # run test cases
 
+echo '@@run test: SHTX_DEV_MODE=on ./run_test.ds -b /ydsh/tools/litecheck/litecheck ./common'
+SHTX_DEV_MODE=on ./run_test.ds -b /ydsh/tools/litecheck/litecheck ./common
+
 echo '@@run test: SHTX_DEV_MODE=on ./run_test.ds -b /ydsh/tools/litecheck/litecheck ./base'
 SHTX_DEV_MODE=on ./run_test.ds -b /ydsh/tools/litecheck/litecheck ./base

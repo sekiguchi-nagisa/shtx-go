@@ -1,0 +1,40 @@
+# RUN: eval $cmd $self
+
+# helper function for testing
+
+source ../../shtx
+
+# assert_fake_eval script output
+assert_fake_eval() {
+    assert $# >= 2 : "require 2 arguments: `script' `output'"
+    var script = $@.shift()
+    var output = $@.shift()
+
+    # check bash output
+    assert "$(bash -c "$script" $@)" == $output
+
+    # check translated code output
+    assert "$(fake_eval "$script" $@)" == $output
+}
+
+
+_test() {
+    assert_fake_eval '' ''
+    assert $? == 0
+
+    assert_fake_eval 'echo hello' 'hello'
+    assert $? == 0
+
+    assert_fake_eval 'exit 56' ''
+    assert $? == 56
+
+    true
+}
+
+
+shctl is-sourced || _test $@
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

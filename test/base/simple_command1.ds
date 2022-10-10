@@ -1,27 +1,29 @@
 # RUN: eval $cmd $self
 
 source ../../shtx
+source ../common/assert.ds
 
 ## simple command with literal arguments
 assert "$(fake_eval "echo hello world")" == 'hello world'
 assert $? == 0
 
-assert "$(fake_eval 'true; echo hello
+assert_fake_eval \
+'true; echo hello
 echo world
 false
-')" == $'hello\nworld'
+' $'hello\nworld'
 assert $? == 1
 
-assert "$(fake_eval '\echo \\hello')" == '\hello'
+assert_fake_eval '\echo \\hello' '\hello'
 assert $? == 0
 
 ## simple command with single quoted string arguments
-assert "$(fake_eval "echo '123\w'123\$'abc\\t@@'")" == $'123\\w123abc\t@@'
+assert_fake_eval "echo '123\w'123\$'abc\\t@@'" $'123\\w123abc\t@@'
 assert $? == 0
 
-assert "$(fake_eval "echo 'abc
+assert_fake_eval "echo 'abc
 123'
-echo false")" == $'abc\n123\nfalse'
+echo false" $'abc\n123\nfalse'
 assert $? == 0
 
 true
