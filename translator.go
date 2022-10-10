@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"mvdan.cc/sh/v3/syntax"
+	"strconv"
 )
 
 func todo(s string) bool {
@@ -113,17 +114,50 @@ func (t *Translator) visitStmt(stmt *syntax.Stmt) {
 }
 
 func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect) {
-
+	cmdRedir := false
 	switch n := cmd.(type) {
 	case nil:
+		cmdRedir = true
 		t.emit(":") //FIXME: '> /dev/null' or '< /dev/null' semantics
 	case *syntax.CallExpr:
+		cmdRedir = true
 		t.visitCallExpr(n)
 	default:
 		fixmeCase(n)
 	}
-	if redirs != nil {
-		todo("support redirection")
+	t.visitRedirects(redirs, cmdRedir)
+}
+
+func toRedirOpStr(op syntax.RedirOperator) string {
+	switch op {
+	case syntax.RdrOut, syntax.AppOut, syntax.RdrIn, syntax.DplOut,
+		syntax.WordHdoc, syntax.RdrAll, syntax.AppAll:
+		return op.String()
+	default:
+		todo("unsupported redir op: " + op.String())
+	}
+	return ""
+}
+
+func (t *Translator) visitRedirects(redirs []*syntax.Redirect, cmd bool) {
+	if len(redirs) > 0 && !cmd {
+		t.emit(" with")
+	}
+	for _, redir := range redirs {
+		t.emit(" ")
+		if redir.N != nil {
+			fd, e := strconv.Atoi(redir.N.Value)
+			if e != nil {
+				todo("must be integer: " + redir.N.Value)
+			}
+			if fd != 1 && fd != 2 {
+				todo("only allow 1 or 2")
+			}
+			t.emit(strconv.Itoa(fd))
+		}
+		t.emit(toRedirOpStr(redir.Op))
+		t.visitWordParts(redir.Word.Parts, false)
+		_ = redir.Hdoc != nil && todo("support heredoc")
 	}
 }
 

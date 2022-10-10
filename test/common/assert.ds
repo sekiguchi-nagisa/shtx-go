@@ -12,9 +12,14 @@ assert_fake_eval() {
 
     # check bash output
     assert "$(bash -c "$script" $@)" == $output
+    var s1 = $?
 
     # check translated code output
     assert "$(fake_eval "$script" $@)" == $output
+    var s2 = $?
+
+    assert $s1 == $s2
+    return $s2
 }
 
 

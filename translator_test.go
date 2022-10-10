@@ -46,6 +46,30 @@ false;
   __shtx_dyna_call "echo" "hello"\ \ 'world'
 }
 `},
+	{"echo 1>& 3", `function(args : [String]) => {
+  echo 1>&3
+}
+`},
+	{"echo 1 >&2", `function(args : [String]) => {
+  echo 1 >&2
+}
+`},
+	{"echo >>hoge", `function(args : [String]) => {
+  echo >>hoge
+}
+`},
+	{"echo &>>hoge", `function(args : [String]) => {
+  echo &>>hoge
+}
+`},
+	{"echo &>hoge", `function(args : [String]) => {
+  echo &>hoge
+}
+`},
+	{"echo <hoge", `function(args : [String]) => {
+  echo <hoge
+}
+`},
 }
 
 func TestBase(t *testing.T) {

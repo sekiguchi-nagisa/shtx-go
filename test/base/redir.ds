@@ -1,0 +1,39 @@
+# RUN: eval $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+## redir out
+assert_fake_eval \
+    "echo hello1 > /dev/null" ""
+assert $? == 0
+
+assert_fake_eval \
+    "echo hello2 1>&2" ""
+assert $? == 0
+# CHECKERR: hello2
+# CHECKERR: hello2
+
+## err
+assert_fake_eval \
+    "sh -c 'echo hello3 1>&2'" ""
+assert $? == 0
+# CHECKERR: hello3
+# CHECKERR: hello3
+
+## redir err
+assert_fake_eval \
+    "sh -c 'echo hello4 1>&2' 2>/dev/null" ""
+assert $? == 0
+
+assert_fake_eval \
+    "sh -c 'echo hello5 1>&2' 2>&1" "hello5"
+assert $? == 0
+
+## redir in
+assert_fake_eval \
+    "cat <<< 'hello world '@" "hello world @"
+assert $? == 0
+
+# CHECK_RE: ^$
+# STATUS: 0
