@@ -25,10 +25,11 @@ const (
 )
 
 type Translator struct {
-	out    io.Writer // for output
-	dump   io.Writer // for parsed ast dump
-	option TranslatorOptions
-	level  int
+	out         io.Writer // for output
+	dump        io.Writer // for parsed ast dump
+	option      TranslatorOptions
+	indentLevel int
+	funcLevel   int
 }
 
 func NewTranslator() *Translator {
@@ -46,9 +47,10 @@ func (t *Translator) SetDump(d io.Writer) {
 }
 
 func (t *Translator) Translate(in io.Reader, out io.Writer) error {
-	// reset io
+	// reset state
 	t.out = out
-	t.level = 0
+	t.indentLevel = 0
+	t.funcLevel = 0
 
 	// parse
 	f, e := syntax.NewParser().Parse(in, "")
@@ -85,18 +87,22 @@ func (t *Translator) newline() {
 }
 
 func (t *Translator) indent() {
-	for i := 0; i < t.level; i++ {
+	for i := 0; i < t.indentLevel; i++ {
 		t.emit("  ")
 	}
 }
 
+func (t *Translator) isToplevel() bool {
+	return t.funcLevel == 0
+}
+
 func (t *Translator) visitFile(file *syntax.File) {
 	t.emitLine("function(args : [String]) => {")
-	t.level++
+	t.indentLevel++
 	for _, stmt := range file.Stmts {
 		t.visitStmt(stmt)
 	}
-	t.level--
+	t.indentLevel--
 	t.emitLine("}")
 }
 
@@ -129,7 +135,7 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign) {
 		_ = assign.Array != nil && todo("support array literal assign")
 		t.emit(assign.Name.Value)
 		t.emit("=")
-		t.visitWordParts(assign.Value.Parts)
+		t.visitWordParts(assign.Value.Parts, false)
 		t.emit(" ")
 	}
 }
@@ -154,7 +160,7 @@ func (t *Translator) visitCmdName(word *syntax.Word) {
 		t.emit(word.Parts[0].(*syntax.Lit).Value)
 	} else { //FIXME: replace some builtin command with runtime helper functions
 		t.emit("__shtx_dyna_call ")
-		t.visitWordParts(word.Parts)
+		t.visitWordParts(word.Parts, false)
 	}
 }
 
@@ -169,12 +175,12 @@ func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 			t.visitCmdName(arg)
 		} else {
 			t.emit(" ")
-			t.visitWordParts(arg.Parts)
+			t.visitWordParts(arg.Parts, false)
 		}
 	}
 }
 
-func (t *Translator) visitWordParts(parts []syntax.WordPart) {
+func (t *Translator) visitWordParts(parts []syntax.WordPart, dquoted bool) {
 	for _, part := range parts {
 		switch n := part.(type) {
 		case *syntax.Lit:
@@ -186,6 +192,12 @@ func (t *Translator) visitWordParts(parts []syntax.WordPart) {
 			t.emit("'")
 			t.emit(n.Value)
 			t.emit("'")
+		case *syntax.DblQuoted:
+			// always ignore prefix dollar
+			//FIXME: warning if Dollar is true ?
+			t.emit("\"")
+			t.visitWordParts(n.Parts, true)
+			t.emit("\"")
 		default:
 			fixmeCase(n)
 		}

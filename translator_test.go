@@ -42,6 +42,10 @@ false;
   __shtx_dyna_call e'ch''o' hello
 }
 `},
+	{`"echo" $"hello"\ \ 'world'`, `function(args : [String]) => {
+  __shtx_dyna_call "echo" "hello"\ \ 'world'
+}
+`},
 }
 
 func TestBase(t *testing.T) {
