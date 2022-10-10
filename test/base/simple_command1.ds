@@ -26,6 +26,13 @@ assert_fake_eval "echo 'abc
 echo false" $'abc\n123\nfalse'
 assert $? == 0
 
+## non-literal command
+assert_fake_eval "'ec'\ho abcd; \exit 255" "abcd"
+assert $? == 255
+
+assert_fake_eval "':' # this; " ""
+assert $? == 0
+
 true
 
 # CHECK_RE: ^$

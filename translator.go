@@ -152,8 +152,9 @@ func isCmdLiteral(word *syntax.Word) bool {
 func (t *Translator) visitCmdName(word *syntax.Word) {
 	if isCmdLiteral(word) {
 		t.emit(word.Parts[0].(*syntax.Lit).Value)
-	} else {
-		todo("support non-command literal")
+	} else { //FIXME: replace some builtin command with runtime helper functions
+		t.emit("__shtx_dyna_call ")
+		t.visitWordParts(word.Parts)
 	}
 }
 

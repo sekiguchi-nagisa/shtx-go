@@ -38,6 +38,10 @@ false;
   echo hello'he\y'$'\x00qq\na'
 }
 `},
+	{`e'ch''o' hello`, `function(args : [String]) => {
+  __shtx_dyna_call e'ch''o' hello
+}
+`},
 }
 
 func TestBase(t *testing.T) {

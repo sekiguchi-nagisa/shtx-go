@@ -39,6 +39,21 @@ _try_fetch_bin() {
     }
 }
 
+# +++++ runtime helper functions (starts with __shtx_) +++++
+
+# dynamically resolve command name
+__shtx_dyna_call() {
+    $@.empty() && return 0
+
+    var cmd = $@.shift()
+
+    # FIXME: remap command name
+    eval "$cmd" $@
+}
+
+
+# +++++ public api functions (starts with fake_) +++++
+
 # evaluate bash script
 fake_eval() {
     $@.empty() && return 0
