@@ -6,7 +6,7 @@ source ../../shtx
 
 # assert_fake_eval script output
 assert_fake_eval() {
-    assert $# >= 2 : "require 2 arguments: `script' `output'"
+    assert $# >= 2 : "require 2 arguments: 'script' 'output'"
     var script = $@.shift()
     var output = $@.shift()
 
