@@ -110,6 +110,9 @@ func (t *Translator) visitFile(file *syntax.File) {
 func (t *Translator) visitStmt(stmt *syntax.Stmt) {
 	t.indent()
 	t.visitCommand(stmt.Cmd, stmt.Redirs)
+	_ = stmt.Negated && todo("support !")
+	_ = stmt.Background && todo("support &")
+	_ = stmt.Coprocess && todo("unsupported |&")
 	t.newline()
 }
 
@@ -232,6 +235,26 @@ func (t *Translator) visitWordParts(parts []syntax.WordPart, dquoted bool) {
 			t.emit("\"")
 			t.visitWordParts(n.Parts, true)
 			t.emit("\"")
+		case *syntax.CmdSubst:
+			_ = n.TempFile && todo("not support ${")
+			_ = n.ReplyVar && todo("not support ${|")
+			if len(n.Stmts) == 0 {
+				// skip empty command substitution, $(), ``, `# this is a comment`
+				continue
+			} else if len(n.Stmts) == 1 {
+				t.emit("$(")
+				t.visitCommand(n.Stmts[0].Cmd, n.Stmts[0].Redirs)
+				t.emit(")")
+			} else {
+				t.emitLine("$({")
+				t.indentLevel++
+				for _, stmt := range n.Stmts {
+					t.visitStmt(stmt)
+				}
+				t.indentLevel--
+				t.indent()
+				t.emit("})")
+			}
 		default:
 			fixmeCase(n)
 		}

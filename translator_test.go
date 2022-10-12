@@ -70,6 +70,17 @@ false;
   echo <hoge
 }
 `},
+	{"echo `echo hello` `  # this is a comment` A", `function(args : [String]) => {
+  echo $(echo hello)  A
+}
+`},
+	{`$(echo "$(echo AAA; echo BBB)")`, `function(args : [String]) => {
+  __shtx_dyna_call $(echo "$({
+    echo AAA
+    echo BBB
+  })")
+}
+`},
 }
 
 func TestBase(t *testing.T) {
