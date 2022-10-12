@@ -7,6 +7,12 @@ source ../common/assert.ds
 assert "$(fake_eval "echo hello world")" == 'hello world'
 assert $? == 0
 
+assert "$(fake_eval "echo" hello world)" == 'hello world'
+assert $? == 0
+
+assert "$(fake_eval "echo" hello ';' echo world)" == $'hello\nworld'
+assert $? == 0
+
 assert_fake_eval \
 'true; echo hello
 echo world

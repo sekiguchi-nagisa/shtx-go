@@ -11,11 +11,12 @@ assert_fake_eval() {
     var output = $@.shift()
 
     # check bash output
-    assert "$(bash -c "$script" $@)" == $output
+    $script = [$script].addAll($@).join(" ")
+    assert "$(bash -c "$script")" == $output
     var s1 = $?
 
     # check translated code output
-    assert "$(fake_eval "$script" $@)" == $output
+    assert "$(fake_eval "$script")" == $output
     var s2 = $?
 
     assert $s1 == $s2
@@ -28,6 +29,12 @@ _test() {
     assert $? == 0
 
     assert_fake_eval 'echo hello' 'hello'
+    assert $? == 0
+
+    assert_fake_eval 'echo A' 'A B C' B C
+    assert $? == 0
+
+    assert_fake_eval 'echo A' $'A\nB' ';' echo B
     assert $? == 0
 
     assert_fake_eval 'exit 56' ''

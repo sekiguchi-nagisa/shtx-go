@@ -60,14 +60,12 @@ fake_eval() {
 
     _try_fetch_bin
 
-    var input = $@.shift()
+    var input = $@.join(" ")
     var output = "$(eval $_SHTX_GO_BIN_PATH - <<< $input)"
     if $? != 0 {
         return 1
     }
-
-    var func = $MODULE._func($output)()! as ([String]) -> Void
-    $func($@)
+    $MODULE._func($output)()
 }
 
 shctl is-sourced || fake_eval $@
