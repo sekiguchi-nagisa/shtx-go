@@ -11,7 +11,7 @@ var testCases = []struct {
 	before string
 	after  string
 }{
-	{"echo hello", `{
+	{"echo hello", `function(argv : [String]) => {
   echo hello
 }
 `},
@@ -19,62 +19,62 @@ var testCases = []struct {
 ps ax  # this is a comment
 # comment
 false;
-`, `{
+`, `function(argv : [String]) => {
   ls -la
   ps ax
   false
 }
 `},
-	{"# this is a comment", `{
+	{"# this is a comment", `function(argv : [String]) => {
 }
 `},
-	{"echo AAA; echo BBB; echo CCC;", `{
+	{"echo AAA; echo BBB; echo CCC;", `function(argv : [String]) => {
   echo AAA
   echo BBB
   echo CCC
 }
 `},
-	{`echo hello'he\y'$'\x00qq\na'`, `{
+	{`echo hello'he\y'$'\x00qq\na'`, `function(argv : [String]) => {
   echo hello'he\y'$'\x00qq\na'
 }
 `},
-	{`e'ch''o' hello`, `{
+	{`e'ch''o' hello`, `function(argv : [String]) => {
   __shtx_dyna_call e'ch''o' hello
 }
 `},
-	{`"echo" $"hello"\ \ 'world'`, `{
+	{`"echo" $"hello"\ \ 'world'`, `function(argv : [String]) => {
   __shtx_dyna_call "echo" "hello"\ \ 'world'
 }
 `},
-	{"echo 1>& 3", `{
+	{"echo 1>& 3", `function(argv : [String]) => {
   echo 1>&3
 }
 `},
-	{"echo 1 >&2", `{
+	{"echo 1 >&2", `function(argv : [String]) => {
   echo 1 >&2
 }
 `},
-	{"echo >>hoge", `{
+	{"echo >>hoge", `function(argv : [String]) => {
   echo >>hoge
 }
 `},
-	{"echo &>>hoge", `{
+	{"echo &>>hoge", `function(argv : [String]) => {
   echo &>>hoge
 }
 `},
-	{"echo &>hoge", `{
+	{"echo &>hoge", `function(argv : [String]) => {
   echo &>hoge
 }
 `},
-	{"echo <hoge", `{
+	{"echo <hoge", `function(argv : [String]) => {
   echo <hoge
 }
 `},
-	{"echo `echo hello` `  # this is a comment` A", `{
+	{"echo `echo hello` `  # this is a comment` A", `function(argv : [String]) => {
   echo $(echo hello)  A
 }
 `},
-	{`$(echo "$(echo AAA; echo BBB)")`, `{
+	{`$(echo "$(echo AAA; echo BBB)")`, `function(argv : [String]) => {
   __shtx_dyna_call $(echo "$({
     echo AAA
     echo BBB

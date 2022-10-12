@@ -54,7 +54,7 @@ __shtx_dyna_call() {
 
 # +++++ public api functions (starts with fake_) +++++
 
-# evaluate bash script
+# evaluate bash script (emulate bash eval command)
 fake_eval() {
     $@.empty() && return 0
 
@@ -65,7 +65,8 @@ fake_eval() {
     if $? != 0 {
         return 1
     }
-    $MODULE._func($output)()
+    var func = $MODULE._func($output)()! as ([String]) -> Void
+    $func(new [String]())
 }
 
 shctl is-sourced || fake_eval $@

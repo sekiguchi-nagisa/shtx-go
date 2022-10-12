@@ -98,7 +98,7 @@ func (t *Translator) isToplevel() bool {
 }
 
 func (t *Translator) visitFile(file *syntax.File) {
-	t.emitLine("{")
+	t.emitLine("function(argv : [String]) => {")
 	t.indentLevel++
 	for _, stmt := range file.Stmts {
 		t.visitStmt(stmt)
