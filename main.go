@@ -11,7 +11,7 @@ import (
 type Options struct {
 	DumpAST string `short:"d" long:"dump" description:"Dump internal ast to specified file (default to stderr)" optional:"true" optional-value:"/dev/stderr"`
 	Version bool   `short:"v" long:"version" description:"Show version info"`
-	Echo    bool   `long:"echo" description:"Echo input with pretty print (no translation)"`
+	Type    string `short:"t" long:"type" description:"Type of translation" choice:"eval" choice:"source" choice:"none" default:"eval"`
 	Args    struct {
 		SCRIPT string
 	} `positional-args:"yes"`
@@ -24,6 +24,12 @@ func getVersion() string {
 	} else {
 		return "(unknown)"
 	}
+}
+
+var transTypes = map[string]TranslationType{
+	"none":   TranslateNone,
+	"eval":   TranslateEval,
+	"source": TranslateSource,
 }
 
 func main() {
@@ -60,7 +66,7 @@ func main() {
 	}
 
 	b := bufio.NewReader(f)
-	tx := NewTranslator()
+	tx := NewTranslator(transTypes[options.Type])
 	if len(options.DumpAST) != 0 {
 		d, e := os.Create(options.DumpAST)
 		defer d.Close()
@@ -69,9 +75,6 @@ func main() {
 			os.Exit(1)
 		}
 		tx.SetDump(d)
-	}
-	if options.Echo {
-		tx.SetOption(NoTranslate)
 	}
 
 	if e := tx.Translate(b, os.Stdout); e != nil {

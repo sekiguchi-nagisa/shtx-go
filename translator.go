@@ -15,32 +15,26 @@ func fixmeCase(a any) {
 	panic(fmt.Sprintf("[FIXME] unsupported switch-case type %T", a))
 }
 
-type TranslatorOptions uint
+type TranslationType int
 
 const (
-	// None is no options (default)
-	None TranslatorOptions = 0
-
-	// NoTranslate does not perform translate (just echo input)
-	NoTranslate = 1 << iota
+	TranslateNone TranslationType = iota
+	TranslateEval
+	TranslateSource
 )
 
 type Translator struct {
 	out         io.Writer // for output
 	dump        io.Writer // for parsed ast dump
-	option      TranslatorOptions
+	tranType    TranslationType
 	indentLevel int
 	funcLevel   int
 }
 
-func NewTranslator() *Translator {
+func NewTranslator(tt TranslationType) *Translator {
 	return &Translator{
-		option: None,
+		tranType: tt,
 	}
-}
-
-func (t *Translator) SetOption(options TranslatorOptions) {
-	t.option |= options
 }
 
 func (t *Translator) SetDump(d io.Writer) {
@@ -67,10 +61,17 @@ func (t *Translator) Translate(in io.Reader, out io.Writer) error {
 	}
 
 	// translate
-	if t.option&NoTranslate == NoTranslate {
+	switch t.tranType {
+	case TranslateNone:
 		syntax.NewPrinter().Print(t.out, f)
-	} else {
-		t.visitFile(f)
+	case TranslateEval:
+		t.emitLine("{")
+		t.visitStmts(f.Stmts)
+		t.emitLine("}")
+	case TranslateSource:
+		t.emitLine("function(argv : [String]) => {")
+		t.visitStmts(f.Stmts)
+		t.emitLine("}")
 	}
 	return nil
 }
@@ -97,23 +98,17 @@ func (t *Translator) isToplevel() bool {
 	return t.funcLevel == 0
 }
 
-func (t *Translator) visitFile(file *syntax.File) {
-	t.emitLine("{")
+func (t *Translator) visitStmts(stmts []*syntax.Stmt) {
 	t.indentLevel++
-	for _, stmt := range file.Stmts {
-		t.visitStmt(stmt)
+	for _, stmt := range stmts {
+		t.indent()
+		t.visitCommand(stmt.Cmd, stmt.Redirs)
+		_ = stmt.Negated && todo("support !")
+		_ = stmt.Background && todo("support &")
+		_ = stmt.Coprocess && todo("unsupported |&")
+		t.newline()
 	}
 	t.indentLevel--
-	t.emitLine("}")
-}
-
-func (t *Translator) visitStmt(stmt *syntax.Stmt) {
-	t.indent()
-	t.visitCommand(stmt.Cmd, stmt.Redirs)
-	_ = stmt.Negated && todo("support !")
-	_ = stmt.Background && todo("support &")
-	_ = stmt.Coprocess && todo("unsupported |&")
-	t.newline()
 }
 
 func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect) {
@@ -247,11 +242,7 @@ func (t *Translator) visitWordParts(parts []syntax.WordPart, dquoted bool) {
 				t.emit(")")
 			} else {
 				t.emitLine("$({")
-				t.indentLevel++
-				for _, stmt := range n.Stmts {
-					t.visitStmt(stmt)
-				}
-				t.indentLevel--
+				t.visitStmts(n.Stmts)
 				t.indent()
 				t.emit("})")
 			}

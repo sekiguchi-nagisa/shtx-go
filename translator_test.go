@@ -85,7 +85,7 @@ false;
 
 func TestBase(t *testing.T) {
 	for _, testCase := range testCases {
-		tx := NewTranslator()
+		tx := NewTranslator(TranslateEval)
 		assert.NotNil(t, tx)
 
 		r := strings.NewReader(testCase.before)
