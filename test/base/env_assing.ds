@@ -10,12 +10,10 @@ assert_fake_eval "HOGE=@@@ printenv HOGE" "@@@"
 
 ## assign env
 assert !checkenv ZZZZ
-assert !checkenv AAAA
-assert "$({ fake_eval "AAAA=1234 \
+assert "$({ fake_eval "
     ZZZZ='echo 'hell \
     printenv \
-    ZZZZ \
-    AAAA"; assert $? == 0; assert !checkenv ZZZZ; assert !checkenv AAAA; })" == $'echo hell\n1234'
+    ZZZZ"; assert $? == 0; assert !checkenv ZZZZ; })" == $'echo hell'
 
 true
 
