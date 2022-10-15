@@ -81,6 +81,14 @@ false;
   })")
 }
 `},
+	{`AAA=12 BBB="$(false)" CCC=`, `{
+  __shtx_var_set AAA 12; __shtx_var_set BBB "$(false)"; __shtx_var_set CCC 
+}
+`},
+	{`echo "$AAA" ge"(${GGG}}"`, `{
+  echo "${$__shtx_var_get('AAA')}" ge"(${$__shtx_var_get('GGG')}}"
+}
+`},
 }
 
 func TestBase(t *testing.T) {

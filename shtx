@@ -15,7 +15,12 @@
 # limitations under the License.
 
 
+# +++++ public configuration variables (starts with SHTX_) ++++++
+
+# if true, use current shtx-go binary
 var SHTX_DEV_MODE = $false
+
+# +++++ helper functions +++++
 
 var _SHTX_GO_BIN_PATH = ""
 
@@ -39,7 +44,85 @@ _try_fetch_bin() {
     }
 }
 
+# +++++ for shell variable +++++
+
+let __VAR_ATTR_EXPORT = 0x01
+
+typedef _VarEntry(v: String!, a : Int!) {
+    var value = $v ?? ""  # if indicate env, value is env name
+    var attr = $a ?? 0
+}
+
+function hasAttr(attr : Int) : Bool for _VarEntry {
+    return ($this.attr and $attr) == $attr
+}
+
+# update value, if entry indicates env, update env value
+function assign(value : String) : String for _VarEntry {
+    if $this.hasAttr($__VAR_ATTR_EXPORT) {
+        setenv ${this.value}=$value
+    } else {
+        $this.value = $value
+    }
+    return $value
+}
+
+# get value. if entry indicates env, get env value
+function get() : String! for _VarEntry {
+    if $this.hasAttr($__VAR_ATTR_EXPORT) {
+        return (checkenv ${this.value}) ? "$(printenv ${this.value})" : new String!()
+    } else {
+        return $this.value
+    }
+}
+
+typedef _VarMap() {
+    let entries : [String : _VarEntry]
+}
+
+let _vars : _VarMap
+
+# get variable entry. if entry is not found, but corresponding env is found, set and return entry
+function get(name : String) : _VarEntry! for _VarMap {
+    return $this.entries.get($name) ?? {
+        if(checkenv "$name") {
+            var e = new _VarEntry($name, $__VAR_ATTR_EXPORT)
+            $this.entries.put($name, $e)
+            return $e
+        }
+        return new _VarEntry!()
+    }
+}
+
+function set(name : String, entry : _VarEntry) for _VarMap {
+    $this.entries.put($name, $entry)
+}
+
 # +++++ runtime helper functions (starts with __shtx_) +++++
+
+# for global varibale access
+function __shtx_var_get(param : String, op : String!, word : String!) : String {
+    assert !$param.empty()
+
+    var e = $_vars.get($param)
+    if $e {
+        return $e!.get() ?? ""
+    }
+    return ""
+}
+
+__shtx_var_set() {
+    var param = $1 :- return 0
+    var word = $2
+
+    var e = $_vars.get($param)
+    if $e {
+        $e!.assign($word)
+    } else {
+        $_vars.set($param, new _VarEntry($word, 0))
+    }
+    return 0
+}
 
 # dynamically resolve command name
 __shtx_dyna_call() {

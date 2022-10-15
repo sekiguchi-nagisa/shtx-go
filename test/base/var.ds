@@ -1,0 +1,42 @@
+# RUN: eval $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+# set
+## undefined
+assert_fake_eval 'ZZZZ=AAAA; printenv ZZZZ' ''
+assert $? == 1
+
+assert_fake_eval 'HOME=AAAA HOME2=BBBB; printenv HOME2' ''
+assert $? == 1
+
+## env
+assert_fake_eval 'HOME=AAAA HOME2=BBBB; printenv HOME' 'AAAA'
+assert $? == 0
+
+assert "$({ 
+    fake_eval "HOME=AAA; printenv HOME"; 
+    assert $? == 0
+    importenv HOME; assert $HOME == "AAA"
+ })" == "AAA"
+
+# get
+assert_fake_eval 'echo "($AAA)"' '()'
+assert $? == 0
+
+assert_fake_eval 'AAA=34; echo "($AAA)"' '(34)'
+assert $? == 0
+
+## env
+importenv HOME
+
+assert_fake_eval 'echo "($HOME)"' "(${HOME})"
+assert $? == 0
+
+assert_fake_eval 'echo "($HOME)"; HOME=; printenv HOME' "(${HOME})"
+assert $? == 0
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

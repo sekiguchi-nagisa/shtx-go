@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"mvdan.cc/sh/v3/syntax"
+	"regexp"
 	"strconv"
 )
 
@@ -159,16 +160,30 @@ func (t *Translator) visitRedirects(redirs []*syntax.Redirect, cmd bool) {
 	}
 }
 
-func (t *Translator) visitAssigns(assigns []*syntax.Assign) {
-	for _, assign := range assigns {
+func (t *Translator) visitAssigns(assigns []*syntax.Assign, envAssign bool) {
+	for i, assign := range assigns {
 		_ = assign.Append && todo("support +=")
 		_ = assign.Naked && todo("support Naked")
 		_ = assign.Index != nil && todo("support indexed assign")
 		_ = assign.Array != nil && todo("support array literal assign")
-		t.emit(assign.Name.Value)
-		t.emit("=")
-		t.visitWordParts(assign.Value.Parts, false)
-		t.emit(" ")
+		if envAssign {
+			t.emit(assign.Name.Value)
+			t.emit("=")
+			if assign.Value != nil {
+				t.visitWordParts(assign.Value.Parts, false)
+			}
+			t.emit(" ")
+		} else {
+			if i > 0 {
+				t.emit("; ")
+			}
+			t.emit("__shtx_var_set ")
+			t.emit(assign.Name.Value)
+			t.emit(" ")
+			if assign.Value != nil {
+				t.visitWordParts(assign.Value.Parts, false)
+			}
+		}
 	}
 }
 
@@ -197,11 +212,8 @@ func (t *Translator) visitCmdName(word *syntax.Word) {
 }
 
 func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
-	if len(expr.Assigns) > 0 && len(expr.Args) == 0 {
-		todo("support normal assignment")
-	}
-
-	t.visitAssigns(expr.Assigns)
+	envAssign := len(expr.Args) > 0
+	t.visitAssigns(expr.Assigns, envAssign)
 	for i, arg := range expr.Args {
 		if i == 0 {
 			t.visitCmdName(arg)
@@ -210,6 +222,12 @@ func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 			t.visitWordParts(arg.Parts, false)
 		}
 	}
+}
+
+var ReIdentifier = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+
+func isVarName(name string) bool {
+	return ReIdentifier.MatchString(name)
 }
 
 func (t *Translator) visitWordParts(parts []syntax.WordPart, dquoted bool) {
@@ -230,6 +248,24 @@ func (t *Translator) visitWordParts(parts []syntax.WordPart, dquoted bool) {
 			t.emit("\"")
 			t.visitWordParts(n.Parts, true)
 			t.emit("\"")
+		case *syntax.ParamExp:
+			if !dquoted {
+				todo("support unquoted parameter expansion")
+			}
+			_ = n.Excl && todo("not support ${!a}")
+			_ = n.Length && todo("support ${#a}")
+			_ = n.Width && todo("not support ${%a}")
+			_ = n.Index != nil && todo("support ${a[i]}")
+			_ = n.Slice != nil && todo("not support ${a:x:y}")
+			_ = n.Repl != nil && todo("not support ${a/x/y}")
+			_ = n.Names != 0 && todo("not support ${!prefix*}")
+			_ = n.Exp != nil && todo("support expansion operator")
+			_ = !isVarName(n.Param.Value) && todo("currently only allow var name")
+			t.emit("${$__shtx_var_get(")
+			t.emit("'")
+			t.emit(n.Param.Value)
+			t.emit("'")
+			t.emit(")}")
 		case *syntax.CmdSubst:
 			_ = n.TempFile && todo("not support ${")
 			_ = n.ReplyVar && todo("not support ${|")

@@ -7,6 +7,7 @@ source ../common/assert.ds
 assert !checkenv ZZZZ
 assert "$({ fake_eval "printenv ZZZZ"; assert $? == 1; assert !checkenv ZZZZ; })" == ''
 assert_fake_eval "HOGE=@@@ printenv HOGE" "@@@"
+assert_fake_eval "HOGE=@@@ printenv HOGE; HOME= printenv HOME" "@@@"
 
 ## assign env
 assert !checkenv ZZZZ
