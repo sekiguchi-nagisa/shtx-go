@@ -37,6 +37,25 @@ assert $? == 0
 assert_fake_eval 'echo "($HOME)"; HOME=; printenv HOME' "(${HOME})"
 assert $? == 0
 
+# export
+assert_fake_eval 'export ABCDE="$(echo hello)"; printenv ABCDE' 'hello'
+assert $? == 0
+
+assert_fake_eval 'e\xport AA=11 BB=22 CC=33; printenv AA; printenv BB; printenv CC' $'11\n22\n33'
+assert $? == 0
+
+# unset
+assert_fake_eval \
+    'export AAA=@@@; printenv AAA; echo "%${AAA}"; unset AAA; echo "$AAA"; printenv AAA' \
+    $'@@@\n%@@@'
+assert $? == 1
+
+assert_fake_eval \
+    'AAA=12; export BBB=@@; printenv AAA; printenv BBB; unset AAA BBB; echo "%${AAA}${BBB}%"' \
+    $'@@\n%%'
+assert $? == 0
+
+
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
 # STATUS: 0

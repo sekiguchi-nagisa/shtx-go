@@ -69,6 +69,7 @@ function assign(value : String) : String for _VarEntry {
 
 # get value. if entry indicates env, get env value
 function get() : String! for _VarEntry {
+    defer { $? = 0; }
     if $this.hasAttr($__VAR_ATTR_EXPORT) {
         return (checkenv ${this.value}) ? "$(printenv ${this.value})" : new String!()
     } else {
@@ -98,6 +99,14 @@ function set(name : String, entry : _VarEntry) for _VarMap {
     $this.entries.put($name, $entry)
 }
 
+function remove(name : String) : _VarEntry! for _VarMap {
+    var e = $this.entries.get($name)
+    if $e {
+        $this.entries.remove($name)
+    }
+    return $e
+}
+
 # +++++ runtime helper functions (starts with __shtx_) +++++
 
 # for global varibale access
@@ -119,18 +128,51 @@ __shtx_var_set() {
     if $e {
         $e!.assign($word)
     } else {
-        $_vars.set($param, new _VarEntry($word, 0))
+        $_vars.set($param, new _VarEntry($word))
     }
     return 0
 }
+
+# for bash export command
+__shtx_export() {
+    for arg in $@ {
+        ($arg.empty() || $arg.startsWith("-")) && continue
+        let i = $arg.indexOf('=')
+        let name = $i != -1 ? $arg.slice(0, $i) : $arg
+        var entry = new _VarEntry($name, $__VAR_ATTR_EXPORT)
+        if $i != -1 {
+            var value = $arg.slice($i + 1)
+            $entry.assign($value)
+        }
+        $_vars.set($name, $entry)
+    }
+    return 0
+}
+
+# for bash unset command
+__shtx_unset() {
+    for arg in $@ {
+        ($arg.empty() || $arg.startsWith("-")) && continue
+        var entry = $_vars.remove($arg)
+        !$entry && continue
+        if $entry!.hasAttr($__VAR_ATTR_EXPORT) {
+            unsetenv $arg
+        }
+    }
+    return 0
+}
+
 
 # dynamically resolve command name
 __shtx_dyna_call() {
     $@.empty() && return 0
 
     var cmd = $@.shift()
-
-    # FIXME: remap command name
+    $cmd = case $cmd {
+        'export' => '__shtx_export'
+        'unset' => '__shtx_unset'
+        else => $cmd
+    }
     eval "$cmd" $@
 }
 

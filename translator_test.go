@@ -85,8 +85,32 @@ false;
   __shtx_var_set AAA 12; __shtx_var_set BBB "$(false)"; __shtx_var_set CCC 
 }
 `},
+	{
+		`AA=12 BB=34 echo`, `{
+  AA=12 BB=34 echo
+}
+`},
 	{`echo "$AAA" ge"(${GGG}}"`, `{
   echo "${$__shtx_var_get('AAA')}" ge"(${$__shtx_var_get('GGG')}}"
+}
+`},
+	{`\ls -la`, `{
+  \ls -la
+}
+`},
+	{`\expor\t AAA=@@@; export BBB CCC=56`, `{
+  __shtx_export AAA=@@@
+  __shtx_export BBB CCC=56
+}
+`},
+	{
+		`\expo\rt AAA=12 BBB=45`, `{
+  __shtx_export AAA=12 BBB=45
+}
+`},
+	{`\uns\e\t A; unset B`, `{
+  __shtx_unset A
+  __shtx_unset B
 }
 `},
 }

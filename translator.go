@@ -6,6 +6,7 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 func todo(s string) bool {
@@ -112,6 +113,10 @@ func (t *Translator) visitStmts(stmts []*syntax.Stmt) {
 	t.indentLevel--
 }
 
+var declReplacement = map[string]string{
+	"export": "__shtx_export",
+}
+
 func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect) {
 	cmdRedir := false
 	switch n := cmd.(type) {
@@ -121,6 +126,14 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 	case *syntax.CallExpr:
 		cmdRedir = true
 		t.visitCallExpr(n)
+	case *syntax.DeclClause:
+		v, ok := declReplacement[n.Variant.Value]
+		if !ok {
+			todo("unsupported decl: " + n.Variant.Value)
+		}
+		t.emit(v)
+		t.emit(" ")
+		t.visitAssigns(n.Args, true)
 	default:
 		fixmeCase(n)
 	}
@@ -160,19 +173,23 @@ func (t *Translator) visitRedirects(redirs []*syntax.Redirect, cmd bool) {
 	}
 }
 
-func (t *Translator) visitAssigns(assigns []*syntax.Assign, envAssign bool) {
+func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 	for i, assign := range assigns {
 		_ = assign.Append && todo("support +=")
-		_ = assign.Naked && todo("support Naked")
+		_ = (assign.Naked && !shellAssign) && todo("support Naked")
 		_ = assign.Index != nil && todo("support indexed assign")
 		_ = assign.Array != nil && todo("support array literal assign")
-		if envAssign {
-			t.emit(assign.Name.Value)
-			t.emit("=")
-			if assign.Value != nil {
-				t.visitWordParts(assign.Value.Parts, false)
+		if shellAssign {
+			if i > 0 {
+				t.emit(" ")
 			}
-			t.emit(" ")
+			t.emit(assign.Name.Value)
+			if !assign.Naked {
+				t.emit("=")
+				if assign.Value != nil {
+					t.visitWordParts(assign.Value.Parts, false)
+				}
+			}
 		} else {
 			if i > 0 {
 				t.emit("; ")
@@ -202,10 +219,43 @@ func isCmdLiteral(word *syntax.Word) bool {
 	}
 }
 
+var cmdNameReplacement = map[string]string{
+	"export": "__shtx_export",
+	"unset":  "__shtx_unset",
+}
+
+func remapCmdName(name string) string {
+	builder := strings.Builder{}
+	builder.Grow(len(name))
+	r := []rune(name)
+	for i := 0; i < len(r); i++ {
+		c := r[i]
+		if c == '\\' {
+			i++
+			next := r[i]
+			switch next {
+			case '\n', '\r':
+				continue
+			default:
+				c = next
+			}
+		}
+		builder.WriteRune(c)
+	}
+	unescaped := builder.String()
+	v, ok := cmdNameReplacement[unescaped]
+	if ok {
+		return v
+	} else {
+		return name // if not found replacement, return original value
+	}
+}
+
 func (t *Translator) visitCmdName(word *syntax.Word) {
 	if isCmdLiteral(word) {
-		t.emit(word.Parts[0].(*syntax.Lit).Value)
-	} else { //FIXME: replace some builtin command with runtime helper functions
+		name := remapCmdName(word.Parts[0].(*syntax.Lit).Value)
+		t.emit(name)
+	} else {
 		t.emit("__shtx_dyna_call ")
 		t.visitWordParts(word.Parts, false)
 	}
@@ -214,6 +264,9 @@ func (t *Translator) visitCmdName(word *syntax.Word) {
 func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 	envAssign := len(expr.Args) > 0
 	t.visitAssigns(expr.Assigns, envAssign)
+	if len(expr.Assigns) > 0 && envAssign {
+		t.emit(" ")
+	}
 	for i, arg := range expr.Args {
 		if i == 0 {
 			t.visitCmdName(arg)
