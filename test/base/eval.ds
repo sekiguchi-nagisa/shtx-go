@@ -1,0 +1,17 @@
+# RUN: eval $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+assert_fake_eval 'eval "echo" hello world ' 'hello world'
+assert $? == 0
+
+assert_fake_eval 'eval "echo \"\$(echo AAA)\"" BBB' 'AAA BBB'
+assert $? == 0
+
+assert_fake_eval 'ZZZ=@@@ eval "AAA=\"\$ZZZ\""; echo "$AAA-$ZZZ"' '@@@-'
+assert $? == 0
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

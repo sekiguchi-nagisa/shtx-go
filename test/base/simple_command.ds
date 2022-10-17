@@ -4,6 +4,15 @@ source ../../shtx
 source ../common/assert.ds
 
 ## simple command with literal arguments
+assert "$(fake_eval 'true')" == ''
+assert $? == 0
+
+assert "$(fake_eval 'false')" == ''
+assert $? == 1
+
+assert "$(fake_eval exit 23)" == ''
+assert $? == 23
+
 assert "$(fake_eval "echo hello world")" == 'hello world'
 assert $? == 0
 

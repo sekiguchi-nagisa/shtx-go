@@ -171,6 +171,7 @@ __shtx_dyna_call() {
     $cmd = case $cmd {
         'export' => '__shtx_export'
         'unset' => '__shtx_unset'
+        'eval' => 'fake_eval'
         else => $cmd
     }
     eval "$cmd" $@

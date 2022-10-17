@@ -113,6 +113,10 @@ false;
   __shtx_unset B
 }
 `},
+	{`\eval echo hello`, `{
+  fake_eval echo hello
+}
+`},
 }
 
 func TestBase(t *testing.T) {
