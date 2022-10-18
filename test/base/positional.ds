@@ -1,0 +1,18 @@
+# RUN: eval $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+$@.clear()
+assert_fake_eval 'echo "$#: $0: $1: ${0002}: ${234})"' '0: bash: : : )'
+assert $? == 0
+
+var cmd = 'echo "$#: $0: $1: ${0002}: ${234})"' 
+$@.addAll(['aaa', 'bbb'])
+assert diff <(bash -c $cmd bash aaa bbb) <(fake_eval $cmd)
+assert "$(fake_eval $cmd)" == '2: bash: aaa: bbb: )'
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

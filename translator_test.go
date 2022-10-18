@@ -117,6 +117,10 @@ false;
   fake_eval echo hello
 }
 `},
+	{`echo "$#: $0: $1 ${002}"`, `{
+  echo "${$__shtx_var_get('#')}: ${$__shtx_var_get('0')}: ${$__shtx_var_get('1')} ${$__shtx_var_get('002')}"
+}
+`},
 }
 
 func TestBase(t *testing.T) {

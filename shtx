@@ -77,11 +77,13 @@ function get() : String! for _VarEntry {
     }
 }
 
-typedef _VarMap() {
+typedef _VarMap(_arg0 : String, _args : [String]) {
+    var arg0 = $_arg0
+    var args = $_args
     let entries : [String : _VarEntry]
 }
 
-let _vars : _VarMap
+let _vars = new _VarMap("bash", $@)
 
 # get variable entry. if entry is not found, but corresponding env is found, set and return entry
 function get(name : String) : _VarEntry! for _VarMap {
@@ -112,6 +114,16 @@ function remove(name : String) : _VarEntry! for _VarMap {
 # for global varibale access
 function __shtx_var_get(param : String, op : String!, word : String!) : String {
     assert !$param.empty()
+
+    case $param {
+        '#' => return $_vars.args.size() as String
+        $/^[0-9]/ => {  # FIXME: expansion op
+            var n = $param.toInt(10)!
+            assert $n > -1
+            return $n == 0 ? $_vars.arg0 : $_vars.args.get($n - 1) ?? ""
+        }
+        else => {}
+    }
 
     var e = $_vars.get($param)
     if $e {

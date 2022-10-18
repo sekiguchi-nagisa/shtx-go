@@ -279,9 +279,14 @@ func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 }
 
 var ReIdentifier = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+var RePositional = regexp.MustCompile(`^[0-9]*$`)
 
 func isVarName(name string) bool {
 	return ReIdentifier.MatchString(name)
+}
+
+func isValidParamName(name string) bool {
+	return isVarName(name) || RePositional.MatchString(name) || name == "#"
 }
 
 func (t *Translator) visitWordParts(parts []syntax.WordPart, dquoted bool) {
@@ -314,7 +319,7 @@ func (t *Translator) visitWordParts(parts []syntax.WordPart, dquoted bool) {
 			_ = n.Repl != nil && todo("not support ${a/x/y}")
 			_ = n.Names != 0 && todo("not support ${!prefix*}")
 			_ = n.Exp != nil && todo("support expansion operator")
-			_ = !isVarName(n.Param.Value) && todo("currently only allow var name")
+			_ = !isValidParamName(n.Param.Value) && todo("unsupported param name: "+n.Param.Value)
 			t.emit("${$__shtx_var_get(")
 			t.emit("'")
 			t.emit(n.Param.Value)
