@@ -222,6 +222,7 @@ func isCmdLiteral(word *syntax.Word) bool {
 var cmdNameReplacement = map[string]string{
 	"export": "__shtx_export",
 	"unset":  "__shtx_unset",
+	"shift":  "__shtx_shift",
 	"eval":   "fake_eval",
 }
 

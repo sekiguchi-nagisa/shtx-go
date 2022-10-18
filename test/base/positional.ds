@@ -12,6 +12,19 @@ $@.addAll(['aaa', 'bbb'])
 assert diff <(bash -c $cmd bash aaa bbb) <(fake_eval $cmd)
 assert "$(fake_eval $cmd)" == '2: bash: aaa: bbb: )'
 
+# shift
+assert "$(fake_eval 'echo "$#: $1-$2-$3"; shift; echo "$#: $1-$2-$3"')" \
+    == $'2: aaa-bbb-\n1: bbb--'
+
+$@.clear()
+assert_fake_eval 'shift; shift 34;' ''
+assert $? == 1
+
+$@.addAll(['111', '222', '333', '444'])
+assert diff <(fake_eval '
+echo "$1=$2=$3"; shift 2; echo "$1=$2=$3"; shift 2; echo "$1=$2=$3"
+') <(echo $'111=222=333\n333=444=\n==')
+
 
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$

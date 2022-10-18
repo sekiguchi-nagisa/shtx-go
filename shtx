@@ -109,6 +109,10 @@ function remove(name : String) : _VarEntry! for _VarMap {
     return $e
 }
 
+function _error(cmd : String, v : String) {
+    echo 1>&2 ${$_vars.arg0}: $cmd: $v
+}
+
 # +++++ runtime helper functions (starts with __shtx_) +++++
 
 # for global varibale access
@@ -174,6 +178,22 @@ __shtx_unset() {
     return 0
 }
 
+__shtx_shift() {
+    var offset = 1
+    if !$1.empty() {
+        $offset = $1.toInt(10) ?? { 
+            $_error("shift", "numeric argument required"); 
+            return 1;
+        }
+    }
+    ($offset < 0 || $offset > $_vars.args.size()) && return 1
+
+    for(var i = 0; $i < $offset; $i++) {
+        $_vars.args.shift()
+    }
+    return 0
+}
+
 
 # dynamically resolve command name
 __shtx_dyna_call() {
@@ -183,6 +203,7 @@ __shtx_dyna_call() {
     $cmd = case $cmd {
         'export' => '__shtx_export'
         'unset' => '__shtx_unset'
+        'shift' => '__shtx_shift'
         'eval' => 'fake_eval'
         else => $cmd
     }

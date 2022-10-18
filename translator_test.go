@@ -121,6 +121,14 @@ false;
   echo "${$__shtx_var_get('#')}: ${$__shtx_var_get('0')}: ${$__shtx_var_get('1')} ${$__shtx_var_get('002')}"
 }
 `},
+	{"shift 2", `{
+  __shtx_shift 2
+}
+`},
+	{`shif\t`, `{
+  __shtx_shift
+}
+`},
 }
 
 func TestBase(t *testing.T) {
