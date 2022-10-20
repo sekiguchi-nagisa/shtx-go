@@ -70,6 +70,10 @@ false;
   echo <hoge
 }
 `},
+	{"echo jfira<&34", `{
+  echo jfira <&34
+}
+`},
 	{"echo `echo hello` `  # this is a comment` A", `{
   echo $(echo hello)  A
 }

@@ -142,11 +142,10 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 
 func toRedirOpStr(op syntax.RedirOperator) string {
 	switch op {
-	case syntax.RdrOut, syntax.AppOut, syntax.RdrIn, syntax.DplOut,
-		syntax.WordHdoc, syntax.RdrAll, syntax.AppAll:
-		return op.String()
-	default:
+	case syntax.RdrInOut, syntax.ClbOut, syntax.Hdoc:
 		todo("unsupported redir op: " + op.String())
+	default:
+		return op.String()
 	}
 	return ""
 }
