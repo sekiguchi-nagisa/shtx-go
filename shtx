@@ -194,6 +194,12 @@ __shtx_shift() {
     return 0
 }
 
+__shtx_[() {
+    ($# == 0 || $@.peek() != ']') && { $_error("[", "missing \`]'"); return 2; }
+    $@.pop()    # skip last ']'
+    test $@
+}
+
 
 # dynamically resolve command name
 __shtx_dyna_call() {
@@ -201,6 +207,7 @@ __shtx_dyna_call() {
 
     var cmd = $@.shift()
     $cmd = case $cmd {
+        '[' => '__shtx_['
         'export' => '__shtx_export'
         'unset' => '__shtx_unset'
         'shift' => '__shtx_shift'

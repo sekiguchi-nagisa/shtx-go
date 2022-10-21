@@ -1,0 +1,22 @@
+# RUN: eval $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+## [ ] command
+assert_fake_eval "\\[ 12 != '12' ]; " ""
+assert $? == 1
+
+assert_fake_eval "[ 12 -eq '12' ]; " ""
+assert $? == 0
+
+assert_fake_eval '[ "$#" -gt 0 ]' ""
+assert $? == 1
+
+assert_fake_eval '[ -d "$HOME" ]' ""
+assert $? == 0
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

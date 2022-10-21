@@ -133,6 +133,19 @@ false;
   __shtx_shift
 }
 `},
+	{`[ -n hoge ]`, `{
+  __shtx_[ -n hoge ]
+}
+`},
+	{`\[ -n hoge ]`, `{
+  __shtx_[ -n hoge ]
+}
+`},
+
+	{`\\[ -n hoge ]`, `{
+  __shtx_dyna_call \\[ -n hoge ]
+}
+`},
 }
 
 func TestBase(t *testing.T) {
