@@ -146,6 +146,11 @@ false;
   __shtx_dyna_call \\[ -n hoge ]
 }
 `},
+	{
+		`echo "$?"`, `{
+  echo "${$__shtx_var_get('?')}"
+}
+`},
 }
 
 func TestBase(t *testing.T) {

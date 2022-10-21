@@ -287,7 +287,7 @@ func isVarName(name string) bool {
 }
 
 func isValidParamName(name string) bool {
-	return isVarName(name) || RePositional.MatchString(name) || name == "#"
+	return isVarName(name) || RePositional.MatchString(name) || name == "#" || name == "?"
 }
 
 func (t *Translator) visitWordParts(parts []syntax.WordPart, dquoted bool) {

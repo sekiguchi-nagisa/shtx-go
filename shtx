@@ -69,7 +69,6 @@ function assign(value : String) : String for _VarEntry {
 
 # get value. if entry indicates env, get env value
 function get() : String! for _VarEntry {
-    defer { $? = 0; }
     if $this.hasAttr($__VAR_ATTR_EXPORT) {
         return (checkenv ${this.value}) ? "$(printenv ${this.value})" : new String!()
     } else {
@@ -116,10 +115,11 @@ function _error(cmd : String, v : String) {
 # +++++ runtime helper functions (starts with __shtx_) +++++
 
 # for global varibale access
-function __shtx_var_get(param : String, op : String!, word : String!) : String {
+function __shtx_var_get_impl(param : String, op : String!, word : String!) : String {
     assert !$param.empty()
 
     case $param {
+        '?' => return "$?"
         '#' => return $_vars.args.size() as String
         $/^[0-9]/ => {  # FIXME: expansion op
             var n = $param.toInt(10)!
@@ -134,6 +134,13 @@ function __shtx_var_get(param : String, op : String!, word : String!) : String {
         return $e!.get() ?? ""
     }
     return ""
+}
+
+function __shtx_var_get(param : String, op : String!, word : String!) : String {
+    var old = $?
+    var ret = $__shtx_var_get_impl($param, $op, $word)
+    $? = $old
+    return $ret
 }
 
 __shtx_var_set() {

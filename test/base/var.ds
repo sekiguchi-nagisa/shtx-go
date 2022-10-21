@@ -55,6 +55,9 @@ assert_fake_eval \
     $'@@\n%%'
 assert $? == 0
 
+# special variable
+assert_fake_eval 'echo "status: $?"; false; echo "status: $?"' $'status: 0\nstatus: 1'
+assert $? == 0
 
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
