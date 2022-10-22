@@ -165,6 +165,14 @@ false;
   (((true 1 && false 1) || true 2) && false 2)
 }
 `},
+	{
+		`{ echo 1; echo 2;}`, `{
+  {
+    echo 1
+    echo 2
+  }
+}
+`},
 }
 
 func TestBase(t *testing.T) {

@@ -15,6 +15,9 @@ assert $? == 0
 assert_fake_eval '[ -d . ] && ZZZ=12345 && echo "$ZZZ" | grep @@@ || echo 999' '999'
 assert $? == 0
 
+assert_fake_eval '{ echo 1; echo 2; false; } || echo 3' $'1\n2\n3'
+assert $? == 0
+
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
 # STATUS: 0

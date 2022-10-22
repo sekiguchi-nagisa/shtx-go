@@ -145,6 +145,11 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 		t.emit(" " + n.Op.String() + " ")
 		t.visitStmt(n.Y)
 		t.emit(")")
+	case *syntax.Block:
+		t.emitLine("{")
+		t.visitStmts(n.Stmts)
+		t.indent()
+		t.emit("}")
 	default:
 		fixmeCase(n)
 	}
