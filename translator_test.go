@@ -151,6 +151,20 @@ false;
   echo "${$__shtx_var_get('?')}"
 }
 `},
+	{
+		`true && echo | grep`, `{
+  (true && (echo | grep))
+}
+`},
+	{`echo | grep || echo`, `{
+  ((echo | grep) || echo)
+}
+`},
+	{`true 1 && false 1 || true 2 && false 2`,
+		`{
+  (((true 1 && false 1) || true 2) && false 2)
+}
+`},
 }
 
 func TestBase(t *testing.T) {

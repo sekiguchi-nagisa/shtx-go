@@ -104,13 +104,17 @@ func (t *Translator) visitStmts(stmts []*syntax.Stmt) {
 	t.indentLevel++
 	for _, stmt := range stmts {
 		t.indent()
-		t.visitCommand(stmt.Cmd, stmt.Redirs)
-		_ = stmt.Negated && todo("support !")
-		_ = stmt.Background && todo("support &")
-		_ = stmt.Coprocess && todo("unsupported |&")
+		t.visitStmt(stmt)
 		t.newline()
 	}
 	t.indentLevel--
+}
+
+func (t *Translator) visitStmt(stmt *syntax.Stmt) {
+	t.visitCommand(stmt.Cmd, stmt.Redirs)
+	_ = stmt.Negated && todo("support !")
+	_ = stmt.Background && todo("support &")
+	_ = stmt.Coprocess && todo("unsupported |&")
 }
 
 var declReplacement = map[string]string{
@@ -134,6 +138,13 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 		t.emit(v)
 		t.emit(" ")
 		t.visitAssigns(n.Args, true)
+	case *syntax.BinaryCmd:
+		_ = n.Op == syntax.PipeAll && todo("unsupported: |&")
+		t.emit("(")
+		t.visitStmt(n.X)
+		t.emit(" " + n.Op.String() + " ")
+		t.visitStmt(n.Y)
+		t.emit(")")
 	default:
 		fixmeCase(n)
 	}

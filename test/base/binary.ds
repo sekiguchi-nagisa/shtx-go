@@ -1,0 +1,20 @@
+# RUN: eval $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+assert_fake_eval 'echo hello | grep hello' 'hello'
+assert $? == 0
+
+assert_fake_eval 'echo hello && echo world | grep world && echo @' $'hello\nworld\n@'
+assert $? == 0
+
+assert_fake_eval '[ -f jfiajfaofj ] || ZZZ=@@@ printenv ZZZ | grep @@@' '@@@'
+assert $? == 0
+
+assert_fake_eval '[ -d . ] && ZZZ=12345 && echo "$ZZZ" | grep @@@ || echo 999' '999'
+assert $? == 0
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0
