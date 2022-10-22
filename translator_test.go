@@ -173,6 +173,66 @@ false;
   }
 }
 `},
+	{`if true 1; then
+echo true 1
+fi`, `{
+  if (true 1) {
+    echo true 1
+  }
+}
+`},
+	{`if true 1; then
+  echo true 1
+elif true 2; then
+  echo true 2; echo true 22
+fi
+`, `{
+  if (true 1) {
+    echo true 1
+  } elif (true 2) {
+    echo true 2
+    echo true 22
+  }
+}
+`},
+	{`if true 1; then
+  echo true 1
+else
+  echo false
+fi
+`, `{
+  if (true 1) {
+    echo true 1
+  } else {
+    echo false
+  }
+}
+`},
+	{`
+if echo false; true 1; then
+  if true 11; then
+    echo true 11
+  elif true 2; then
+     :
+  fi
+else
+  echo false
+fi
+`, `{
+  if {
+    echo false
+    true 1
+  } {
+    if (true 11) {
+      echo true 11
+    } elif (true 2) {
+      :
+    }
+  } else {
+    echo false
+  }
+}
+`},
 }
 
 func TestBase(t *testing.T) {

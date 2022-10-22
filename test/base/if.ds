@@ -1,0 +1,39 @@
+# RUN: eval $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+var cmd = '
+N="$ZZZ"
+if [ "$N" -eq 0 ]; then
+  echo "then1=$N"
+elif [ "$N" -lt 100 ]; then
+  echo "then2=$N"
+elif [ "$N" -ge 100 ] && [ "$N" -lt 1000 ]; then
+  if [ "$N" -lt 500 ]; then
+    echo "then21=$N"
+  elif [ "$N" -lt 1000 ]; then
+    echo "then22=$N"
+  fi
+else
+  echo "else=$N"
+fi
+'
+
+ZZZ=0 assert_fake_eval $cmd 'then1=0'
+assert $? == 0
+
+ZZZ=1 assert_fake_eval $cmd 'then2=1'
+ZZZ=2 assert_fake_eval $cmd 'then2=2'
+ZZZ=99 assert_fake_eval $cmd 'then2=99'
+ZZZ=100 assert_fake_eval $cmd 'then21=100'
+ZZZ=499 assert_fake_eval $cmd 'then21=499'
+ZZZ=500 assert_fake_eval $cmd 'then22=500'
+ZZZ=999 assert_fake_eval $cmd 'then22=999'
+ZZZ=1000 assert_fake_eval $cmd 'else=1000'
+ZZZ=1001 assert_fake_eval $cmd 'else=1001'
+ZZZ=-500 assert_fake_eval $cmd 'then2=-500'
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

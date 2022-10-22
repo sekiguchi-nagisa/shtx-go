@@ -150,6 +150,8 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 		t.visitStmts(n.Stmts)
 		t.indent()
 		t.emit("}")
+	case *syntax.IfClause:
+		t.visitIfClause(n, false)
 	default:
 		fixmeCase(n)
 	}
@@ -215,6 +217,44 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 			if assign.Value != nil {
 				t.visitWordParts(assign.Value.Parts, false)
 			}
+		}
+	}
+}
+
+func (t *Translator) visitIfClause(clause *syntax.IfClause, elif bool) {
+	if elif {
+		t.emit(" elif ")
+	} else {
+		t.emit("if ")
+	}
+
+	// cond
+	if len(clause.Cond) == 1 {
+		t.emit("(")
+		t.visitStmt(clause.Cond[0])
+		t.emit(")")
+	} else {
+		t.emitLine("{")
+		t.visitStmts(clause.Cond)
+		t.indent()
+		t.emit("}")
+	}
+
+	// then
+	t.emitLine(" {")
+	t.visitStmts(clause.Then)
+	t.indent()
+	t.emit("}")
+
+	// else or elif
+	if clause.Else != nil {
+		if clause.Else.Cond != nil { // elif
+			t.visitIfClause(clause.Else, true)
+		} else { // else
+			t.emitLine(" else {")
+			t.visitStmts(clause.Else.Then)
+			t.indent()
+			t.emit("}")
 		}
 	}
 }
