@@ -28,20 +28,19 @@ var _SHTX_GO_BIN_PATH = ""
 
 _error() : Nothing {
     echo 2>&1 $@
-    exit 1
+    throw new Error($@.join("" ))
 }
 
 _try_fetch_bin() {
     if $SHTX_DEV_MODE || (checkenv SHTX_DEV_MODE) {
-        assert command -v go &> /dev/null
+        command -v go &> /dev/null || _error "require go binary"
         if !(test -x $SCRIPT_DIR/shtx-go) {
             # rebuild
-            (cd $SCRIPT_DIR && go build &) .wait()
+            (cd $SCRIPT_DIR && command go build &) .wait()
             test -x $SCRIPT_DIR/shtx-go || _error cannot build shtx-go
         }
         $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go"
     } else {
-        shctl set traceonexit
         _error TODO: download released binary
     }
 }
@@ -72,7 +71,7 @@ function assign(value : String) : String for _VarEntry {
 # get value. if entry indicates env, get env value
 function get() : String! for _VarEntry {
     if $this.hasAttr($__VAR_ATTR_EXPORT) {
-        return (checkenv ${this.value}) ? "$(printenv ${this.value})" : new String!()
+        return (checkenv ${this.value}) ? "$(command printenv ${this.value})" : new String!()
     } else {
         return $this.value
     }
@@ -230,7 +229,7 @@ __shtx_dyna_call() {
 # +++++ public api functions (starts with fake_) +++++
 
 function __save_crash_dump(in : String, out : String, e : Error) : Bool {
-    var name = "crash_shtx_$(date  +"%Y-%m-%dT%H:%M:%S%z").log"
+    var name = "crash_shtx_$(command date  +"%Y-%m-%dT%H:%M:%S%z").log"
     {
         echo '+++++  error message  +++++'
         $e.show() with 2>&1
