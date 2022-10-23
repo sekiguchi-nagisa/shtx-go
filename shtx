@@ -28,7 +28,7 @@ var _SHTX_GO_BIN_PATH = ""
 
 _error() : Nothing {
     echo 2>&1 $@
-    throw new Error($@.join("" ))
+    throw new Error($@.join(" "))
 }
 
 _try_fetch_bin() {
@@ -239,7 +239,7 @@ function __save_crash_dump(in : String, out : String, e : Error) : Bool {
         echo $out
     } with > $name
     echo 1>&2 "save crash dump:"
-    echo 1>&2 -e "\t$name"
+    echo 1>&2 -e "\t${$name.realpath() ?? $name}"
     return $true
 }
 

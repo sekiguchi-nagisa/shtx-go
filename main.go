@@ -4,6 +4,7 @@ import (
 	"fmt"
 	flags "github.com/jessevdk/go-flags"
 	"os"
+	"path/filepath"
 	"runtime/debug"
 	"time"
 )
@@ -36,14 +37,19 @@ func getVersion() string {
 
 func saveCrashDump(err error) {
 	t := time.Now().Format(time.RFC3339)
-	name := fmt.Sprintf("crash_shtx-go_%s.log", t)
-	f, _ := os.Create(name)
+	path := fmt.Sprintf("crash_shtx-go_%s.log", t)
+	f, _ := os.Create(path)
 	if f != nil {
+		defer f.Close()
 		header := fmt.Sprintf("+++++  build info  +++++\n%s\n\n", getVersion())
 		f.WriteString(header)
 		f.WriteString(err.Error())
 	}
-	fmt.Fprintf(os.Stderr, "save crash dump:\n\t%s\n", name)
+	p, e := filepath.Abs(path)
+	if e == nil {
+		path = p
+	}
+	fmt.Fprintf(os.Stderr, "save crash dump:\n\t%s\n", path)
 }
 
 var transTypes = map[string]TranslationType{
