@@ -20,6 +20,8 @@
 # if true, use current shtx-go binary
 var SHTX_DEV_MODE = $false
 
+var SHTX_CRASH_DUMP = $true
+
 # +++++ helper functions +++++
 
 var _SHTX_GO_BIN_PATH = ""
@@ -227,6 +229,21 @@ __shtx_dyna_call() {
 
 # +++++ public api functions (starts with fake_) +++++
 
+function __save_crash_dump(in : String, out : String, e : Error) : Bool {
+    var name = "crash_shtx_$(date  +"%Y-%m-%dT%H:%M:%S%z").log"
+    {
+        echo '+++++  error message  +++++'
+        $e.show() with 2>&1
+        echo $'\n+++++  input script  +++++'
+        echo $in
+        echo $'\n+++++  output script  +++++'
+        echo $out
+    } with > $name
+    echo 1>&2 "save crash dump:"
+    echo 1>&2 -e "\t$name"
+    return $true
+}
+
 # evaluate bash script
 fake_eval() {
     $@.empty() && return 0
@@ -234,11 +251,21 @@ fake_eval() {
     _try_fetch_bin
 
     var input = $@.join(" ")
-    var output = "$(eval $_SHTX_GO_BIN_PATH - <<< $input)"
+    var opt : [String]
+    if $SHTX_CRASH_DUMP {
+        $opt.add("--crash-dump")
+    }
+    var output = "$(eval $_SHTX_GO_BIN_PATH $opt - <<< $input)"
     if $? != 0 {
         return 1
     }
-    $MODULE._func($output)()
+    try {
+        $MODULE._func($output)()
+    } catch e : Error {
+        $e.show()
+        $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)
+        return 255
+    }
 }
 
 shctl is-sourced || fake_eval $@

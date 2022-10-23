@@ -6,6 +6,7 @@ source ../../shtx
 
 # assert_fake_eval script output
 assert_fake_eval() {
+    $SHTX_CRASH_DUMP = $false
     assert $# >= 2 : "require 2 arguments: 'script' 'output'"
     var script = $@.shift()
     var output = $@.shift()

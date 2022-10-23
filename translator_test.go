@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
-	"strings"
 	"testing"
 )
 
@@ -240,11 +239,11 @@ func TestBase(t *testing.T) {
 		tx := NewTranslator(TranslateEval)
 		assert.NotNil(t, tx)
 
-		r := strings.NewReader(testCase.before)
+		r := []byte(testCase.before)
 		buf := bytes.Buffer{}
 
 		e := tx.Translate(r, &buf)
-		assert.Nil(t, e)
+		assert.NoError(t, e)
 
 		assert.Equal(t, testCase.after, buf.String())
 	}

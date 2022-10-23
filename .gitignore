@@ -5,6 +5,7 @@
 *.so
 *.dylib
 shtx-go
+*.log
 
 # Test binary, built with `go test -c`
 *.test

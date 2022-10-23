@@ -1,18 +1,19 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	flags "github.com/jessevdk/go-flags"
 	"os"
 	"runtime/debug"
+	"time"
 )
 
 type Options struct {
-	DumpAST string `short:"d" long:"dump" description:"Dump internal ast to specified file (default to stderr)" optional:"true" optional-value:"/dev/stderr"`
-	Version bool   `short:"v" long:"version" description:"Show version info"`
-	Type    string `short:"t" long:"type" description:"Type of translation" choice:"eval" choice:"source" choice:"none" default:"eval"`
-	Args    struct {
+	Version       bool   `short:"v" long:"version" description:"Show version info"`
+	Type          string `short:"t" long:"type" description:"Type of translation" choice:"eval" choice:"source" choice:"none" default:"eval"`
+	DumpAST       string `short:"d" long:"dump" description:"Dump internal ast to specified file (default to stderr)" optional:"true" optional-value:"/dev/stderr"`
+	SaveCrashDump bool   `long:"crash-dump" description:"Save crash dump to file"`
+	Args          struct {
 		SCRIPT string
 	} `positional-args:"yes"`
 }
@@ -20,10 +21,29 @@ type Options struct {
 func getVersion() string {
 	info, ok := debug.ReadBuildInfo()
 	if ok {
-		return info.Main.Version
+		rev := "unknown"
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" {
+				rev = setting.Value
+				break
+			}
+		}
+		return fmt.Sprintf("%s (%s)", info.Main.Version, rev)
 	} else {
 		return "(unknown)"
 	}
+}
+
+func saveCrashDump(err error) {
+	t := time.Now().Format(time.RFC3339)
+	name := fmt.Sprintf("crash_shtx-go_%s.log", t)
+	f, _ := os.Create(name)
+	if f != nil {
+		header := fmt.Sprintf("+++++  build info  +++++\n%s\n\n", getVersion())
+		f.WriteString(header)
+		f.WriteString(err.Error())
+	}
+	fmt.Fprintf(os.Stderr, "save crash dump:\n\t%s\n", name)
 }
 
 var transTypes = map[string]TranslationType{
@@ -58,14 +78,12 @@ func main() {
 	if script == "-" {
 		script = "/dev/stdin"
 	}
-	f, e := os.Open(script)
-	defer f.Close()
+
+	buf, e := os.ReadFile(script)
 	if e != nil {
 		fmt.Fprintln(os.Stderr, e.Error())
 		os.Exit(1)
 	}
-
-	b := bufio.NewReader(f)
 	tx := NewTranslator(transTypes[options.Type])
 	if len(options.DumpAST) != 0 {
 		d, e := os.Create(options.DumpAST)
@@ -77,8 +95,11 @@ func main() {
 		tx.SetDump(d)
 	}
 
-	if e := tx.Translate(b, os.Stdout); e != nil {
+	if e := tx.Translate(buf, os.Stdout); e != nil {
 		fmt.Fprintln(os.Stderr, e.Error())
+		if options.SaveCrashDump {
+			saveCrashDump(e)
+		}
 		os.Exit(1)
 	}
 }

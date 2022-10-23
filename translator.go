@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"mvdan.cc/sh/v3/syntax"
 	"regexp"
+	"runtime/debug"
 	"strconv"
 	"strings"
 )
@@ -43,16 +45,18 @@ func (t *Translator) SetDump(d io.Writer) {
 	t.dump = d
 }
 
-func (t *Translator) Translate(in io.Reader, out io.Writer) error {
+func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 	// reset state
 	t.out = out
 	t.indentLevel = 0
 	t.funcLevel = 0
 
 	// parse
-	f, e := syntax.NewParser().Parse(in, "")
+	reader := bytes.NewReader(buf)
+	f, e := syntax.NewParser().Parse(reader, "")
 	if e != nil {
-		return fmt.Errorf("[error] %s", e.Error())
+		return fmt.Errorf("+++++  error message  +++++\n%s\n\n"+
+			"+++++  input script  +++++\n%s", e.Error(), buf)
 	}
 
 	// dump
@@ -61,6 +65,14 @@ func (t *Translator) Translate(in io.Reader, out io.Writer) error {
 		syntax.DebugPrint(t.dump, f)
 		fmt.Fprintln(t.dump)
 	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("+++++  error message  +++++\n%s\n\n"+
+				"+++++  stack trace from panic  +++++\n%s\n"+
+				"+++++  input script  +++++\n%s", r, debug.Stack(), buf)
+		}
+	}()
 
 	// translate
 	switch t.tranType {
