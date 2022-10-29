@@ -45,6 +45,22 @@ _try_fetch_bin() {
     }
 }
 
+function __save_crash_dump(in : String, out : String, e : Error) : Bool {
+    var name = "crash_shtx_$(command date  +"%Y-%m-%dT%H:%M:%S%z").log"
+    {
+        echo '+++++  error message  +++++'
+        $e.show() with 2>&1
+        echo $'\n+++++  input script  +++++'
+        echo $in
+        echo $'\n+++++  output script  +++++'
+        echo $out
+    } with > $name
+    echo 1>&2 "save crash dump:"
+    echo 1>&2 -e "\t${$name.realpath() ?? $name}"
+    return $true
+}
+
+
 # +++++ for shell variable +++++
 
 let __VAR_ATTR_EXPORT = 0x01
@@ -228,22 +244,7 @@ __shtx_dyna_call() {
 
 # +++++ public api functions (starts with fake_) +++++
 
-function __save_crash_dump(in : String, out : String, e : Error) : Bool {
-    var name = "crash_shtx_$(command date  +"%Y-%m-%dT%H:%M:%S%z").log"
-    {
-        echo '+++++  error message  +++++'
-        $e.show() with 2>&1
-        echo $'\n+++++  input script  +++++'
-        echo $in
-        echo $'\n+++++  output script  +++++'
-        echo $out
-    } with > $name
-    echo 1>&2 "save crash dump:"
-    echo 1>&2 -e "\t${$name.realpath() ?? $name}"
-    return $true
-}
-
-# evaluate bash script
+# evaluate bash script (emulate bash eval command)
 fake_eval() {
     $@.empty() && return 0
 
