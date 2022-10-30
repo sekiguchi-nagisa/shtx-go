@@ -94,7 +94,7 @@ false;
 }
 `},
 	{`echo "$AAA" ge"(${GGG}}"`, `{
-  echo "${$__shtx_var_get('AAA')}" ge"(${$__shtx_var_get('GGG')}}"
+  echo "${{__shtx_var_get $? 'AAA'; $REPLY; }}" ge"(${{__shtx_var_get $? 'GGG'; $REPLY; }}}"
 }
 `},
 	{`\ls -la`, `{
@@ -121,7 +121,7 @@ false;
 }
 `},
 	{`echo "$#: $0: $1 ${002}"`, `{
-  echo "${$__shtx_var_get('#')}: ${$__shtx_var_get('0')}: ${$__shtx_var_get('1')} ${$__shtx_var_get('002')}"
+  echo "${{__shtx_var_get $? '#'; $REPLY; }}: ${{__shtx_var_get $? '0'; $REPLY; }}: ${{__shtx_var_get $? '1'; $REPLY; }} ${{__shtx_var_get $? '002'; $REPLY; }}"
 }
 `},
 	{"shift 2", `{
@@ -147,7 +147,7 @@ false;
 `},
 	{
 		`echo "$?"`, `{
-  echo "${$__shtx_var_get('?')}"
+  echo "${{__shtx_var_get $? '?'; $REPLY; }}"
 }
 `},
 	{

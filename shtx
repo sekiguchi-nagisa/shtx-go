@@ -153,11 +153,15 @@ function __shtx_var_get_impl(param : String, op : String!, word : String!) : Str
     return ""
 }
 
-function __shtx_var_get(param : String, op : String!, word : String!) : String {
-    var old = $?
-    var ret = $__shtx_var_get_impl($param, $op, $word)
+__shtx_var_get() {
+    # __shtx_var_get $? $param $op $word
+    var old = $1.toInt()!
+    var param = $2
+    var op = $3
+    var word = $4
     $? = $old
-    return $ret
+    $REPLY = $__shtx_var_get_impl($param, $op, $word)
+    return $old
 }
 
 __shtx_var_set() {

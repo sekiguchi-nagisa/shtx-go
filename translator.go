@@ -389,11 +389,9 @@ func (t *Translator) visitWordParts(parts []syntax.WordPart, dquoted bool) {
 			_ = n.Names != 0 && todo("not support ${!prefix*}")
 			_ = n.Exp != nil && todo("support expansion operator")
 			_ = !isValidParamName(n.Param.Value) && todo("unsupported param name: "+n.Param.Value)
-			t.emit("${$__shtx_var_get(")
-			t.emit("'")
+			t.emit("${{__shtx_var_get $? '")
 			t.emit(n.Param.Value)
-			t.emit("'")
-			t.emit(")}")
+			t.emit("'; $REPLY; }}")
 		case *syntax.CmdSubst:
 			_ = n.TempFile && todo("not support ${")
 			_ = n.ReplyVar && todo("not support ${|")
