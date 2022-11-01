@@ -44,6 +44,10 @@ assert $? == 0
 assert_fake_eval 'e\xport AA=11 BB=22 CC=33; printenv AA; printenv BB; printenv CC' $'11\n22\n33'
 assert $? == 0
 
+unsetenv ZZZ
+assert_fake_eval 'ZZZ=12345; export ZZZ; echo "($ZZZ)"; printenv ZZZ' $'(12345)\n12345'
+assert $? == 0
+
 # unset
 assert_fake_eval \
     'export AAA=@@@; printenv AAA; echo "%${AAA}"; unset AAA; echo "$AAA"; printenv AAA' \
@@ -58,6 +62,7 @@ assert $? == 0
 # special variable
 assert_fake_eval 'echo "status: $?"; false; echo "status: $?"' $'status: 0\nstatus: 1'
 assert $? == 0
+
 
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$

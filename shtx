@@ -87,7 +87,7 @@ function assign(value : String) : String for _VarEntry {
 # get value. if entry indicates env, get env value
 function get() : String! for _VarEntry {
     if $this.hasAttr($__VAR_ATTR_EXPORT) {
-        return (checkenv ${this.value}) ? "$(command printenv ${this.value})" : new String!()
+        return (printenv ${this.value} &> /dev/null) ? "$(command printenv ${this.value})" : new String!()
     } else {
         return $this.value
     }
@@ -117,6 +117,16 @@ function set(name : String, entry : _VarEntry) for _VarMap {
     $this.entries.put($name, $entry)
 }
 
+function update(name : String, value : String) : String for _VarMap {
+    var entry = $_vars.get($name)
+    if $entry {
+        $entry.assign($value)
+    } else {
+        $_vars.set($name, new _VarEntry($value))
+    }
+    return $value
+}
+
 function remove(name : String) : _VarEntry! for _VarMap {
     var e = $this.entries.get($name)
     if $e {
@@ -129,30 +139,68 @@ function _error(cmd : String, v : String) {
     echo 1>&2 ${$_vars.arg0}: $cmd: $v
 }
 
-# +++++ runtime helper functions (starts with __shtx_) +++++
+typedef _NotFound : Error
 
-# for global varibale access
-function __shtx_var_get_impl(param : String, op : String!, word : String!) : String {
+function __shtx_var_get_impl(param : String, op : String, word : String) : String {
     assert !$param.empty()
 
     case $param {
-        '?' => return "$?"
-        '#' => return $_vars.args.size() as String
-        $/^[0-9]/ => {  # FIXME: expansion op
+        '?' => { 
+            if $op == ':+' || $op == '+' {
+                return $word
+            }
+            return "$?" 
+        }
+        '#' => {
+            if $op == ':+' || $op == '+' {
+                return $word
+            }
+            return $_vars.args.size() as String
+        }
+        $/^[0-9]+$/ => {
             var n = $param.toInt(10)!
             assert $n > -1
-            return $n == 0 ? $_vars.arg0 : $_vars.args.get($n - 1) ?? ""
+            if $n == 0 || $n - 1 < $_vars.args.size() { # set 0, 1~
+                var v = $n == 0 ? $_vars.arg0 : $_vars.args[$n - 1]
+                case $op {
+                    ':-' => return $v :- $word
+                    ':=' => return $v :- throw new Error("${_vars.arg0}: \$${param}: cannot assign in this way")
+                    ':?' => return $v :- throw new _NotFound("${_vars.arg0}: \$${param}: ${word}")
+                    ':+' => return !$v.empty() ? $word : ""
+                    '+' => return $word
+                    else => return $v :- ""
+                }
+            } else {    # unset (1~)
+                case $op {
+                    ':-' | '-' => return $word
+                    ':=' | '=' => throw new Error("${_vars.arg0}: \$${param}: cannot assign in this way")
+                    ':?' | '?' => throw new _NotFound("${_vars.arg0}: \$${param}: ${word}")
+                    ':+' | '+' => return ""
+                    else => return ""
+                }
+            }
         }
         else => {}
     }
 
-    var e = $_vars.get($param)
-    if $e {
-        return $e!.get() ?? ""
+    var entry = $_vars.get($param)
+    var v = $entry ? $entry.get() : new String!()
+    case $op {
+        ':-' => return ($v ?? "") :- $word
+        '-' => return $v ?? $word
+        ':=' => return ($v ?? "") :- $_vars.update($param, $word)
+        '=' => return $v ?? $_vars.update($param, $word)
+        ':?' => return ($v ?? "") :- throw new _NotFound("${_vars.arg0}: \$${param}: ${word}")
+        '?' => return $v ?? throw new _NotFound("${_vars.arg0}: \$${param}: ${word}")
+        ':+' => return $v && !$v.empty() ? $word : ""
+        '+' => return $v ? $word : ""
+        else => return $v ?? ""
     }
-    return ""
 }
 
+# +++++ runtime helper functions (starts with __shtx_) +++++
+
+# for global varibale access
 __shtx_var_get() {
     # __shtx_var_get $? $param $op $word
     var old = $1.toInt()!
@@ -167,13 +215,7 @@ __shtx_var_get() {
 __shtx_var_set() {
     var param = $1 :- return 0
     var word = $2
-
-    var e = $_vars.get($param)
-    if $e {
-        $e!.assign($word)
-    } else {
-        $_vars.set($param, new _VarEntry($word))
-    }
+    $_vars.update($param, $word)
     return 0
 }
 
@@ -183,12 +225,23 @@ __shtx_export() {
         ($arg.empty() || $arg.startsWith("-")) && continue
         let i = $arg.indexOf('=')
         let name = $i != -1 ? $arg.slice(0, $i) : $arg
-        var entry = new _VarEntry($name, $__VAR_ATTR_EXPORT)
-        if $i != -1 {
-            var value = $arg.slice($i + 1)
-            $entry.assign($value)
+
+        var entry = $_vars.get($name)
+        if $entry {
+            if !$entry.hasAttr($__VAR_ATTR_EXPORT) {
+                var e = new _VarEntry($name, $__VAR_ATTR_EXPORT)
+                $e.assign($entry.value)
+                $_vars.set($name, $e)
+            }
+        } else {
+            var e = new _VarEntry($name, $__VAR_ATTR_EXPORT)
+            $e.assign("")
+            $_vars.set($name, $e)
         }
-        $_vars.set($name, $entry)
+
+        if $i != -1 {
+            $_vars.update($name, $arg.slice($i + 1))
+        }
     }
     return 0
 }
@@ -265,6 +318,8 @@ fake_eval() {
     }
     try {
         $MODULE._func($output)()
+    } catch e : _NotFound {
+        return 127
     } catch e : Error {
         $e.show()
         $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)

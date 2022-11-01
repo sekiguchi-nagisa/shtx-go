@@ -1,0 +1,116 @@
+# RUN: eval $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+# expansion op
+## normal variable
+assert_fake_eval '  # ${parameter:-word}
+    foo=asdf
+    echo "${foo:-bar}xyz}"
+    foo=
+    echo "${foo:-bar}xyz}"
+    unset foo
+    echo "${foo:-bar}xyz}"
+' 'asdfxyz}
+barxyz}
+barxyz}'
+
+assert_fake_eval '  # ${parameter-word}
+    export foo=asdf
+    echo "${foo-bar}xyz}"
+    foo=
+    echo "${foo-bar}xyz}"
+    unset foo
+    echo "${foo-bar}xyz}"
+' 'asdfxyz}
+xyz}
+barxyz}'
+
+unsetenv AAA
+assert_fake_eval '  # ${parameter:=word}
+    echo "${AAA:=foo}"
+    echo "($AAA)"
+    export AAA && printenv AAA
+    AAA=
+    echo "${AAA:=bar}"
+    echo "($AAA)"
+    printenv AAA
+
+' 'foo
+(foo)
+foo
+bar
+(bar)
+bar'
+
+assert_fake_eval '  # ${parameter=word}
+    echo "${AAA=foo}"
+    echo "($AAA)"
+    export AAA && printenv AAA
+    AAA=
+    printenv AAA
+    echo "${AAA=bar}"
+        printenv AAA
+    echo "($AAA)"
+' 'foo
+(foo)
+foo
+
+
+
+()'
+
+assert_fake_eval '  # ${parameter:?word}
+    foo=asdf
+    echo "${foo:?bar}"
+    foo=
+    echo "${foo:?bar}"
+' 'asdf' 2> /dev/null
+assert $? == 127
+
+assert_fake_eval '  # ${parameter:?word}
+    echo "${foo:?bar}"
+    echo hello
+' '' 2> /dev/null
+assert $? == 127
+
+assert_fake_eval '  # ${parameter?word}
+    foo=asdf
+    echo "${foo?bar}xyz"
+    foo=
+    echo "${foo?bar}xyz"
+    unset foo
+    echo "${foo?bar}"
+    echo false
+' 'asdfxyz
+xyz' 2> /dev/null
+assert $? == 127
+
+unsetenv foo
+assert_fake_eval '  # ${parameter:+word}
+    echo "(${foo:+hoge})"
+    foo=
+    echo "(${foo:+hoge})"
+    echo "${foo:=123}"
+    echo "${foo:+hoge}"
+' '()
+()
+123
+hoge'
+
+assert_fake_eval '  # ${parameter+word}
+    echo "(${foo+hoge})"
+    echo "${foo=}"
+    echo "(${foo+hoge})"
+    foo=34
+    echo "${foo+huga}"
+
+' '()
+
+(hoge)
+huga'
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

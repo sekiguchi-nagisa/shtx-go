@@ -232,6 +232,22 @@ fi
   }
 }
 `},
+	{`echo "${hoge:-45}"`, `{
+  echo "${{__shtx_var_get $? 'hoge' ':-' 45; $REPLY; }}"
+}
+`},
+	{`echo "${45-hoge}"`, `{
+  echo "${{__shtx_var_get $? '45' '-' hoge; $REPLY; }}"
+}
+`},
+	{`echo "${?:?hoge}"`, `{
+  echo "${{__shtx_var_get $? '?' ':?' hoge; $REPLY; }}"
+}
+`},
+	{`echo "${var=}"`, `{
+  echo "${{__shtx_var_get $? 'var' '=' ; $REPLY; }}"
+}
+`},
 }
 
 func TestBase(t *testing.T) {

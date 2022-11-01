@@ -358,6 +358,17 @@ func isValidParamName(name string) bool {
 	return isVarName(name) || RePositional.MatchString(name) || name == "#" || name == "?"
 }
 
+func toExpansionOpStr(op syntax.ParExpOperator) string {
+	switch op {
+	case syntax.AlternateUnset, syntax.AlternateUnsetOrNull, syntax.DefaultUnset, syntax.DefaultUnsetOrNull,
+		syntax.ErrorUnset, syntax.ErrorUnsetOrNull, syntax.AssignUnset, syntax.AssignUnsetOrNull:
+		return op.String()
+	default:
+		todo("unsupported expansion op: " + op.String())
+	}
+	return ""
+}
+
 func (t *Translator) visitWordParts(parts []syntax.WordPart, dquoted bool) {
 	for _, part := range parts {
 		switch n := part.(type) {
@@ -387,11 +398,19 @@ func (t *Translator) visitWordParts(parts []syntax.WordPart, dquoted bool) {
 			_ = n.Slice != nil && todo("not support ${a:x:y}")
 			_ = n.Repl != nil && todo("not support ${a/x/y}")
 			_ = n.Names != 0 && todo("not support ${!prefix*}")
-			_ = n.Exp != nil && todo("support expansion operator")
 			_ = !isValidParamName(n.Param.Value) && todo("unsupported param name: "+n.Param.Value)
 			t.emit("${{__shtx_var_get $? '")
 			t.emit(n.Param.Value)
-			t.emit("'; $REPLY; }}")
+			t.emit("'")
+			if n.Exp != nil {
+				t.emit(" '")
+				t.emit(toExpansionOpStr(n.Exp.Op))
+				t.emit("' ")
+				if n.Exp.Word != nil {
+					t.visitWordParts(n.Exp.Word.Parts, false)
+				}
+			}
+			t.emit("; $REPLY; }}")
 		case *syntax.CmdSubst:
 			_ = n.TempFile && todo("not support ${")
 			_ = n.ReplyVar && todo("not support ${|")

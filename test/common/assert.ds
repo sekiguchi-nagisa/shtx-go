@@ -22,7 +22,7 @@ assert_fake_eval() {
     var s2 = $?
     assert diff <(cat <<< $out2) <(cat <<< $output)
 
-    assert $s1 == $s2
+    assert $s1 == $s2 : "expect $s1, actual $s2"
     return $s2
 }
 
