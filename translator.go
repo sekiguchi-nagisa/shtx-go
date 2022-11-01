@@ -84,6 +84,12 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 		t.emitLine("}")
 	case TranslateSource:
 		t.emitLine("function(argv : [String]) => {")
+		t.indentLevel++
+		t.indent()
+		t.emitLine("let old_argv = $__shtx_set_argv($argv)")
+		t.indent()
+		t.emitLine("defer { $__shtx_set_argv($old_argv); }")
+		t.indentLevel--
 		t.visitStmts(f.Stmts)
 		t.emitLine("}")
 	}
@@ -292,6 +298,8 @@ var cmdNameReplacement = map[string]string{
 	"unset":  "__shtx_unset",
 	"shift":  "__shtx_shift",
 	"eval":   "fake_eval",
+	".":      "fake_source",
+	"source": "fake_source",
 }
 
 func remapCmdName(name string) string {

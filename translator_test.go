@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-var testCases = []struct {
+var evalTestCases = []struct {
 	before string
 	after  string
 }{
@@ -250,9 +250,41 @@ fi
 `},
 }
 
-func TestBase(t *testing.T) {
-	for _, testCase := range testCases {
+func TestEval(t *testing.T) {
+	for _, testCase := range evalTestCases {
 		tx := NewTranslator(TranslateEval)
+		assert.NotNil(t, tx)
+
+		r := []byte(testCase.before)
+		buf := bytes.Buffer{}
+
+		e := tx.Translate(r, &buf)
+		assert.NoError(t, e)
+
+		assert.Equal(t, testCase.after, buf.String())
+	}
+}
+
+var sourceTestCases = []struct {
+	before string
+	after  string
+}{
+	{``, `function(argv : [String]) => {
+  let old_argv = $__shtx_set_argv($argv)
+  defer { $__shtx_set_argv($old_argv); }
+}
+`},
+	{`echo hello`, `function(argv : [String]) => {
+  let old_argv = $__shtx_set_argv($argv)
+  defer { $__shtx_set_argv($old_argv); }
+  echo hello
+}
+`},
+}
+
+func TestSource(t *testing.T) {
+	for _, testCase := range sourceTestCases {
+		tx := NewTranslator(TranslateSource)
 		assert.NotNil(t, tx)
 
 		r := []byte(testCase.before)

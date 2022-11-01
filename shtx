@@ -293,9 +293,22 @@ __shtx_dyna_call() {
         'unset' => '__shtx_unset'
         'shift' => '__shtx_shift'
         'eval' => 'fake_eval'
+        '.' | 'source' => 'fake_source'
         else => $cmd
     }
     eval "$cmd" $@
+}
+
+function __shtx_set_argv(argv : [String]) : [String] {
+    var old : [String]
+    $old.add($_vars.arg0)
+    $old.addAll($_vars.args)
+
+    if !$argv.empty() {
+        # $_vars.arg0 = $argv[0]  # not update $0
+        $_vars.args = $argv.slice(1)
+    }
+    return $old
 }
 
 
@@ -318,6 +331,36 @@ fake_eval() {
     }
     try {
         $MODULE._func($output)()
+    } catch e : _NotFound {
+        return 127
+    } catch e : Error {
+        $e.show()
+        $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)
+        return 255
+    }
+}
+
+# evaluate bash script (emulate bash source command)
+fake_source() {
+    $@.empty() && {
+        $_error("source", "filename argument required")
+        return 2
+    }
+
+    _try_fetch_bin
+
+    var input = $@[0]   #FIXME: search path. replace bash completion script
+    var opt = ['--type=source']
+    if $SHTX_CRASH_DUMP {
+        $opt.add("--crash-dump")
+    }
+    var output = "$(eval $_SHTX_GO_BIN_PATH $opt $input)"
+    if $? != 0 {
+        return 1
+    }
+    try {
+        var func = $MODULE._func($output)()! as ([String]) -> Void
+        $func($@)
     } catch e : _NotFound {
         return 127
     } catch e : Error {

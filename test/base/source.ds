@@ -1,0 +1,20 @@
+# RUN: eval $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+cd $SCRIPT_DIR
+
+assert_fake_eval 'source ./scripts/arg_in_source.sh' \
+    'source=bash, args=aaa bbb ccc, len=4' aaa bbb ccc ddd
+
+assert_fake_eval '\source ./scripts/arg_in_source.sh' \
+    'source=bash, args=bbb ccc ddd, len=3' bbb ccc ddd
+
+assert_fake_eval '. ./scripts/arg_in_source.sh' \
+    'source=bash, args=aaa bbb ccc, len=4' aaa bbb ccc ddd
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

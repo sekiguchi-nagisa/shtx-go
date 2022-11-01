@@ -26,6 +26,26 @@ assert_fake_eval() {
     return $s2
 }
 
+assert_fake_source() {
+    $SHTX_CRASH_DUMP = $false
+    assert $# >= 2 : "require 2 arguments: 'script' 'output'"
+    var script = $@.shift()
+    var output = $@.shift()
+
+    # check bash output
+    var out1 = "$(bash <(cat <<< $script) $@)"
+    var s1 = $?
+    assert diff <(cat <<< $out1) <(cat <<< $output)
+
+    # check translated code output
+    var out2 = "$(fake_source <(cat <<< $script) $@)"
+    var s2 = $?
+    assert diff <(cat <<< $out2) <(cat <<< $output)
+
+    assert $s1 == $s2 : "expect $s1, actual $s2"
+    return $s2
+}
+
 
 _test() {
     assert_fake_eval '' ''
@@ -38,6 +58,15 @@ _test() {
     assert $? == 0
 
     assert_fake_eval 'echo A' $'A\nB' ';' echo B
+    assert $? == 0
+
+    assert_fake_eval 'exit 56' ''
+    assert $? == 56
+
+    assert_fake_source 'echo hello' 'hello'
+    assert $? == 0
+
+    assert_fake_source 'echo sum="$1+$2+$3, len=$#"' 'sum=1+2+, len=2' 1 2
     assert $? == 0
 
     assert_fake_eval 'exit 56' ''
