@@ -139,7 +139,7 @@ function _error(cmd : String, v : String) {
     echo 1>&2 ${$_vars.arg0}: $cmd: $v
 }
 
-typedef _NotFound : Error
+typedef _SHError : Error
 
 function __shtx_var_get_impl(param : String, op : String, word : String) : String {
     assert !$param.empty()
@@ -164,8 +164,8 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
                 var v = $n == 0 ? $_vars.arg0 : $_vars.args[$n - 1]
                 case $op {
                     ':-' => return $v :- $word
-                    ':=' => return $v :- throw new Error("${_vars.arg0}: \$${param}: cannot assign in this way")
-                    ':?' => return $v :- throw new _NotFound("${_vars.arg0}: \$${param}: ${word}")
+                    ':=' => return $v :- throw new _SHError("${_vars.arg0}: \$${param}: cannot assign in this way")
+                    ':?' => return $v :- throw new _SHError("${_vars.arg0}: \$${param}: ${word}", 127)
                     ':+' => return !$v.empty() ? $word : ""
                     '+' => return $word
                     else => return $v :- ""
@@ -173,8 +173,8 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
             } else {    # unset (1~)
                 case $op {
                     ':-' | '-' => return $word
-                    ':=' | '=' => throw new Error("${_vars.arg0}: \$${param}: cannot assign in this way")
-                    ':?' | '?' => throw new _NotFound("${_vars.arg0}: \$${param}: ${word}")
+                    ':=' | '=' => throw new _SHError("${_vars.arg0}: \$${param}: cannot assign in this way")
+                    ':?' | '?' => throw new _SHError("${_vars.arg0}: \$${param}: ${word}", 127)
                     ':+' | '+' => return ""
                     else => return ""
                 }
@@ -190,8 +190,8 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
         '-' => return $v ?? $word
         ':=' => return ($v ?? "") :- $_vars.update($param, $word)
         '=' => return $v ?? $_vars.update($param, $word)
-        ':?' => return ($v ?? "") :- throw new _NotFound("${_vars.arg0}: \$${param}: ${word}")
-        '?' => return $v ?? throw new _NotFound("${_vars.arg0}: \$${param}: ${word}")
+        ':?' => return ($v ?? "") :- throw new _SHError("${_vars.arg0}: \$${param}: ${word}", 127)
+        '?' => return $v ?? throw new _SHError("${_vars.arg0}: \$${param}: ${word}", 127)
         ':+' => return $v && !$v.empty() ? $word : ""
         '+' => return $v ? $word : ""
         else => return $v ?? ""
@@ -331,8 +331,8 @@ fake_eval() {
     }
     try {
         $MODULE._func($output)()
-    } catch e : _NotFound {
-        return 127
+    } catch e : _SHError {
+        return $e.status()
     } catch e : Error {
         $e.show()
         $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)
@@ -361,8 +361,8 @@ fake_source() {
     try {
         var func = $MODULE._func($output)()! as ([String]) -> Void
         $func($@)
-    } catch e : _NotFound {
-        return 127
+    } catch e : _SHError {
+        return $e.status()
     } catch e : Error {
         $e.show()
         $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)

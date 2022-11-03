@@ -1,0 +1,77 @@
+# RUN: eval $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+# expansion op
+## special variables
+
+assert_fake_source '  # ${parameter:-word}
+    echo "(${#:-huga})"
+    echo "${34:-hoge}"
+    echo "(${34})"
+    echo "<${1:-bar}>"
+' '(1)
+hoge
+()
+<bar>' ''
+
+assert_fake_source '  # ${parapemter-word}
+    echo "(${#-huga})"
+    echo "${34-hoge}"
+    echo "(${34})"
+    echo "<${1-bar}>"
+' '(1)
+hoge
+()
+<>' ''
+
+assert_fake_source '  # ${parapemter:=word}
+    echo "(${#:=huga})" &&
+    echo "${34:=hoge}" &&
+    echo "(${34})"
+' '(1)' '' 2> /dev/null
+assert $? == 1
+
+assert_fake_source '  # ${parapemter=word}
+    echo "(${#=huga})" &&
+    echo "<${1=hoge}>" &&
+    echo "${34=hoge}" &&
+    echo "(${34})"
+' '(1)
+<>' '' 2> /dev/null
+assert $? == 1
+
+assert_fake_eval '  # ${parapemter:?word}
+    echo "(${#:?huga})" &&
+    echo "<${1:?hoge}>" &&
+    echo "(${34})"
+' '(0)' '' 2> /dev/null
+assert $? == 127
+
+# assert_fake_source '  # ${parapemter:?word}
+#     echo "(${#:?huga})" &&
+#     echo "${34:?hoge}" &&
+#     echo "(${34})"
+# ' '(1)' '' 2> /dev/null
+# assert $? == 127
+
+assert_fake_source '  # ${parapemter:+word}
+    echo "(${#:+huga})"
+    echo "<${1:+hoge}>"
+    echo "(${34:+bar})"
+' '(huga)
+<>
+()' ''
+
+assert_fake_source '  # ${parapemter+word}
+    echo "(${#+huga})"
+    echo "<${1+hoge}>"
+    echo "(${34+bar})"
+' '(huga)
+<hoge>
+()' ''
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0
