@@ -370,4 +370,44 @@ fake_source() {
     }
 }
 
-shctl is-sourced || fake_eval $@
+
+# +++++ entry point for cli +++++
+
+_main() {
+    var is_script = $true
+    var input : String!
+    var index = 0;
+    for(; $index < $#; $index++) {
+        var arg = $@[$index]
+        case $arg {
+            '-c' => if $index + 1 < $# {
+                $is_script = $false
+                $index++
+                break
+            } else {
+                echo 1>&2 need argument: -c
+                return 1
+            }
+            else => break
+        }
+    }
+    if !$input && $index < $# {
+        $input = $@[$index]
+        $index++
+    }
+    if $input {
+        var args = $@.slice($index)
+        if $is_script {
+            fake_source $input $args
+        } else {
+            $__shtx_set_argv($args)
+            fake_eval $input
+        }
+        return $?
+    } else {
+        echo 1>&2 need script
+        return 1
+    }
+}
+
+shctl is-sourced || _main $@
