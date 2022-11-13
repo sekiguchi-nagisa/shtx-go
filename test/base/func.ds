@@ -1,0 +1,27 @@
+# RUN: eval $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+# args ($0, $1, $@..)
+assert_fake_eval \
+    'AAA() { echo "$0 $1 $2: $#"; }; AAA aaa bbb; AAA 111 222 333 444' \
+    $'bash aaa bbb: 2\nbash 111 222: 4'
+assert_fake_eval 'function AAA() { echo "$1 $2"; }; AAA aaa bbb' 'aaa bbb'
+
+# shift command
+assert_fake_eval 'AAA() { shift; echo "$0 $1 $2: $#"; }; AAA 111 222 333 444' 'bash 222 333: 3'
+
+$@.addAll(['aaa', 'bbb', 'ccc', 'dddd'])
+assert "$(fake_eval \
+    'AAA() { shift; echo "$0 $1 $2: $#"; }; AAA 111 222 333 444; echo "$1 $2 $3 $4: $#"')" == 
+'bash 222 333: 3
+aaa bbb ccc dddd: 4'
+$@.clear()
+
+
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

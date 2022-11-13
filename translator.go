@@ -170,6 +170,8 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 		t.emit("}")
 	case *syntax.IfClause:
 		t.visitIfClause(n, false)
+	case *syntax.FuncDecl:
+		t.visitFuncDecl(n)
 	default:
 		fixmeCase(n)
 	}
@@ -203,6 +205,7 @@ func (t *Translator) visitRedirects(redirs []*syntax.Redirect, cmd bool) {
 			t.emit(strconv.Itoa(fd))
 		}
 		t.emit(toRedirOpStr(redir.Op))
+		t.emit(" ")
 		t.visitWordParts(redir.Word.Parts, false)
 		_ = redir.Hdoc != nil && todo("support heredoc")
 	}
@@ -275,6 +278,23 @@ func (t *Translator) visitIfClause(clause *syntax.IfClause, elif bool) {
 			t.emit("}")
 		}
 	}
+}
+
+func (t *Translator) visitFuncDecl(clause *syntax.FuncDecl) {
+	t.emit("$__shtx_func('")
+	t.emit(clause.Name.Value) // FIXME: escape command name
+	t.emitLine("', (){")
+	t.indentLevel++
+	t.indent()
+	t.emitLine("$__shtx_enter_func($0, $@)")
+	t.indent()
+	t.emitLine("defer { $__shtx_exit_func(); }")
+	t.indent()
+	t.visitStmt(clause.Body)
+	t.indentLevel--
+	t.newline()
+	t.indent()
+	t.emit("})")
 }
 
 func isCmdLiteral(word *syntax.Word) bool {

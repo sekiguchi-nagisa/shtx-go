@@ -93,13 +93,14 @@ function get() : String! for _VarEntry {
     }
 }
 
-typedef _VarMap(_arg0 : String, _args : [String]) {
+typedef _VarMap(_arg0 : String, _args : [String], _parent : _VarMap!) {
     var arg0 = $_arg0
     var args = $_args
     let entries : [String : _VarEntry]
+    let parent = $_parent
 }
 
-let _vars = new _VarMap("bash", $@)
+var _vars = new _VarMap("bash", $@)
 
 # get variable entry. if entry is not found, but corresponding env is found, set and return entry
 function get(name : String) : _VarEntry! for _VarMap {
@@ -309,6 +310,21 @@ function __shtx_set_argv(argv : [String]) : [String] {
         $_vars.args = $argv.slice(1)
     }
     return $old
+}
+
+function __shtx_func(name : String, cmd : Command) : Bool {
+    $DYNA_UDCS[$name] = $cmd
+    return $true
+}
+
+function __shtx_enter_func(arg0 : String, args : [String]) {
+    var vv = new _VarMap("bash", $args, $_vars)  # FIXME: set arg0 ?
+    $_vars = $vv
+}
+
+function __shtx_exit_func() {
+    var p = $_vars.parent
+    $_vars = $p!
 }
 
 

@@ -46,31 +46,31 @@ false;
 }
 `},
 	{"echo 1>& 3", `{
-  echo 1>&3
+  echo 1>& 3
 }
 `},
 	{"echo 1 >&2", `{
-  echo 1 >&2
+  echo 1 >& 2
 }
 `},
 	{"echo >>hoge", `{
-  echo >>hoge
+  echo >> hoge
 }
 `},
 	{"echo &>>hoge", `{
-  echo &>>hoge
+  echo &>> hoge
 }
 `},
 	{"echo &>hoge", `{
-  echo &>hoge
+  echo &> hoge
 }
 `},
 	{"echo <hoge", `{
-  echo <hoge
+  echo < hoge
 }
 `},
 	{"echo jfira<&34", `{
-  echo jfira <&34
+  echo jfira <& 34
 }
 `},
 	{"echo `echo hello` `  # this is a comment` A", `{
@@ -246,6 +246,24 @@ fi
 `},
 	{`echo "${var=}"`, `{
   echo "${{__shtx_var_get $? 'var' '=' ; $REPLY; }}"
+}
+`},
+	{`function hoge() true`, `{
+  $__shtx_func('hoge', (){
+    $__shtx_enter_func($0, $@)
+    defer { $__shtx_exit_func(); }
+    true
+  })
+}
+`},
+	{`hoge() { echo hello; } > /dev/null`, `{
+  $__shtx_func('hoge', (){
+    $__shtx_enter_func($0, $@)
+    defer { $__shtx_exit_func(); }
+    {
+      echo hello
+    } with > /dev/null
+  })
 }
 `},
 }
