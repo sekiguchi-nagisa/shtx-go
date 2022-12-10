@@ -266,6 +266,14 @@ fi
   })
 }
 `},
+	{`echo $?`, `{
+  echo ${{__shtx_var_get $? '?'; $REPLY; }}
+}
+`},
+	{`echo "$?"`, `{
+  echo "${{__shtx_var_get $? '?'; $REPLY; }}"
+}
+`},
 }
 
 func TestEval(t *testing.T) {
