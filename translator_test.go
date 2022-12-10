@@ -124,6 +124,10 @@ false;
   echo "${{__shtx_var_get $? '#'; $REPLY; }}: ${{__shtx_var_get $? '0'; $REPLY; }}: ${{__shtx_var_get $? '1'; $REPLY; }} ${{__shtx_var_get $? '002'; $REPLY; }}"
 }
 `},
+	{`echo $#: "$0: $1 ${002}"`, `{
+  echo ${{__shtx_var_get $? '#'; $REPLY; }}: "${{__shtx_var_get $? '0'; $REPLY; }}: ${{__shtx_var_get $? '1'; $REPLY; }} ${{__shtx_var_get $? '002'; $REPLY; }}"
+}
+`},
 	{"shift 2", `{
   __shtx_shift 2
 }

@@ -416,7 +416,7 @@ func (t *Translator) visitWordParts(parts []syntax.WordPart, dquoted bool) {
 			t.visitWordParts(n.Parts, true)
 			t.emit("\"")
 		case *syntax.ParamExp:
-			if n.Param.Value != "?" && !dquoted {
+			if n.Param.Value != "?" && n.Param.Value != "#" && !dquoted {
 				todo("support unquoted parameter expansion")
 			}
 			_ = n.Excl && todo("not support ${!a}")

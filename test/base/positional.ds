@@ -7,6 +7,9 @@ $@.clear()
 assert_fake_eval 'echo "$#: $0: $1: ${0002}: ${234})"' '0: bash: : : )'
 assert $? == 0
 
+assert_fake_eval 'echo $#: "$0: $1: ${0002}: ${234})"' '0: bash: : : )'
+assert $? == 0
+
 var cmd = 'echo "$#: $0: $1: ${0002}: ${234})"' 
 $@.addAll(['aaa', 'bbb'])
 assert diff <(bash -c $cmd bash aaa bbb) <(fake_eval $cmd)
