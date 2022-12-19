@@ -73,6 +73,10 @@ false;
   echo jfira <& 34
 }
 `},
+	{"echo 12 >| /dev/null", `{
+  echo 12 >| /dev/null
+}
+`},
 	{"echo `echo hello` `  # this is a comment` A", `{
   echo $(echo hello)  A
 }
