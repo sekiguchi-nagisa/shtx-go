@@ -2,4 +2,4 @@
 [![Go](https://github.com/sekiguchi-nagisa/shtx/actions/workflows/go.yml/badge.svg)](https://github.com/sekiguchi-nagisa/shtx/actions/workflows/go.yml)
 
 # shtx
-expreriment bash subset to ydsh transpiler
+experimental bash subset to ydsh transpiler
