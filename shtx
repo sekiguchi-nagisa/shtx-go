@@ -1,6 +1,6 @@
 #!/usr/bin/env ydsh
 
-# Copyright (C) 2022 Nagisa Sekiguchi
+# Copyright (C) 2022-2023 Nagisa Sekiguchi
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ function __save_crash_dump(in : String, out : String, e : Error) : Bool {
 
 let __VAR_ATTR_EXPORT = 0x01
 
-typedef _VarEntry(v: String!, a : Int!) {
+typedef _VarEntry(v: String?, a : Int?) {
     var value = $v ?? ""  # if indicate env, value is env name
     var attr = $a ?? 0
 }
@@ -85,15 +85,15 @@ function assign(value : String) : String for _VarEntry {
 }
 
 # get value. if entry indicates env, get env value
-function get() : String! for _VarEntry {
+function get() : String? for _VarEntry {
     if $this.hasAttr($__VAR_ATTR_EXPORT) {
-        return (printenv ${this.value} &> /dev/null) ? "$(command printenv ${this.value})" : new String!()
+        return (printenv ${this.value} &> /dev/null) ? "$(command printenv ${this.value})" : new String?()
     } else {
         return $this.value
     }
 }
 
-typedef _VarMap(_arg0 : String, _args : [String], _parent : _VarMap!) {
+typedef _VarMap(_arg0 : String, _args : [String], _parent : _VarMap?) {
     var arg0 = $_arg0
     var args = $_args
     let entries : [String : _VarEntry]
@@ -103,14 +103,14 @@ typedef _VarMap(_arg0 : String, _args : [String], _parent : _VarMap!) {
 var _vars = new _VarMap("bash", $@)
 
 # get variable entry. if entry is not found, but corresponding env is found, set and return entry
-function get(name : String) : _VarEntry! for _VarMap {
+function get(name : String) : _VarEntry? for _VarMap {
     return $this.entries.get($name) ?? {
         if(checkenv "$name") {
             var e = new _VarEntry($name, $__VAR_ATTR_EXPORT)
             $this.entries.put($name, $e)
             return $e
         }
-        return new _VarEntry!()
+        return $none
     }
 }
 
@@ -128,7 +128,7 @@ function update(name : String, value : String) : String for _VarMap {
     return $value
 }
 
-function remove(name : String) : _VarEntry! for _VarMap {
+function remove(name : String) : _VarEntry? for _VarMap {
     var e = $this.entries.get($name)
     if $e {
         $this.entries.remove($name)
@@ -185,7 +185,7 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
     }
 
     var entry = $_vars.get($param)
-    var v = $entry ? $entry.get() : new String!()
+    var v = $entry ? $entry.get() : $none
     case $op {
         ':-' => return ($v ?? "") :- $word
         '-' => return $v ?? $word
@@ -391,7 +391,7 @@ fake_source() {
 
 _main() {
     var is_script = $true
-    var input : String!
+    var input : String?
     var index = 0;
     for(; $index < $#; $index++) {
         var arg = $@[$index]
