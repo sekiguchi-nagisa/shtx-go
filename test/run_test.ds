@@ -50,7 +50,7 @@ _main() {
     }
     var failed : [String]
     for target in $targets {
-        var r = eval $YDSH_BIN $litecheck -b $YDSH_BIN $target
+        var r = call $YDSH_BIN $litecheck -b $YDSH_BIN $target
         echo ${$r ? "[OK]" : "[NG]"} $target
         if !$r {
             $failed.add($target)

@@ -1,4 +1,4 @@
-# RUN: eval $cmd $self
+# RUN: call $cmd $self
 
 # helper function for testing
 
