@@ -119,7 +119,7 @@ function set(name : String, entry : _VarEntry) for _VarMap {
 }
 
 function update(name : String, value : String) : String for _VarMap {
-    var entry = $_vars.get($name)
+    let entry = $_vars.get($name)
     if $entry {
         $entry.assign($value)
     } else {
@@ -184,8 +184,8 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
         else => {}
     }
 
-    var entry = $_vars.get($param)
-    var v = $entry ? $entry.get() : $none
+    let entry = $_vars.get($param)
+    let v = $entry ? $entry.get() : $none
     case $op {
         ':-' => return ($v ?? "") :- $word
         '-' => return $v ?? $word
@@ -227,7 +227,7 @@ __shtx_export() {
         let i = $arg.indexOf('=')
         let name = $i != -1 ? $arg.slice(0, $i) : $arg
 
-        var entry = $_vars.get($name)
+        let entry = $_vars.get($name)
         if $entry {
             if !$entry.hasAttr($__VAR_ATTR_EXPORT) {
                 var e = new _VarEntry($name, $__VAR_ATTR_EXPORT)
@@ -412,6 +412,7 @@ _main() {
         $index++
     }
     if $input {
+        var input = $input!
         var args = $@.slice($index)
         if $is_script {
             fake_source $input $args
