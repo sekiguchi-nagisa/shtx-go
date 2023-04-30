@@ -119,8 +119,7 @@ function set(name : String, entry : _VarEntry) for _VarMap {
 }
 
 function update(name : String, value : String) : String for _VarMap {
-    let entry = $_vars.get($name)
-    if $entry {
+    if let entry = $_vars.get($name) {
         $entry.assign($value)
     } else {
         $_vars.set($name, new _VarEntry($value))
@@ -184,8 +183,7 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
         else => {}
     }
 
-    let entry = $_vars.get($param)
-    let v = $entry ? $entry.get() : $none
+    let v = if let entry = $_vars.get($param) { $entry.get(); } else { $none; }
     case $op {
         ':-' => return ($v ?? "") :- $word
         '-' => return $v ?? $word
@@ -193,7 +191,7 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
         '=' => return $v ?? $_vars.update($param, $word)
         ':?' => return ($v ?? "") :- throw new _SHError("${_vars.arg0}: \$${param}: ${word}", 127)
         '?' => return $v ?? throw new _SHError("${_vars.arg0}: \$${param}: ${word}", 127)
-        ':+' => return $v && !$v.empty() ? $word : ""
+        ':+' => return $v && !$v!.empty() ? $word : ""
         '+' => return $v ? $word : ""
         else => return $v ?? ""
     }
@@ -227,8 +225,7 @@ __shtx_export() {
         let i = $arg.indexOf('=')
         let name = $i != -1 ? $arg.slice(0, $i) : $arg
 
-        let entry = $_vars.get($name)
-        if $entry {
+        if let entry = $_vars.get($name) {
             if !$entry.hasAttr($__VAR_ATTR_EXPORT) {
                 var e = new _VarEntry($name, $__VAR_ATTR_EXPORT)
                 $e.assign($entry.value)
