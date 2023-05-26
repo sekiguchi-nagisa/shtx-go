@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.8.3
 	mvdan.cc/sh/v3 v3.6.0
 )
 
