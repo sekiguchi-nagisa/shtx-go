@@ -88,7 +88,8 @@ function assign(value : String) : String for _VarEntry {
 # get value. if entry indicates env, get env value
 function get() : String? for _VarEntry {
     if $this.hasAttr($__VAR_ATTR_EXPORT) {
-        return (printenv ${this.value} &> /dev/null) ? "$(command printenv ${this.value})" : new String?()
+        var v = "$(command printenv ${this.value} 2>> /dev/null)"
+        return $? == 0 ? $v : new String?()
     } else {
         return $this.value
     }
