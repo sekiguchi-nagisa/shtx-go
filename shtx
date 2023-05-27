@@ -46,7 +46,8 @@ _try_fetch_bin() {
 }
 
 function __save_crash_dump(in : String, out : String, e : Error) : Bool {
-    var name = "crash_shtx_$(command date  +"%Y-%m-%dT%H:%M:%S%z").log"
+    printf -v var "crash_shtx_%(%Y-%m-%dT%H:%M:%S%z)T.log"
+    var name = $reply.remove('var')!
     {
         echo '+++++  error message  +++++'
         $e.show() with 2>&1
