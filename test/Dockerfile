@@ -1,6 +1,6 @@
-FROM opensuse/leap:15.4
+FROM opensuse/leap:15.5
 
-RUN zypper in -y pcre2-devel gcc-c++ clang cmake git ninja sudo systemd-sysvinit glibc-locale go1.18
+RUN zypper in -y pcre2-devel gcc-c++ clang cmake git ninja sudo systemd-sysvinit glibc-locale go1.20
 RUN useradd -m tux
 RUN groupadd -g 2001 admin && usermod -G admin tux  && echo '%admin ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
