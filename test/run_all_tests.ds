@@ -3,13 +3,18 @@
 cd "$SCRIPT_DIR"
 pwd
 
-assert test -f /ydsh/tools/litecheck/litecheck
+let litecheck = $1
+test -f $litecheck || {
+    echo 2>&1 require litecheck path
+    exit 1
+}
+
 assert test -x ./run_test.ds
 
 # run test cases
 
-echo '@@run test: SHTX_DEV_MODE=on ./run_test.ds -b /ydsh/tools/litecheck/litecheck ./common'
-SHTX_DEV_MODE=on ./run_test.ds -b /ydsh/tools/litecheck/litecheck ./common
+echo "@@run test: SHTX_DEV_MODE=on ./run_test.ds -b $litecheck ./common"
+SHTX_DEV_MODE=on ./run_test.ds -b $litecheck ./common
 
-echo '@@run test: SHTX_DEV_MODE=on ./run_test.ds -b /ydsh/tools/litecheck/litecheck ./base'
-SHTX_DEV_MODE=on ./run_test.ds -b /ydsh/tools/litecheck/litecheck ./base
+echo "@@run test: SHTX_DEV_MODE=on ./run_test.ds -b $litecheck ./base"
+SHTX_DEV_MODE=on ./run_test.ds -b $litecheck ./base
