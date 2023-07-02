@@ -67,40 +67,40 @@ function __save_crash_dump(in : String, out : String, e : Error) : Bool {
 let __VAR_ATTR_EXPORT = 0x01
 
 typedef _VarEntry(v: String?, a : Int?) {
-    var value = $v ?? ""  # if indicate env, value is env name
-    var attr = $a ?? 0
+    var _value = $v ?? ""  # if indicate env, value is env name
+    var _attr = $a ?? 0
 }
 
-function hasAttr(attr : Int) : Bool for _VarEntry {
-    return ($this.attr and $attr) == $attr
+function exported() : Bool for _VarEntry {
+    return ($this._attr and $__VAR_ATTR_EXPORT) == $__VAR_ATTR_EXPORT
 }
 
 # update value, if entry indicates env, update env value
-function assign(value : String) : String for _VarEntry {
-    if $this.hasAttr($__VAR_ATTR_EXPORT) {
-        setenv ${this.value}=$value
+function set(value : String) : String for _VarEntry {
+    if $this.exported() {
+        setenv ${this._value}=$value
     } else {
-        $this.value = $value
+        $this._value = $value
     }
     return $value
 }
 
 # export as environmental variable
 function export(name : String) : _VarEntry for _VarEntry {
-    var v = $this.value
-    $this.attr = $__VAR_ATTR_EXPORT
-    $this.value = $name
-    $this.assign($v)
+    var v = $this._value
+    $this._attr = $__VAR_ATTR_EXPORT
+    $this._value = $name
+    $this.set($v)
     return $this
 }
 
 # get value. if entry indicates env, get env value
 function get() : String? for _VarEntry {
-    if $this.hasAttr($__VAR_ATTR_EXPORT) {
-        var v = "$(command printenv ${this.value} 2>> /dev/null)"
+    if $this.exported() {
+        var v = "$(command printenv ${this._value} 2>> /dev/null)"
         return $? == 0 ? $v : new String?()
     } else {
-        return $this.value
+        return $this._value
     }
 }
 
@@ -125,9 +125,9 @@ function get(name : String) : _VarEntry? for _VarMap {
     }
 }
 
-function update(name : String, value : String) : String for _VarMap {
+function put(name : String, value : String) : String for _VarMap {
     if let entry = $_vars.get($name) {
-        $entry.assign($value)
+        $entry.set($value)
     } else {
         $_vars.entries.put($name, new _VarEntry($value))
     }
@@ -194,8 +194,8 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
     case $op {
         ':-' => return ($v ?? "") :- $word
         '-' => return $v ?? $word
-        ':=' => return ($v ?? "") :- $_vars.update($param, $word)
-        '=' => return $v ?? $_vars.update($param, $word)
+        ':=' => return ($v ?? "") :- $_vars.put($param, $word)
+        '=' => return $v ?? $_vars.put($param, $word)
         ':?' => return ($v ?? "") :- throw new _SHError("${_vars.arg0}: \$${param}: ${word}", 127)
         '?' => return $v ?? throw new _SHError("${_vars.arg0}: \$${param}: ${word}", 127)
         ':+' => return $v && !$v!.empty() ? $word : ""
@@ -221,7 +221,7 @@ __shtx_var_get() {
 __shtx_var_set() {
     var param = $1 :- return 0
     var word = $2
-    $_vars.update($param, $word)
+    $_vars.put($param, $word)
     return 0
 }
 
@@ -234,16 +234,16 @@ __shtx_export() {
 
         ## export var as env if not found, create new entry
         let entry = $_vars.get($name) ?? {
-            $_vars.update($name, "")
+            $_vars.put($name, "")
             $_vars.get($name)!
         }
-        if !$entry.hasAttr($__VAR_ATTR_EXPORT) {
+        if !$entry.exported() {
             $entry.export($name)
         }
 
         ## update env
         if $i != -1 {
-            $entry.assign($arg.slice($i + 1))
+            $entry.set($arg.slice($i + 1))
         }
     }
     return 0
@@ -253,10 +253,8 @@ __shtx_export() {
 __shtx_unset() {
     for arg in $@ {
         ($arg.empty() || $arg.startsWith("-")) && continue
-        var entry = $_vars.remove($arg)
-        !$entry && continue
-        if $entry!.hasAttr($__VAR_ATTR_EXPORT) {
-            unsetenv $arg
+        if let entry = $_vars.remove($arg) {
+            $entry.exported() && unsetenv $arg
         }
     }
     return 0
