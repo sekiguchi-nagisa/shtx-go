@@ -413,14 +413,13 @@ _main() {
         $input = $@[$index]
         $index++
     }
-    if $input {
-        var input = $input!
+    if let input2 = $input {
         var args = $@.slice($index)
         if $is_script {
-            fake_source $input $args
+            fake_source $input2 $args
         } else {
             $__shtx_set_argv($args)
-            fake_eval $input
+            fake_eval $input2
         }
         return $?
     } else {
