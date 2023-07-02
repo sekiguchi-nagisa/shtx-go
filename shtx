@@ -85,6 +85,15 @@ function assign(value : String) : String for _VarEntry {
     return $value
 }
 
+# export as environmental variable
+function export(name : String) : _VarEntry for _VarEntry {
+    var v = $this.value
+    $this.attr = $__VAR_ATTR_EXPORT
+    $this.value = $name
+    $this.assign($v)
+    return $this
+}
+
 # get value. if entry indicates env, get env value
 function get() : String? for _VarEntry {
     if $this.hasAttr($__VAR_ATTR_EXPORT) {
@@ -116,15 +125,11 @@ function get(name : String) : _VarEntry? for _VarMap {
     }
 }
 
-function set(name : String, entry : _VarEntry) for _VarMap {
-    $this.entries.put($name, $entry)
-}
-
 function update(name : String, value : String) : String for _VarMap {
     if let entry = $_vars.get($name) {
         $entry.assign($value)
     } else {
-        $_vars.set($name, new _VarEntry($value))
+        $_vars.entries.put($name, new _VarEntry($value))
     }
     return $value
 }
@@ -227,20 +232,18 @@ __shtx_export() {
         let i = $arg.indexOf('=')
         let name = $i != -1 ? $arg.slice(0, $i) : $arg
 
-        if let entry = $_vars.get($name) {
-            if !$entry.hasAttr($__VAR_ATTR_EXPORT) {
-                var e = new _VarEntry($name, $__VAR_ATTR_EXPORT)
-                $e.assign($entry.value)
-                $_vars.set($name, $e)
-            }
-        } else {
-            var e = new _VarEntry($name, $__VAR_ATTR_EXPORT)
-            $e.assign("")
-            $_vars.set($name, $e)
+        ## export var as env if not found, create new entry
+        let entry = $_vars.get($name) ?? {
+            $_vars.update($name, "")
+            $_vars.get($name)!
+        }
+        if !$entry.hasAttr($__VAR_ATTR_EXPORT) {
+            $entry.export($name)
         }
 
+        ## update env
         if $i != -1 {
-            $_vars.update($name, $arg.slice($i + 1))
+            $entry.assign($arg.slice($i + 1))
         }
     }
     return 0
