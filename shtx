@@ -98,7 +98,7 @@ function export(name : String) : _VarEntry for _VarEntry {
 function get() : String? for _VarEntry {
     if $this.exported() {
         var v = "$(command printenv ${this._value} 2>> /dev/null)"
-        return $? == 0 ? $v : new String?()
+        return $? == 0 ? $v : $none
     } else {
         return $this._value
     }
@@ -135,11 +135,7 @@ function put(name : String, value : String) : String for _VarMap {
 }
 
 function remove(name : String) : _VarEntry? for _VarMap {
-    var e = $this.entries.get($name)
-    if $e {
-        $this.entries.remove($name)
-    }
-    return $e
+    return $this.entries.remove($name)
 }
 
 function _error(cmd : String, v : String) {
