@@ -131,10 +131,6 @@ function put(name : String, value : String) : String for _VarMap {
     return $value
 }
 
-function remove(name : String) : _VarEntry? for _VarMap {
-    return $this.entries.remove($name)
-}
-
 typedef _VarScope(_arg0 : String, _args : [String]) {
     let global = new _VarMap($_arg0, $_args)
     let locals : [_VarMap]
@@ -184,12 +180,12 @@ function remove(name : String) : _VarEntry? for _VarScope {
     ## remove from local if found
     if !$this.locals.empty() {
         var local = $this.locals.peek()
-        if let e = $local.remove($name) {
+        if let e = $local.entries.remove($name) {
             return $e
         }
     }
     ## otherwise, remove from global
-    return $this.global.remove($name)
+    return $this.global.entries.remove($name)
 }
 
 function enterFunc(arg0 : String, args : [String]) for _VarScope {
@@ -200,10 +196,10 @@ function exitFunc() for _VarScope {
     $this.locals.pop()
 }
 
-var _vars = new _VarScope("bash", $@)
+var _VARS = new _VarScope("bash", $@)
 
 function _error(cmd : String, v : String) {
-    echo 1>&2 ${$_vars.arg0()}: $cmd: $v
+    echo 1>&2 ${$_VARS.arg0()}: $cmd: $v
 }
 
 typedef _SHError : Error
@@ -222,17 +218,17 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
             if $op == ':+' || $op == '+' {
                 return $word
             }
-            return $_vars.args().size() as String
+            return $_VARS.args().size() as String
         }
         $/^[0-9]+$/ => {
             var n = $param.toInt(10)!
             assert $n > -1
-            if $n == 0 || $n - 1 < $_vars.args().size() { # set 0, 1~
-                var v = $n == 0 ? $_vars.arg0() : $_vars.args()[$n - 1]
+            if $n == 0 || $n - 1 < $_VARS.args().size() { # set 0, 1~
+                var v = $n == 0 ? $_VARS.arg0() : $_VARS.args()[$n - 1]
                 case $op {
                     ':-' => return $v :- $word
-                    ':=' => return $v :- throw new _SHError("${$_vars.arg0()}: \$${param}: cannot assign in this way")
-                    ':?' => return $v :- throw new _SHError("${$_vars.arg0()}: \$${param}: ${word}", 127)
+                    ':=' => return $v :- throw new _SHError("${$_VARS.arg0()}: \$${param}: cannot assign in this way")
+                    ':?' => return $v :- throw new _SHError("${$_VARS.arg0()}: \$${param}: ${word}", 127)
                     ':+' => return !$v.empty() ? $word : ""
                     '+' => return $word
                     else => return $v :- ""
@@ -240,8 +236,8 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
             } else {    # unset (1~)
                 case $op {
                     ':-' | '-' => return $word
-                    ':=' | '=' => throw new _SHError("${$_vars.arg0()}: \$${param}: cannot assign in this way")
-                    ':?' | '?' => throw new _SHError("${$_vars.arg0()}: \$${param}: ${word}", 127)
+                    ':=' | '=' => throw new _SHError("${$_VARS.arg0()}: \$${param}: cannot assign in this way")
+                    ':?' | '?' => throw new _SHError("${$_VARS.arg0()}: \$${param}: ${word}", 127)
                     ':+' | '+' => return ""
                     else => return ""
                 }
@@ -250,14 +246,14 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
         else => {}
     }
 
-    let v = if let entry = $_vars.get($param) { $entry.get(); } else { $none; }
+    let v = if let entry = $_VARS.get($param) { $entry.get(); } else { $none; }
     case $op {
         ':-' => return ($v ?? "") :- $word
         '-' => return $v ?? $word
-        ':=' => return ($v ?? "") :- $_vars.put($param, $word)
-        '=' => return $v ?? $_vars.put($param, $word)
-        ':?' => return ($v ?? "") :- throw new _SHError("${$_vars.arg0()}: \$${param}: ${word}", 127)
-        '?' => return $v ?? throw new _SHError("${$_vars.arg0()}: \$${param}: ${word}", 127)
+        ':=' => return ($v ?? "") :- $_VARS.put($param, $word)
+        '=' => return $v ?? $_VARS.put($param, $word)
+        ':?' => return ($v ?? "") :- throw new _SHError("${$_VARS.arg0()}: \$${param}: ${word}", 127)
+        '?' => return $v ?? throw new _SHError("${$_VARS.arg0()}: \$${param}: ${word}", 127)
         ':+' => return $v && !$v!.empty() ? $word : ""
         '+' => return $v ? $word : ""
         else => return $v ?? ""
@@ -281,7 +277,7 @@ __shtx_var_get() {
 __shtx_var_set() {
     var param = $1 :- return 0
     var word = $2
-    $_vars.put($param, $word)
+    $_VARS.put($param, $word)
     return 0
 }
 
@@ -293,9 +289,9 @@ __shtx_export() {
         let name = $i != -1 ? $arg.slice(0, $i) : $arg
 
         ## export var as env if not found, create new entry
-        let entry = $_vars.get($name) ?? {
-            $_vars.put($name, "")
-            $_vars.get($name)!
+        let entry = $_VARS.get($name) ?? {
+            $_VARS.put($name, "")
+            $_VARS.get($name)!
         }
         if !$entry.exported() {
             $entry.export($name)
@@ -313,7 +309,7 @@ __shtx_export() {
 __shtx_unset() {
     for arg in $@ {
         ($arg.empty() || $arg.startsWith("-")) && continue
-        if let entry = $_vars.remove($arg) {
+        if let entry = $_VARS.remove($arg) {
             $entry.exported() && unsetenv $arg
         }
     }
@@ -328,10 +324,10 @@ __shtx_shift() {
             return 1;
         }
     }
-    ($offset < 0 || $offset > $_vars.args().size()) && return 1
+    ($offset < 0 || $offset > $_VARS.args().size()) && return 1
 
     for(var i = 0; $i < $offset; $i++) {
-        $_vars.args().shift()
+        $_VARS.args().shift()
     }
     return 0
 }
@@ -362,12 +358,12 @@ __shtx_dyna_call() {
 
 function __shtx_set_argv(argv : [String]) : [String] {
     var old : [String]
-    $old.add($_vars.arg0())
-    $old.addAll($_vars.args())
+    $old.add($_VARS.arg0())
+    $old.addAll($_VARS.args())
 
     if !$argv.empty() {
         # $_vars.arg0 = $argv[0]  # not update $0
-        $_vars.setArgs($argv.slice(1))
+        $_VARS.setArgs($argv.slice(1))
     }
     return $old
 }
@@ -378,11 +374,11 @@ function __shtx_func(name : String, cmd : Command) : Bool {
 }
 
 function __shtx_enter_func(arg0 : String, args : [String]) {
-    $_vars.enterFunc("bash", $args)  # FIXME: set arg0 ?
+    $_VARS.enterFunc("bash", $args)  # FIXME: set arg0 ?
 }
 
 function __shtx_exit_func() {
-    $_vars.exitFunc()
+    $_VARS.exitFunc()
 }
 
 
