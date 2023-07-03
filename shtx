@@ -104,14 +104,11 @@ function get() : String? for _VarEntry {
     }
 }
 
-typedef _VarMap(_arg0 : String, _args : [String], _parent : _VarMap?) {
+typedef _VarMap(_arg0 : String, _args : [String]) {
     var arg0 = $_arg0
     var args = $_args
     let entries : [String : _VarEntry]
-    let parent = $_parent
 }
-
-var _vars = new _VarMap("bash", $@)
 
 # get variable entry. if entry is not found, but corresponding env is found, set and return entry
 function get(name : String) : _VarEntry? for _VarMap {
@@ -126,10 +123,10 @@ function get(name : String) : _VarEntry? for _VarMap {
 }
 
 function put(name : String, value : String) : String for _VarMap {
-    if let entry = $_vars.get($name) {
+    if let entry = $this.get($name) {
         $entry.set($value)
     } else {
-        $_vars.entries.put($name, new _VarEntry($value))
+        $this.entries.put($name, new _VarEntry($value))
     }
     return $value
 }
@@ -138,8 +135,75 @@ function remove(name : String) : _VarEntry? for _VarMap {
     return $this.entries.remove($name)
 }
 
+typedef _VarScope(_arg0 : String, _args : [String]) {
+    let global = new _VarMap($_arg0, $_args)
+    let locals : [_VarMap]
+}
+
+function arg0() : String for _VarScope {
+    var v = $this.locals.empty() ? $this.global : $this.locals.peek()
+    return $v.arg0
+}
+
+function args() : [String] for _VarScope {
+    var v = $this.locals.empty() ? $this.global : $this.locals.peek()
+    return $v.args
+}
+
+function setArgs(args : [String]) for _VarScope {
+    var v = $this.locals.empty() ? $this.global : $this.locals.peek()
+    $v.args = $args
+}
+
+function get(name : String) : _VarEntry? for _VarScope {
+    ## first, get from local scope
+    if !$this.locals.empty() {
+        var local = $this.locals.peek()
+        if let e = $local.entries.get($name) {
+            return $e
+        }
+    }
+    ## if not found, get from global scope
+    return $this.global.get($name)
+}
+
+function put(name : String, value : String) : String for _VarScope {
+    ## set to local if found
+    if !$this.locals.empty() {
+        var local = $this.locals.peek()
+        if let e = $local.entries.get($name) {
+            $e.set($value)
+        }
+    }
+    ## otherwise, set to global
+    $this.global.put($name, $value)
+    return $value
+}
+
+function remove(name : String) : _VarEntry? for _VarScope {
+    ## remove from local if found
+    if !$this.locals.empty() {
+        var local = $this.locals.peek()
+        if let e = $local.remove($name) {
+            return $e
+        }
+    }
+    ## otherwise, remove from global
+    return $this.global.remove($name)
+}
+
+function enterFunc(arg0 : String, args : [String]) for _VarScope {
+    $this.locals.push(new _VarMap($arg0, $args))
+}
+
+function exitFunc() for _VarScope {
+    $this.locals.pop()
+}
+
+var _vars = new _VarScope("bash", $@)
+
 function _error(cmd : String, v : String) {
-    echo 1>&2 ${$_vars.arg0}: $cmd: $v
+    echo 1>&2 ${$_vars.arg0()}: $cmd: $v
 }
 
 typedef _SHError : Error
@@ -158,17 +222,17 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
             if $op == ':+' || $op == '+' {
                 return $word
             }
-            return $_vars.args.size() as String
+            return $_vars.args().size() as String
         }
         $/^[0-9]+$/ => {
             var n = $param.toInt(10)!
             assert $n > -1
-            if $n == 0 || $n - 1 < $_vars.args.size() { # set 0, 1~
-                var v = $n == 0 ? $_vars.arg0 : $_vars.args[$n - 1]
+            if $n == 0 || $n - 1 < $_vars.args().size() { # set 0, 1~
+                var v = $n == 0 ? $_vars.arg0() : $_vars.args()[$n - 1]
                 case $op {
                     ':-' => return $v :- $word
-                    ':=' => return $v :- throw new _SHError("${_vars.arg0}: \$${param}: cannot assign in this way")
-                    ':?' => return $v :- throw new _SHError("${_vars.arg0}: \$${param}: ${word}", 127)
+                    ':=' => return $v :- throw new _SHError("${$_vars.arg0()}: \$${param}: cannot assign in this way")
+                    ':?' => return $v :- throw new _SHError("${$_vars.arg0()}: \$${param}: ${word}", 127)
                     ':+' => return !$v.empty() ? $word : ""
                     '+' => return $word
                     else => return $v :- ""
@@ -176,8 +240,8 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
             } else {    # unset (1~)
                 case $op {
                     ':-' | '-' => return $word
-                    ':=' | '=' => throw new _SHError("${_vars.arg0}: \$${param}: cannot assign in this way")
-                    ':?' | '?' => throw new _SHError("${_vars.arg0}: \$${param}: ${word}", 127)
+                    ':=' | '=' => throw new _SHError("${$_vars.arg0()}: \$${param}: cannot assign in this way")
+                    ':?' | '?' => throw new _SHError("${$_vars.arg0()}: \$${param}: ${word}", 127)
                     ':+' | '+' => return ""
                     else => return ""
                 }
@@ -192,8 +256,8 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
         '-' => return $v ?? $word
         ':=' => return ($v ?? "") :- $_vars.put($param, $word)
         '=' => return $v ?? $_vars.put($param, $word)
-        ':?' => return ($v ?? "") :- throw new _SHError("${_vars.arg0}: \$${param}: ${word}", 127)
-        '?' => return $v ?? throw new _SHError("${_vars.arg0}: \$${param}: ${word}", 127)
+        ':?' => return ($v ?? "") :- throw new _SHError("${$_vars.arg0()}: \$${param}: ${word}", 127)
+        '?' => return $v ?? throw new _SHError("${$_vars.arg0()}: \$${param}: ${word}", 127)
         ':+' => return $v && !$v!.empty() ? $word : ""
         '+' => return $v ? $word : ""
         else => return $v ?? ""
@@ -264,10 +328,10 @@ __shtx_shift() {
             return 1;
         }
     }
-    ($offset < 0 || $offset > $_vars.args.size()) && return 1
+    ($offset < 0 || $offset > $_vars.args().size()) && return 1
 
     for(var i = 0; $i < $offset; $i++) {
-        $_vars.args.shift()
+        $_vars.args().shift()
     }
     return 0
 }
@@ -298,12 +362,12 @@ __shtx_dyna_call() {
 
 function __shtx_set_argv(argv : [String]) : [String] {
     var old : [String]
-    $old.add($_vars.arg0)
-    $old.addAll($_vars.args)
+    $old.add($_vars.arg0())
+    $old.addAll($_vars.args())
 
     if !$argv.empty() {
         # $_vars.arg0 = $argv[0]  # not update $0
-        $_vars.args = $argv.slice(1)
+        $_vars.setArgs($argv.slice(1))
     }
     return $old
 }
@@ -314,13 +378,11 @@ function __shtx_func(name : String, cmd : Command) : Bool {
 }
 
 function __shtx_enter_func(arg0 : String, args : [String]) {
-    var vv = new _VarMap("bash", $args, $_vars)  # FIXME: set arg0 ?
-    $_vars = $vv
+    $_vars.enterFunc("bash", $args)  # FIXME: set arg0 ?
 }
 
 function __shtx_exit_func() {
-    var p = $_vars.parent
-    $_vars = $p!
+    $_vars.exitFunc()
 }
 
 
