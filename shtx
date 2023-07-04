@@ -97,8 +97,7 @@ function export(name : String) : _VarEntry for _VarEntry {
 # get value. if entry indicates env, get env value
 function get() : String? for _VarEntry {
     if $this.exported() {
-        var v = "$(command printenv ${this._value} 2>> /dev/null)"
-        return $? == 0 ? $v : $none
+        return (getenv ${this._value}) ? $REPLY : $none
     } else {
         return $this._value
     }
