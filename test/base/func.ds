@@ -8,6 +8,11 @@ assert_fake_eval \
     'AAA() { echo "$0 $1 $2: $#"; }; AAA aaa bbb; AAA 111 222 333 444' \
     $'bash aaa bbb: 2\nbash 111 222: 4'
 assert_fake_eval 'function AAA() { echo "$1 $2"; }; AAA aaa bbb' 'aaa bbb'
+assert_fake_eval '
+  AAA() { echo "$1 $2"; }
+  BBB() { echo "$1 $2" && AAA aaa bbb; }
+  BBB 111 222
+' $'111 222\naaa bbb'
 
 # shift command
 assert_fake_eval 'AAA() { shift; echo "$0 $1 $2: $#"; }; AAA 111 222 333 444' 'bash 222 333: 3'
@@ -19,8 +24,87 @@ assert "$(fake_eval \
 aaa bbb ccc dddd: 4'
 $@.clear()
 
+# global
+assert !checkenv ZZZZZ
+ZZZZZ='hello world' assert_fake_eval '
+    AAA=12345;
+    cmd1() {  echo "$AAA"; echo "$0 $1 $2: $#"; echo "$ZZZZZ"; 
+              AAA=6789; ZZZZZ=@@@ sh -c "printenv ZZZZZ"; }
+    echo in func
+    cmd1 111 222 333
 
+    echo in global
+    echo "$AAA"
+    echo "$0 $1 $2: $#"
+    echo "$ZZZZZ"
+' $'in func\n12345\nbash 111 222: 3\nhello world\n@@@
+in global\n6789\nbash  : 0\nhello world'
 
+# define global in func
+assert !checkenv AAABBB
+assert_fake_eval '
+  ff() {
+    AAABBB=@@@@@
+    echo "$AAABBB: $1" 
+  }
+
+  gg() {
+    echo "${CCCCC=abcdefg}: $1"
+  }
+
+  echo "<${AAABBB-undefined}>"
+  ff 9999
+  echo "<${AAABBB-undefined}>"
+' '<undefined>
+@@@@@: 9999
+<@@@@@>'
+
+# parameter expansion (assign) of undefined globa in func
+assert !checkenv CCCCC
+assert_fake_eval '
+  gg() {
+    echo "${CCCCC=abcdefg}: $1"
+  }
+
+  echo "<${CCCCC-undefined}>"
+  gg 9999
+  echo "<${CCCCC-undefined}>"
+' '<undefined>
+abcdefg: 9999
+<abcdefg>'
+
+# unset globa in func
+assert_fake_eval '
+  f() {
+    unset AAA
+  }
+
+  AAA=12345
+  echo "<${AAA-undefined}>"
+  f
+  echo "<${AAA-undefined}>"
+' '<12345>
+<undefined>'
+
+# export global in func
+assert !checkenv AAABB
+assert_fake_eval '
+  AAABB=12345
+  echo -n "before: " && printenv AAABB || echo; echo "$AAABB"
+  cmd1() {
+    export AAABB
+    echo -n "in cmd: " && printenv AAABB || echo
+    AAABB=9876
+    echo "$AAABB"
+  }
+  cmd1
+  echo -n "after: " && printenv AAABB || echo; echo "$AAABB"
+' 'before: 
+12345
+in cmd: 12345
+9876
+after: 9876
+9876'
 
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
