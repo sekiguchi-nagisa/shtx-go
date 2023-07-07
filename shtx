@@ -65,6 +65,7 @@ function __save_crash_dump(in : String, out : String, e : Error) : Bool {
 # +++++ for shell variable +++++
 
 let __VAR_ATTR_EXPORT = 0x01
+let __VAR_ATTR_UNSET = 0x02
 
 typedef _VarEntry(v: String?, a : Int?) {
     var _value = $v ?? ""  # if indicate env, value is env name
@@ -75,6 +76,10 @@ function exported() : Bool for _VarEntry {
     return ($this._attr and $__VAR_ATTR_EXPORT) == $__VAR_ATTR_EXPORT
 }
 
+function isUnset() : Bool for _VarEntry {
+    return ($this._attr and $__VAR_ATTR_UNSET) == $__VAR_ATTR_UNSET
+}
+
 # update value, if entry indicates env, update env value
 function set(value : String) : String for _VarEntry {
     if $this.exported() {
@@ -82,7 +87,13 @@ function set(value : String) : String for _VarEntry {
     } else {
         $this._value = $value
     }
+    $this._attr = $this._attr and !$__VAR_ATTR_UNSET
     return $value
+}
+
+# for local variable unset
+function unset() for _VarEntry {
+    $this._attr = $this._attr or $__VAR_ATTR_UNSET
 }
 
 # export as environmental variable
@@ -155,7 +166,7 @@ function get(name : String) : _VarEntry? for _VarScope {
     if !$this.locals.empty() {
         var local = $this.locals.peek()
         if let e = $local.entries.get($name) {
-            return $e
+            return $e.isUnset() ? $none : $e
         }
     }
     ## if not found, get from global scope
@@ -167,19 +178,28 @@ function put(name : String, value : String) : String for _VarScope {
     if !$this.locals.empty() {
         var local = $this.locals.peek()
         if let e = $local.entries.get($name) {
-            $e.set($value)
+            return $e.set($value)
         }
     }
     ## otherwise, set to global
-    $this.global.put($name, $value)
-    return $value
+    return $this.global.put($name, $value)
+}
+
+function local(name : String, value : String) for _VarScope {
+    var local = $this.locals.peek()
+    if let e = $local.entries.get($name) {
+        $e.set($value)
+    } else {
+        $local.entries.put($name, new _VarEntry($value))
+    }
 }
 
 function remove(name : String) : _VarEntry? for _VarScope {
-    ## remove from local if found
+    ## if local found, unset (do not remove entry)
     if !$this.locals.empty() {
         var local = $this.locals.peek()
-        if let e = $local.entries.remove($name) {
+        if let e = $local.entries.get($name) {
+            $e.unset()
             return $e
         }
     }
@@ -193,6 +213,10 @@ function enterFunc(arg0 : String, args : [String]) for _VarScope {
 
 function exitFunc() for _VarScope {
     $this.locals.pop()
+}
+
+function inFunc() : Bool for _VarScope {
+    return !$this.locals.empty()
 }
 
 var _VARS = new _VarScope("bash", $@)
@@ -280,6 +304,22 @@ __shtx_var_set() {
     return 0
 }
 
+# for bash local command
+__shtx_local() {
+    $_VARS.inFunc() || {
+        $_error("local", "can only be used in a function")
+        return 1;
+    }
+
+    for arg in $@ {
+        ($arg.empty() || $arg.startsWith("-")) && continue
+        let i = $arg.indexOf('=')
+        let name = $i != -1 ? $arg.slice(0, $i) : $arg
+        let value = $i != -1 ? $arg.slice($i + 1) : ""
+        $_VARS.local($name, $value)
+    }
+}
+
 # for bash export command
 __shtx_export() {
     for arg in $@ {
@@ -346,13 +386,14 @@ __shtx_dyna_call() {
     $cmd = case $cmd {
         '[' => '__shtx_['
         'export' => '__shtx_export'
+        'local' => '__shtx_local'
         'unset' => '__shtx_unset'
         'shift' => '__shtx_shift'
         'eval' => 'fake_eval'
         '.' | 'source' => 'fake_source'
         else => $cmd
     }
-    call "$cmd" $@
+    call $cmd $@
 }
 
 function __shtx_set_argv(argv : [String]) : [String] {

@@ -274,6 +274,17 @@ fi
   })
 }
 `},
+	{`ff() { local AAA BBB=12; local CCC=12 && echo "$CCC"; }`, `{
+  $__shtx_func('ff', (){
+    $__shtx_enter_func($0, $@)
+    defer { $__shtx_exit_func(); }
+    {
+      __shtx_local AAA BBB=12
+      (__shtx_local CCC=12 && echo "${{__shtx_var_get $? 'CCC'; $REPLY; }}")
+    }
+  })
+}
+`},
 	{`echo $?`, `{
   echo ${{__shtx_var_get $? '?'; $REPLY; }}
 }

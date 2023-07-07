@@ -137,6 +137,7 @@ func (t *Translator) visitStmt(stmt *syntax.Stmt) {
 
 var declReplacement = map[string]string{
 	"export": "__shtx_export",
+	"local":  "__shtx_local",
 }
 
 func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect) {
@@ -315,6 +316,7 @@ func isCmdLiteral(word *syntax.Word) bool {
 var cmdNameReplacement = map[string]string{
 	"[":      "__shtx_[",
 	"export": "__shtx_export",
+	"local":  "__shtx_local",
 	"unset":  "__shtx_unset",
 	"shift":  "__shtx_shift",
 	"eval":   "fake_eval",

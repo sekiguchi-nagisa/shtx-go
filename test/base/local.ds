@@ -1,0 +1,62 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+## error
+assert "$(fake_eval 'local AAA' 2>&1)" == 'bash: local: can only be used in a function'
+assert $? == 1
+
+## base
+assert_fake_eval '
+  ff() { echo "$AAA"; local AAA; echo "${AAA:-empty}"; AAA=3333 && echo "$AAA"; }
+  AAA=1111
+  echo "before: ${AAA}"
+  ff
+  echo "after: ${AAA}"
+' 'before: 1111
+1111
+empty
+3333
+after: 1111'
+
+## unset
+assert !checkenv AAA
+assert_fake_eval '
+  ff() { 
+    echo "${AAA-undefined}"; 
+    lo"cal" AAA=3333 && echo "$AAA"; 
+    unset AAA && echo "${AAA-undefined}"
+  }
+  echo "before: ${AAA-undefined}"
+  ff
+  echo "after: ${AAA-undefined}"
+' 'before: undefined
+undefined
+3333
+undefined
+after: undefined'
+
+assert !checkenv AAA
+assert_fake_eval '
+  ff() { 
+    echo "in: ${AAA-undefined}"; 
+    local AAA=3333 && echo "in: $AAA"; 
+    unset AAA; echo "in: ${AAA-undefined}"  # unset local (AAA), but still remain local entry
+    AAA=8888   # AAA is still local
+    echo "in: ${AAA}"
+  }
+  AAA=@@@@
+  echo "before: ${AAA-undefined}"
+  ff
+  echo "after: ${AAA-undefined}"
+' 'before: @@@@
+in: @@@@
+in: 3333
+in: undefined
+in: 8888
+after: @@@@'
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0
