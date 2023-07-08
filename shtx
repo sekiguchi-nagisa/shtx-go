@@ -352,10 +352,41 @@ __shtx_export() {
 
 # for bash unset command
 __shtx_unset() {
+    var opt = ""
+    while !$@.empty() {
+        var a = $@[0]
+        if ! $a.startsWith("-") {
+            break
+        }
+        if $a == '-f' || $a == '-v' {
+            $opt = $a
+            $@.shift()
+        } else {
+            $_error('unset', "${a}: invalid option")
+            return 2
+        }
+    }
+
+    var var = $true
+    var func = $true
+    if $opt == '-v' {
+        $func = $false
+    } elif $opt == '-f' {
+        $var = $false
+    }
+
     for arg in $@ {
-        ($arg.empty() || $arg.startsWith("-")) && continue
-        if let entry = $_VARS.remove($arg) {
-            $entry.exported() && unsetenv $arg
+        $arg.empty() && continue
+        ## first try remove variable
+        if $var {
+            if let entry = $_VARS.remove($arg) {
+                $entry.exported() && unsetenv $arg
+                continue
+            }
+        }
+        ## if variable is not found, try remove function (only remove user-defined functions)
+        if $func {
+            $DYNA_UDCS.remove($arg)
         }
     }
     return 0

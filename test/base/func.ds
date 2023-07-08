@@ -106,6 +106,40 @@ in cmd: 12345
 after: 9876
 9876'
 
+# unset function
+assert "$(fake_eval '
+  fff() { echo fff; }
+  ggg() { echo ggg; }
+  
+  fff
+  ggg
+  ggg=123
+  unset fff ggg
+  fff; ggg; echo "${ggg-undefined}"
+' 2>&1)" == 'fff
+ggg
+bash: fff: command not found
+ggg
+undefined'
+assert $? == 0
+
+assert "$(fake_eval '
+  fff() { echo fff; }
+  ggg() { echo ggg; }
+  fff=111
+  unset -f fff
+  echo "${fff-undefined}"
+  fff;
+
+  unset -v ggg
+  echo "${ggg-undefined}"
+  ggg
+' 2>&1)" == '111
+bash: fff: command not found
+undefined
+ggg'
+assert $? == 0
+
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
 # STATUS: 0

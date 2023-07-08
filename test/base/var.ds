@@ -50,13 +50,13 @@ assert $? == 0
 
 # unset
 assert_fake_eval \
-    'export AAA=@@@; printenv AAA; echo "%${AAA}"; unset AAA; echo "$AAA"; printenv AAA' \
-    $'@@@\n%@@@'
+    'export AAA=@@@; printenv AAA; echo "%${AAA}"; unset AAA; echo "${AAA-undefined}"; printenv AAA' \
+    $'@@@\n%@@@\nundefined'
 assert $? == 1
 
 assert_fake_eval \
-    'AAA=12; export BBB=@@; printenv AAA; printenv BBB; unset AAA BBB; echo "%${AAA}${BBB}%"' \
-    $'@@\n%%'
+    'AAA=12; export BBB=@@; printenv AAA; printenv BBB; unset AAA BBB; echo "%${AAA-undefined}${BBB-undefined}%"' \
+    $'@@\n%undefinedundefined%'
 assert $? == 0
 
 # special variable
