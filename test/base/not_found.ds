@@ -1,0 +1,27 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+assert "$(fake_eval 'hogehoge' 2>&1)" == 'bash: hogehoge: command not found'
+assert $? == 127
+
+assert "$({
+    fake_eval 'ff() { hoge; }'
+    ff
+} with 2>&1)" == "bash: hoge: command not found"
+assert $? == 127
+
+assert "$(fake_source <(cat << EOF
+    ff() { hugahuga; }
+    ff
+    aaaa || echo failed
+EOF
+) 2>&1)" == 'bash: hugahuga: command not found
+bash: aaaa: command not found
+failed'
+assert $? == 0
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

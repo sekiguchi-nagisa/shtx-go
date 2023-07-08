@@ -225,6 +225,12 @@ function _error(cmd : String, v : String) {
     echo 1>&2 ${$_VARS.arg0()}: $cmd: $v
 }
 
+function __shtx_cmd_fallback(m : Module, argv : [String]) : Bool {
+    $_error($argv[0], "command not found")
+    $? = 127
+    return $false
+}
+
 typedef _SHError : Error
 
 function __shtx_var_get_impl(param : String, op : String, word : String) : String {
@@ -440,6 +446,9 @@ fake_eval() {
         return 1
     }
     try {
+        let old = $CMD_FALLBACK
+        $CMD_FALLBACK = $__shtx_cmd_fallback
+        defer { $CMD_FALLBACK = $old; }
         $MODULE._func($output)()
     } catch e : _SHError {
         return $e.status()
@@ -469,6 +478,9 @@ fake_source() {
         return 1
     }
     try {
+        let old = $CMD_FALLBACK
+        $CMD_FALLBACK = $__shtx_cmd_fallback
+        defer { $CMD_FALLBACK = $old; }
         var func = $MODULE._func($output)()! as ([String]) -> Void
         $func($@)
     } catch e : _SHError {
