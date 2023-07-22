@@ -437,11 +437,8 @@ function __shtx_set_argv(argv : [String]) : [String] {
     var old : [String]
     $old.add($_VARS.arg0())
     $old.addAll($_VARS.args())
-
-    if !$argv.empty() {
-        # $_vars.arg0 = $argv[0]  # not update $0
-        $_VARS.setArgs($argv.slice(1))
-    }
+    ## FIXME: update arg0 ?
+    $_VARS.setArgs($argv.slice(1))
     return $old
 }
 
