@@ -418,6 +418,22 @@ __shtx_[() {
     test $@
 }
 
+__shtx_read() {
+    $reply.clear()
+    command read $@
+    for k, v in $reply {
+        __shtx_var_set $k $v
+    }
+}
+
+__shtx_printf() {
+    $reply.clear()
+    command printf $@
+    for k,v in $reply {
+        __shtx_var_set $k $v
+    }
+}
+
 
 # dynamically resolve command name
 __shtx_dyna_call() {
@@ -430,6 +446,8 @@ __shtx_dyna_call() {
         'local' => '__shtx_local'
         'unset' => '__shtx_unset'
         'shift' => '__shtx_shift'
+        'read' => '__shtx_read'
+        'printf' => '__shtx_printf'
         'eval' => 'fake_eval'
         '.' | 'source' => 'fake_source'
         else => $cmd

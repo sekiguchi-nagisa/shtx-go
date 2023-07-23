@@ -323,6 +323,8 @@ var cmdNameReplacement = map[string]string{
 	"local":  "__shtx_local",
 	"unset":  "__shtx_unset",
 	"shift":  "__shtx_shift",
+	"read":   "__shtx_read",
+	"printf": "__shtx_printf",
 	"eval":   "fake_eval",
 	".":      "fake_source",
 	"source": "fake_source",

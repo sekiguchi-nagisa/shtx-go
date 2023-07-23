@@ -291,8 +291,8 @@ fi
   })
 }
 `},
-	{`echo $?`, `{
-  echo ${{__shtx_var_get $? '?'; $REPLY; }}
+	{`read $?`, `{
+  __shtx_read ${{__shtx_var_get $? '?'; $REPLY; }}
 }
 `},
 	{`echo "$?"`, `{
@@ -300,8 +300,8 @@ fi
 }
 `},
 	{
-		`ls "$*"`, `{
-  ls "${{__shtx_var_get $? '*'; $REPLY; }}"
+		`printf "$*"`, `{
+  __shtx_printf "${{__shtx_var_get $? '*'; $REPLY; }}"
 }
 `},
 }

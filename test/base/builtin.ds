@@ -1,0 +1,46 @@
+#echo hello world # dummy for read
+
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+## read
+assert_fake_eval '
+  a=read
+  "$a" aaa bbb ccc < '"$SCRIPT_NAME"'
+  echo "aaa=$aaa, bbb=$bbb, ccc=$ccc"
+' 'aaa=#echo, bbb=hello, ccc=world # dummy for read'
+
+assert_fake_eval '
+  a=read
+  AAA=111
+  ff() { local AAA; read AAA; echo "local: $AAA"; }
+  echo "global1: $AAA"
+  ff < '"$SCRIPT_NAME"'
+  echo "global2: $AAA"
+' 'global1: 111
+local: #echo hello world # dummy for read
+global2: 111'
+
+## printf
+assert_fake_eval '
+    printf -v var "<%s>+" 1 2 3
+    echo "$var"
+' '<1>+<2>+<3>+'
+
+assert_fake_eval '
+  p=printf
+  ff() { "$p" -v AAA "hello"; echo "$AAA"; local AAA; "$p" -v AAA "world"; echo "$AAA"; }
+  echo "global1: $AAA"
+  ff
+  echo "global2: $AAA"
+' 'global1: 
+hello
+world
+global2: hello'
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0
