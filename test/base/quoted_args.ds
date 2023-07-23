@@ -1,0 +1,27 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+
+## global ( "$*" )
+$@.clear()
+$@.addAll(@(aaa bbb '  111  222 '))
+assert "$(fake_eval 'printf "<%s>\n" "$*"')" == '<aaa bbb   111  222 >'
+assert $? == 0
+
+## local ( "$*" )
+assert_fake_eval '
+function AAA() {
+    printf "<%s>\n" "$1$*$2"
+}
+
+AAA " hello " "  world " "@"
+
+' '< hello  hello    world  @  world >'
+
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

@@ -299,6 +299,11 @@ fi
   echo "${{__shtx_var_get $? '?'; $REPLY; }}"
 }
 `},
+	{
+		`ls "$*"`, `{
+  ls "${{__shtx_var_get $? '*'; $REPLY; }}"
+}
+`},
 }
 
 func TestEval(t *testing.T) {
