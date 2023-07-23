@@ -33,7 +33,7 @@ _error() : Nothing {
 
 _try_fetch_bin() {
     if $SHTX_DEV_MODE || (checkenv SHTX_DEV_MODE) {
-        command -v go &> /dev/null || _error "require go binary"
+        command -v go &>> /dev/null || _error "require go binary"
         if !(test -x $SCRIPT_DIR/shtx-go) {
             # rebuild
             (cd $SCRIPT_DIR && command go build &) .wait()
@@ -83,7 +83,7 @@ function isUnset() : Bool for _VarEntry {
 # update value, if entry indicates env, update env value
 function set(value : String) : String for _VarEntry {
     if $this.exported() {
-        setenv ${this._value}=$value
+        setenv -- ${this._value}=$value
     } else {
         $this._value = $value
     }
@@ -108,7 +108,7 @@ function export(name : String) : _VarEntry for _VarEntry {
 # get value. if entry indicates env, get env value
 function get() : String? for _VarEntry {
     if $this.exported() {
-        return (getenv ${this._value}) ? $REPLY : $none
+        return (getenv -- ${this._value}) ? $REPLY : $none
     } else {
         return $this._value
     }
@@ -123,7 +123,7 @@ typedef _VarMap(_arg0 : String, _args : [String]) {
 # get variable entry. if entry is not found, but corresponding env is found, set and return entry
 function get(name : String) : _VarEntry? for _VarMap {
     return $this.entries.get($name) ?? {
-        if(checkenv "$name") {
+        if(checkenv -- $name) {
             var e = new _VarEntry($name, $__VAR_ATTR_EXPORT)
             $this.entries.put($name, $e)
             return $e
@@ -384,7 +384,7 @@ __shtx_unset() {
         ## first try remove variable
         if $var {
             if let entry = $_VARS.remove($arg) {
-                $entry.exported() && unsetenv $arg
+                $entry.exported() && unsetenv -- $arg
                 continue
             }
         }
@@ -420,7 +420,7 @@ __shtx_[() {
 
 __shtx_read() {
     $reply.clear()
-    command read $@
+    read $@
     for k, v in $reply {
         __shtx_var_set $k $v
     }
@@ -428,7 +428,7 @@ __shtx_read() {
 
 __shtx_printf() {
     $reply.clear()
-    command printf $@
+    printf $@
     for k,v in $reply {
         __shtx_var_set $k $v
     }
