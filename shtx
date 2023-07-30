@@ -155,7 +155,11 @@ function put(name : String, value : String) : String for _VarMap {
     if let entry = $this.get($name) {
         $entry.set($value)
     } else {
-        $this.entries.put($name, new _VarEntry($value, $name == 'IFS' ? $__VAR_ATTR_IFS : $none))
+        let ifs = $name == 'IFS'
+        if $ifs && $value != $IFS {
+            $IFS = $value
+        }
+        $this.entries.put($name, new _VarEntry($value, $ifs ? $__VAR_ATTR_IFS : $none))
     }
     return $value
 }
@@ -272,7 +276,10 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
         }
         '*' => {
             # FIXME: support expansion op
-            return $_VARS.args().join(" ")
+            let ifs = if let entry = $_VARS.get('IFS') { $entry.get(); } else { $none; }
+            var sep = ($ifs ?? " ")
+            $sep = $sep.empty() ? "" : $sep[0]
+            return $_VARS.args().join($sep)
         }
         $/^[0-9]+$/ => {
             var n = $param.toInt(10)!
@@ -406,6 +413,9 @@ __shtx_unset() {
         if $var {
             if let entry = $_VARS.remove($arg) {
                 $entry.exported() && unsetenv -- $arg
+                if $entry.ifs() {
+                    $IFS = $' \t\n' # reset to default
+                }
                 continue
             }
         }

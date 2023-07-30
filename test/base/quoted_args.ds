@@ -20,6 +20,25 @@ AAA " hello " "  world " "@"
 
 ' '< hello  hello    world  @  world >'
 
+## local ( "$*" ) with custom IFS
+assert_fake_eval '
+function AAA() {
+    printf "(%s)\n" "$*"
+}
+AAA 1 2 3
+IFS==@
+AAA 1 2 3
+IFS=
+AAA 1 2 3
+unset IFS
+AAA a b c
+IFS=+
+AAA A B C D
+' '(1 2 3)
+(1=2=3)
+(123)
+(a b c)
+(A+B+C+D)'
 
 
 # CHECK_RE: ^$
