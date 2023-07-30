@@ -304,6 +304,36 @@ fi
   __shtx_printf "${{__shtx_var_get $? '*'; $REPLY; }}"
 }
 `},
+	{
+		`case "$1" in
+shell|rehash) echo match
+  case "-$2" in
+  -s) echo '-s';;
+  -l) echo '-l';;
+  esac ;;
+*) echo default
+esac
+`, `{
+  {
+    let case_1 = @("${{__shtx_var_get $? '1'; $REPLY; }}")[0]
+    if $case_1 =~ $/^shell$/ || $case_1 =~ $/^rehash$/ {
+      echo match
+      {
+        let case_2 = @("-${{__shtx_var_get $? '2'; $REPLY; }}")[0]
+        if $case_2 =~ $/^-s$/ {
+          echo '-s'
+        }
+        elif $case_2 =~ $/^-l$/ {
+          echo '-l'
+        }
+      }
+    }
+    elif $case_1 =~ $/^.*$/ {
+      echo default
+    }
+  }
+}
+`},
 }
 
 func TestEval(t *testing.T) {

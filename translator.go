@@ -28,11 +28,12 @@ const (
 )
 
 type Translator struct {
-	out         io.Writer // for output
-	dump        io.Writer // for parsed ast dump
-	tranType    TranslationType
-	indentLevel int
-	funcLevel   int
+	out           io.Writer // for output
+	dump          io.Writer // for parsed ast dump
+	tranType      TranslationType
+	indentLevel   int
+	funcLevel     int
+	caseExprCount int
 }
 
 func NewTranslator(tt TranslationType) *Translator {
@@ -50,6 +51,7 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 	t.out = out
 	t.indentLevel = 0
 	t.funcLevel = 0
+	t.caseExprCount = 0
 
 	// parse
 	reader := bytes.NewReader(buf)
@@ -171,6 +173,8 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 		t.emit("}")
 	case *syntax.IfClause:
 		t.visitIfClause(n, false)
+	case *syntax.CaseClause:
+		t.visitCaseClause(n)
 	case *syntax.FuncDecl:
 		t.visitFuncDecl(n)
 	default:
@@ -279,6 +283,54 @@ func (t *Translator) visitIfClause(clause *syntax.IfClause, elif bool) {
 			t.emit("}")
 		}
 	}
+}
+
+func (t *Translator) visitCasePattern(pattern *syntax.Word, caseVarName string) {
+	literal := pattern.Lit()
+	if literal == "" {
+		todo("support multiple non literal word parts")
+	}
+	t.emit("$" + caseVarName)
+	t.emit(" =~ ")
+	t.emit(GlobToRegex(literal))
+}
+
+func (t *Translator) visitCaseClause(clause *syntax.CaseClause) {
+	t.caseExprCount++
+	var caseVarName = "case_" + strconv.Itoa(t.caseExprCount)
+
+	t.emitLine("{")
+	t.indentLevel++
+	t.indent()
+	t.emit("let " + caseVarName + " = @(")
+	t.visitWordParts(clause.Word.Parts, false)
+	t.emitLine(")[0]")
+
+	// case items
+	for i, item := range clause.Items {
+		_ = item.Op != syntax.Break && todo("not support "+item.Op.String())
+
+		t.indent()
+		if i == 0 {
+			t.emit("if ")
+		} else {
+			t.emit("elif ")
+		}
+		for i2, pattern := range item.Patterns {
+			if i2 > 0 {
+				t.emit(" || ")
+			}
+			t.visitCasePattern(pattern, caseVarName)
+		}
+		t.emitLine(" {")
+		t.visitStmts(item.Stmts)
+		t.indent()
+		t.emitLine("}")
+	}
+
+	t.indentLevel--
+	t.indent()
+	t.emit("}")
 }
 
 func (t *Translator) visitFuncDecl(clause *syntax.FuncDecl) {

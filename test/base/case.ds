@@ -1,0 +1,58 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+assert_fake_eval '
+  f() {
+    case "$1" in
+    -1) echo match -1;;
+    -2) echo match -2;;
+    do) echo match do;;
+    -?) echo match option;;
+    *) echo -n "default: "
+      case "$2" in
+      -A) echo match2 -A;;
+      -B) echo match2 -B;;
+      --*) echo long ;;
+      **) echo default
+      esac
+    esac
+  }
+  f " " " "
+  f -1
+  f -2
+  f do
+  f hgoe
+  f -@
+  f a --verbose
+' 'default: default
+match -1
+match -2
+match do
+default: default
+match option
+default: long'
+
+assert_fake_eval '
+  f() {
+    case "$1" in
+    [a-zA-Z]*) echo starts with id;;
+    [0-9]*) echo starts with number;;
+    _[a-zA-Z_]*) echo starts with underscore id;;
+    esac
+  }
+  f Af
+  f c!
+  f _q
+  f 09
+  f @@@
+' 'starts with id
+starts with id
+starts with underscore id
+starts with number'
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0
