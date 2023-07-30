@@ -1,0 +1,33 @@
+#echo hello world # dummy for read
+
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+## IFS split (read command)
+assert_fake_eval '
+  IFS="#"
+  "read" A B C < '"$SCRIPT_NAME"'
+  printf -- "%s=(%s)\n" A "$A" B "$B" C "$C"
+' 'A=()
+B=(echo hello world )
+C=( dummy for read)'
+
+
+## sync IFS
+assert $IFS != '@'
+$IFS='@'
+fake_eval 'echo "IFS=($IFS)"'
+
+assert $IFS == '@'
+fake_eval 'IFS=:'
+assert $IFS == ':'
+fake_eval 'function ff() { IFS="11$IFS"; }
+ff
+'
+assert $IFS == '11:'
+
+# CHECK: IFS=(@)
+# CHECKERR_RE: ^$
+# STATUS: 0

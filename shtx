@@ -66,6 +66,7 @@ function __save_crash_dump(in : String, out : String, e : Error) : Bool {
 
 let __VAR_ATTR_EXPORT = 0x01
 let __VAR_ATTR_UNSET = 0x02
+let __VAR_ATTR_IFS = 0x04
 
 typedef _VarEntry(v: String?, a : Int?) {
     var _value = $v ?? ""  # if indicate env, value is env name
@@ -80,12 +81,19 @@ function isUnset() : Bool for _VarEntry {
     return ($this._attr and $__VAR_ATTR_UNSET) == $__VAR_ATTR_UNSET
 }
 
+function ifs() : Bool for _VarEntry {
+    return ($this._attr and $__VAR_ATTR_IFS) == $__VAR_ATTR_IFS
+}
+
 # update value, if entry indicates env, update env value
 function set(value : String) : String for _VarEntry {
     if $this.exported() {
         setenv -- ${this._value}=$value
     } else {
         $this._value = $value
+    }
+    if $this.ifs() {    # sync IFS
+        $IFS = $value
     }
     $this._attr = $this._attr and !$__VAR_ATTR_UNSET
     return $value
@@ -99,19 +107,30 @@ function unset() for _VarEntry {
 # export as environmental variable
 function export(name : String) : _VarEntry for _VarEntry {
     var v = $this._value
-    $this._attr = $__VAR_ATTR_EXPORT
+    $this._attr = $this._attr or $__VAR_ATTR_EXPORT
     $this._value = $name
     $this.set($v)
     return $this
 }
 
 # get value. if entry indicates env, get env value
-function get() : String? for _VarEntry {
+function _get_impl() : String? for _VarEntry {
     if $this.exported() {
         return (getenv -- ${this._value}) ? $REPLY : $none
     } else {
         return $this._value
     }
+}
+
+function get() : String? for _VarEntry {
+    var r = $this._get_impl()
+    if $this.ifs() {
+        if !$r || $r! != $IFS {
+            $this.set($IFS)  # sync IFS
+            $r = $IFS
+        }
+    }
+    return $r
 }
 
 typedef _VarMap(_arg0 : String, _args : [String]) {
@@ -136,7 +155,7 @@ function put(name : String, value : String) : String for _VarMap {
     if let entry = $this.get($name) {
         $entry.set($value)
     } else {
-        $this.entries.put($name, new _VarEntry($value))
+        $this.entries.put($name, new _VarEntry($value, $name == 'IFS' ? $__VAR_ATTR_IFS : $none))
     }
     return $value
 }
@@ -144,6 +163,8 @@ function put(name : String, value : String) : String for _VarMap {
 typedef _VarScope(_arg0 : String, _args : [String]) {
     let global = new _VarMap($_arg0, $_args)
     let locals : [_VarMap]
+
+    $global.put("IFS", $IFS)
 }
 
 function arg0() : String for _VarScope {
