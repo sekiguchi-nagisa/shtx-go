@@ -3,9 +3,11 @@
 source ../../shtx
 source ../common/assert.ds
 
-# backquote
+# for quoted command substitution
+
+## backquote
 assert_fake_eval \
-    'echo `echo ABC`' "ABC"
+    'echo "`echo ABC`"' "ABC"
 assert $? == 0
 
 # comment
@@ -13,16 +15,12 @@ assert_fake_eval \
     'echo `# echo ABC` DEF' "DEF"
 assert $? == 0
 
-# $( )
+## $( )
 assert_fake_eval \
     'echo 34"$(echo A B C)"' "34A B C"
 assert $? == 0
 
-assert_fake_eval \
-    '$(echo echo "A B " C)' "A B C"
-assert $? == 0
-
-# muti command
+## muti command
 assert_fake_eval \
     'echo "$(echo AAA; echo BBB; echo CCC)"' $'AAA\nBBB\nCCC'
 assert $? == 0

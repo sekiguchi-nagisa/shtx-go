@@ -77,15 +77,15 @@ false;
   echo 12 >| /dev/null
 }
 `},
-	{"echo `echo hello` `  # this is a comment` A", `{
-  echo $(echo hello)  A
+	{"echo \"`echo hello`\" `  # this is a comment` A", `{
+  echo "$(echo hello)"  A
 }
 `},
-	{`$(echo "$(echo AAA; echo BBB)")`, `{
-  __shtx_dyna_call $(echo "$({
+	{`"$(echo "$(echo AAA; echo BBB)")"`, `{
+  __shtx_dyna_call "$(echo "$({
     echo AAA
     echo BBB
-  })")
+  })")"
 }
 `},
 	{`AAA=12 BBB="$(false)" CCC=`, `{

@@ -505,7 +505,10 @@ func (t *Translator) visitWordParts(parts []syntax.WordPart, dQuoted bool) {
 			if len(n.Stmts) == 0 {
 				// skip empty command substitution, $(), ``, `# this is a comment`
 				continue
-			} else if len(n.Stmts) == 1 {
+			}
+
+			_ = !dQuoted && todo("support unquoted command substitution")
+			if len(n.Stmts) == 1 {
 				t.emit("$(")
 				t.visitCommand(n.Stmts[0].Cmd, n.Stmts[0].Redirs)
 				t.emit(")")
