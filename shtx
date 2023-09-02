@@ -57,7 +57,7 @@ function __save_crash_dump(in : String, out : String, e : Error) : Bool {
         echo $out
     } with > $name
     echo 1>&2 "save crash dump:"
-    echo 1>&2 -e "\t${$name.realpath() ?? $name}"
+    echo 1>&2 -e "\t${$name.realpath()}"
     return $true
 }
 
