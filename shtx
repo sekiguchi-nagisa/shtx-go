@@ -576,39 +576,27 @@ fake_source() {
 
 # +++++ entry point for cli +++++
 
+[<CLI>]
+typedef _Param() {
+    [<Option(short: "c", stop: $true, help: "execute command")>]
+    var cmd : String?
+
+    [<Arg>]
+    var args : [String]
+}
+
 _main() {
-    var is_script = $true
-    var input : String?
-    var index = 0;
-    for(; $index < $#; $index++) {
-        var arg = $@[$index]
-        case $arg {
-            '-c' => if $index + 1 < $# {
-                $is_script = $false
-                $index++
-                break
-            } else {
-                echo 1>&2 need argument: -c
-                return 1
-            }
-            else => break
-        }
-    }
-    if !$input && $index < $# {
-        $input = $@[$index]
-        $index++
-    }
-    if let input2 = $input {
-        var args = $@.slice($index)
-        if $is_script {
-            fake_source $input2 $args
-        } else {
-            $__shtx_set_argv($args)
-            fake_eval $input2
-        }
-        return $?
+    var param = new _Param()
+    $param.parseOrExit($0, $@)
+
+    if let input = $param.cmd { # -c cmd
+        fake_source $input ${param.args}
+    } elif !$param.args.empty() { # script
+        var script = $param.args.shift()
+        $__shtx_set_argv($param.args)
+        fake_eval $script
     } else {
-        echo 1>&2 need script
+        echo ${$param.usage("need script")} 1>&2
         return 1
     }
 }
