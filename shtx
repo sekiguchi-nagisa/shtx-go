@@ -587,7 +587,7 @@ typedef _Param() {
 
 _main() {
     var param = new _Param()
-    $param.parseOrExit($0, $@)
+    $param.parseOrExit("shtx", $@)
 
     if let input = $param.cmd { # -c cmd
         fake_source $input ${param.args}
