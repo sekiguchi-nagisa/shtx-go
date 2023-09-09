@@ -590,11 +590,11 @@ _main() {
     $param.parseOrExit($@)
 
     if let input = $param.cmd { # -c cmd
-        fake_source $input ${param.args}
+        $__shtx_set_argv($param.args)
+        fake_eval $input
     } elif !$param.args.empty() { # script
         var script = $param.args.shift()
-        $__shtx_set_argv($param.args)
-        fake_eval $script
+        fake_source $script ${param.args}
     } else {
         echo ${$param.usage("need script")} 1>&2
         return 1
