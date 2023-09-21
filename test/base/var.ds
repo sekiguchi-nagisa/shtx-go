@@ -18,7 +18,7 @@ assert $? == 0
 assert "$({ 
     fake_eval "HOME=AAA; printenv HOME"; 
     assert $? == 0
-    importenv HOME; assert $HOME == "AAA"
+    $HOME == "AAA"
  })" == "AAA"
 
 # get
@@ -29,8 +29,6 @@ assert_fake_eval 'AAA=34; echo "($AAA)"' '(34)'
 assert $? == 0
 
 ## env
-importenv HOME
-
 assert_fake_eval 'echo "($HOME)"' "(${HOME})"
 assert $? == 0
 
