@@ -576,7 +576,7 @@ fake_source() {
 
 # +++++ entry point for cli +++++
 
-[<CLI(name: 'shtx')>]
+[<CLI>]
 typedef _Param() {
     [<Option(short: "c", stop: $true, help: "execute command")>]
     var cmd : String?
@@ -587,6 +587,7 @@ typedef _Param() {
 
 _main() {
     var param = new _Param()
+    $param.setName($ARG0)
     $param.parseOrExit($@)
 
     if let input = $param.cmd { # -c cmd
