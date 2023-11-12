@@ -570,6 +570,8 @@ fake_eval() {
     }
 }
 
+source $MODULE_DIR/completion as __comp
+
 # evaluate bash script (emulate bash source command)
 fake_source() {
     $@.empty() && {
@@ -580,6 +582,12 @@ fake_source() {
     _try_fetch_bin
 
     var input = $@[0]   #FIXME: search path. replace bash completion script
+    if $input.contains("completion") {  # may be completion script
+        if let target = $__comp.extractCompTarget($input) {
+            __comp compdef --cmd ${target._1} --comp-path $input --comp-target ${target._0} && return 0
+        }
+    }
+
     var opt = ['--type=source']
     if $SHTX_CRASH_DUMP {
         $opt.add("--crash-dump")
