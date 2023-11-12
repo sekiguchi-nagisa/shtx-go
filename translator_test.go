@@ -334,6 +334,26 @@ esac
   }
 }
 `},
+	{`echo "$@"`, `{
+  echo $__shtx_get_args()
+}
+`},
+	{`echo 12"$@"`, `{
+  echo $__shtx_concat(new [Any]()
+    .add( @(12"")[0] )
+    .add($__shtx_get_args())
+    .add( @("")[0] )
+  )
+}
+`},
+	{`echo 23"4${@}5$?"6`, `{
+  echo $__shtx_concat(new [Any]()
+    .add( @(23"4")[0] )
+    .add($__shtx_get_args())
+    .add( @("5${{__shtx_var_get $? '?'; $REPLY; }}"6)[0] )
+  )
+}
+`},
 }
 
 func TestEval(t *testing.T) {

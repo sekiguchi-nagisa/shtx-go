@@ -1,0 +1,36 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+## global ( "$@" )
+$@.clear()
+$@.addAll(@(aaa bbb '  111  222 '))
+assert "$(fake_eval 'printf "<%s>\n" "$@"')" == '<aaa>
+<bbb>
+<  111  222 >'
+assert $? == 0
+
+assert "$(fake_eval 'printf "<%s>\n" @"=$@="@"s" ')" == '<@=aaa>
+<bbb>
+<  111  222 =@s>'
+assert $? == 0
+
+## local ( "$@" )
+assert_fake_eval '
+AAA() { printf "<%s>\n" "$@"; }
+
+AAA " 1   2 " ~/
+' '< 1   2 >
+'"<${@(~/)[0]}>"
+
+assert_fake_eval '
+AAA() { printf "<%s>\n" 12"${@}34$1"; }
+AAA " 1   2 " hello
+' '<12 1   2 >
+<hello34 1   2 >'
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

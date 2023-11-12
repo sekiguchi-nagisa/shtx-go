@@ -495,6 +495,10 @@ function __shtx_set_argv(argv : [String]) : [String] {
     return $old
 }
 
+function __shtx_get_args() : [String] {
+    return $_VARS.args()
+}
+
 function __shtx_func(name : String, cmd : Command) : Bool {
     $DYNA_UDCS[$name] = $cmd
     return $true
@@ -506,6 +510,32 @@ function __shtx_enter_func(arg0 : String, args : [String]) {
 
 function __shtx_exit_func() {
     $_VARS.exitFunc()
+}
+
+function __shtx_concat(values : [Any]) : [String] {
+    var ret : [String]
+    if !$values.empty() {
+        $ret.add("")
+    }
+    for value in $values {
+        if let s = $value as? String {
+            var r = $ret.pop()
+            $r += $s
+            $ret.push($r)
+        } elif let aa = $value as? [String] {
+            let size = $aa.size()
+            for(var i = 0; $i < $size; $i++) {
+                if $i == 0 {
+                    var r = $ret.pop()
+                    $r += $aa[$i]
+                    $ret.push($r)
+                } else {
+                    $ret.push($aa[$i])
+                }
+            }
+        }
+    }
+    return $ret
 }
 
 

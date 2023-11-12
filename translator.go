@@ -211,7 +211,7 @@ func (t *Translator) visitRedirects(redirs []*syntax.Redirect, cmd bool) {
 		}
 		t.emit(toRedirOpStr(redir.Op))
 		t.emit(" ")
-		t.visitWordParts(redir.Word.Parts, false)
+		t.visitWordParts(redir.Word.Parts)
 		_ = redir.Hdoc != nil && todo("support heredoc")
 	}
 }
@@ -230,7 +230,7 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 			if !assign.Naked {
 				t.emit("=")
 				if assign.Value != nil {
-					t.visitWordParts(assign.Value.Parts, false)
+					t.visitWordParts(assign.Value.Parts)
 				}
 			}
 		} else {
@@ -241,7 +241,7 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 			t.emit(assign.Name.Value)
 			t.emit(" ")
 			if assign.Value != nil {
-				t.visitWordParts(assign.Value.Parts, false)
+				t.visitWordParts(assign.Value.Parts)
 			}
 		}
 	}
@@ -303,7 +303,7 @@ func (t *Translator) visitCaseClause(clause *syntax.CaseClause) {
 	t.indentLevel++
 	t.indent()
 	t.emit("let " + caseVarName + " = @(")
-	t.visitWordParts(clause.Word.Parts, false)
+	t.visitWordParts(clause.Word.Parts)
 	t.emitLine(")[0]")
 
 	// case items
@@ -415,7 +415,7 @@ func (t *Translator) visitCmdName(word *syntax.Word) {
 		t.emit(name)
 	} else {
 		t.emit("__shtx_dyna_call ")
-		t.visitWordParts(word.Parts, false)
+		t.visitWordParts(word.Parts)
 	}
 }
 
@@ -430,7 +430,7 @@ func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 			t.visitCmdName(arg)
 		} else {
 			t.emit(" ")
-			t.visitWordParts(arg.Parts, false)
+			t.visitWordParts(arg.Parts)
 		}
 	}
 }
@@ -457,69 +457,163 @@ func toExpansionOpStr(op syntax.ParExpOperator) string {
 	return ""
 }
 
-func (t *Translator) visitWordParts(parts []syntax.WordPart, dQuoted bool) {
-	for _, part := range parts {
-		switch n := part.(type) {
-		case *syntax.Lit:
-			t.emit(n.Value)
-		case *syntax.SglQuoted:
-			if n.Dollar {
-				t.emit("$")
+func (t *Translator) visitWordPart(part syntax.WordPart, dQuoted bool) {
+	switch n := part.(type) {
+	case *syntax.Lit:
+		t.emit(n.Value)
+	case *syntax.SglQuoted:
+		if n.Dollar {
+			t.emit("$")
+		}
+		t.emit("'")
+		t.emit(n.Value)
+		t.emit("'")
+	case *syntax.DblQuoted:
+		_ = n.Dollar // always ignore prefix dollar even if Dollar is true
+		t.emit("\"")
+		for _, wordPart := range n.Parts {
+			t.visitWordPart(wordPart, true)
+		}
+		t.emit("\"")
+	case *syntax.ParamExp:
+		if n.Param.Value != "?" && n.Param.Value != "#" && !dQuoted {
+			todo("support unquoted parameter expansion")
+		}
+		_ = n.Excl && todo("not support ${!a}")
+		_ = n.Length && todo("support ${#a}")
+		_ = n.Width && todo("not support ${%a}")
+		_ = n.Index != nil && todo("support ${a[i]}")
+		_ = n.Slice != nil && todo("not support ${a:x:y}")
+		_ = n.Repl != nil && todo("not support ${a/x/y}")
+		_ = n.Names != 0 && todo("not support ${!prefix*}")
+		_ = !isValidParamName(n.Param.Value) && todo("unsupported param name: "+n.Param.Value)
+		t.emit("${{__shtx_var_get $? '")
+		t.emit(n.Param.Value)
+		t.emit("'")
+		if n.Exp != nil {
+			t.emit(" '")
+			t.emit(toExpansionOpStr(n.Exp.Op))
+			t.emit("' ")
+			if n.Exp.Word != nil {
+				t.visitWordParts(n.Exp.Word.Parts)
 			}
-			t.emit("'")
-			t.emit(n.Value)
-			t.emit("'")
-		case *syntax.DblQuoted:
-			// always ignore prefix dollar
-			//FIXME: warning if Dollar is true ?
-			t.emit("\"")
-			t.visitWordParts(n.Parts, true)
-			t.emit("\"")
-		case *syntax.ParamExp:
-			if n.Param.Value != "?" && n.Param.Value != "#" && !dQuoted {
-				todo("support unquoted parameter expansion")
-			}
-			_ = n.Excl && todo("not support ${!a}")
-			_ = n.Length && todo("support ${#a}")
-			_ = n.Width && todo("not support ${%a}")
-			_ = n.Index != nil && todo("support ${a[i]}")
-			_ = n.Slice != nil && todo("not support ${a:x:y}")
-			_ = n.Repl != nil && todo("not support ${a/x/y}")
-			_ = n.Names != 0 && todo("not support ${!prefix*}")
-			_ = !isValidParamName(n.Param.Value) && todo("unsupported param name: "+n.Param.Value)
-			t.emit("${{__shtx_var_get $? '")
-			t.emit(n.Param.Value)
-			t.emit("'")
-			if n.Exp != nil {
-				t.emit(" '")
-				t.emit(toExpansionOpStr(n.Exp.Op))
-				t.emit("' ")
-				if n.Exp.Word != nil {
-					t.visitWordParts(n.Exp.Word.Parts, false)
-				}
-			}
-			t.emit("; $REPLY; }}")
-		case *syntax.CmdSubst:
-			_ = n.TempFile && todo("not support ${")
-			_ = n.ReplyVar && todo("not support ${|")
-			if len(n.Stmts) == 0 {
-				// skip empty command substitution, $(), ``, `# this is a comment`
-				continue
-			}
+		}
+		t.emit("; $REPLY; }}")
+	case *syntax.CmdSubst:
+		_ = n.TempFile && todo("not support ${")
+		_ = n.ReplyVar && todo("not support ${|")
+		if len(n.Stmts) == 0 {
+			// skip empty command substitution, $(), ``, `# this is a comment`
+			return
+		}
 
-			_ = !dQuoted && todo("support unquoted command substitution")
-			if len(n.Stmts) == 1 {
-				t.emit("$(")
-				t.visitCommand(n.Stmts[0].Cmd, n.Stmts[0].Redirs)
-				t.emit(")")
-			} else {
-				t.emitLine("$({")
-				t.visitStmts(n.Stmts)
-				t.indent()
-				t.emit("})")
+		_ = !dQuoted && todo("support unquoted command substitution")
+		if len(n.Stmts) == 1 {
+			t.emit("$(")
+			t.visitCommand(n.Stmts[0].Cmd, n.Stmts[0].Redirs)
+			t.emit(")")
+		} else {
+			t.emitLine("$({")
+			t.visitStmts(n.Stmts)
+			t.indent()
+			t.emit("})")
+		}
+	default:
+		fixmeCase(n)
+	}
+}
+
+func isArrayExpandDblQuoted(quoted *syntax.DblQuoted) bool {
+	for _, part := range quoted.Parts {
+		switch n := part.(type) {
+		case *syntax.ParamExp:
+			if n.Param.Value == "@" {
+				return true
 			}
-		default:
-			fixmeCase(n)
 		}
 	}
+	return false
+}
+
+func isArrayExpand(parts []syntax.WordPart) bool {
+	for _, part := range parts {
+		switch n := part.(type) {
+		case *syntax.DblQuoted:
+			if isArrayExpandDblQuoted(n) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isSimpleArgsExpand(parts []syntax.WordPart) bool {
+	if len(parts) == 1 {
+		switch n := parts[0].(type) {
+		case *syntax.DblQuoted:
+			if len(n.Parts) != 1 {
+				return false
+			}
+			switch nn := n.Parts[0].(type) {
+			case *syntax.ParamExp:
+				if nn.Param.Value == "@" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func (t *Translator) expandDblQuoted(quoted *syntax.DblQuoted) {
+	t.emit("\"")
+	for _, part := range quoted.Parts {
+		switch n := part.(type) {
+		case *syntax.ParamExp:
+			if n.Param.Value == "@" {
+				t.emitLine("\")[0] )")
+				t.indent()
+				t.emitLine(".add($__shtx_get_args())")
+				t.indent()
+				t.emit(".add( @(\"")
+				continue
+			}
+		}
+		t.visitWordPart(part, true)
+	}
+	t.emit("\"")
+}
+
+func (t *Translator) visitWordParts(parts []syntax.WordPart) {
+	if !isArrayExpand(parts) {
+		for _, part := range parts {
+			t.visitWordPart(part, false)
+		}
+		return
+	}
+
+	// for `$@` or `$array[@]`
+	if isSimpleArgsExpand(parts) { // "$@"
+		t.emit("$__shtx_get_args()")
+		return
+	}
+
+	t.emitLine("$__shtx_concat(new [Any]()")
+	t.indentLevel++
+	t.indent()
+	t.emit(".add( @(")
+	for _, part := range parts {
+		switch n := part.(type) {
+		case *syntax.DblQuoted:
+			if isArrayExpandDblQuoted(n) {
+				t.expandDblQuoted(n)
+				continue
+			}
+		}
+		t.visitWordPart(part, false)
+	}
+	t.emitLine(")[0] )")
+	t.indentLevel--
+	t.indent()
+	t.emit(")")
 }
