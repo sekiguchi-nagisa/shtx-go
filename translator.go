@@ -46,6 +46,17 @@ func (t *Translator) SetDump(d io.Writer) {
 	t.dump = d
 }
 
+func withLineNum(buf []byte) string {
+	var sb = strings.Builder{}
+	var ss = strings.Split(string(buf), "\n")
+	var width = len(strconv.Itoa(len(ss)))
+	for i, s := range ss {
+		var line = fmt.Sprintf("%*d  %s\n", width, i+1, s)
+		sb.WriteString(line)
+	}
+	return sb.String()
+}
+
 func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 	// reset state
 	t.out = out
@@ -58,7 +69,7 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 	f, e := syntax.NewParser().Parse(reader, "")
 	if e != nil {
 		return fmt.Errorf("+++++  error message  +++++\n%s\n\n"+
-			"+++++  input script  +++++\n%s", e.Error(), buf)
+			"+++++  input script  +++++\n%s", e.Error(), withLineNum(buf))
 	}
 
 	// dump
@@ -72,7 +83,7 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("+++++  error message  +++++\n%s\n\n"+
 				"+++++  stack trace from panic  +++++\n%s\n"+
-				"+++++  input script  +++++\n%s", r, debug.Stack(), buf)
+				"+++++  input script  +++++\n%s", r, debug.Stack(), withLineNum(buf))
 		}
 	}()
 
