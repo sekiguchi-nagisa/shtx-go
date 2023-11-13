@@ -31,17 +31,22 @@ _error() : Nothing {
     throw new Error($@.join(" "))
 }
 
-_try_fetch_bin() {
+_detect_bin() {
+    let suffix = ($OSTYPE == 'cygwin' || $OSTYPE == 'msys') ? ".exe" : ""
     if $SHTX_DEV_MODE || (checkenv SHTX_DEV_MODE) {
         command -v go &>> /dev/null || _error "require go binary"
-        if !(test -x $SCRIPT_DIR/shtx-go) {
+        if !(test -x $SCRIPT_DIR/shtx-go$suffix) {
             # rebuild
-            (cd $SCRIPT_DIR && command go build &) .wait()
-            test -x $SCRIPT_DIR/shtx-go || _error cannot build shtx-go
+            (cd $SCRIPT_DIR && command go build &>> /dev/null) | true
+            test -x $SCRIPT_DIR/shtx-go$suffix || _error cannot build shtx-go
         }
         $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go"
     } else {
-        _error TODO: download released binary
+        $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go-$OSTYPE-$MACHTYPE$suffix"
+        test -x $_SHTX_GO_BIN_PATH && return 0
+        $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go$suffix"
+        test -x $_SHTX_GO_BIN_PATH && return 0
+        _error not found \`shtx-go\` executable in $SCRIPT_DIR
     }
 }
 
@@ -545,7 +550,7 @@ function __shtx_concat(values : [Any]) : [String] {
 fake_eval() {
     $@.empty() && return 0
 
-    _try_fetch_bin
+    _detect_bin
 
     var input = $@.join(" ")
     var opt : [String]
@@ -579,7 +584,7 @@ fake_source() {
         return 2
     }
 
-    _try_fetch_bin
+    _detect_bin
 
     var input = $@[0]
     if $input.contains("completion") {  # may be completion script
