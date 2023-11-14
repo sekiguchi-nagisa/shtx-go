@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	flags "github.com/jessevdk/go-flags"
 	"os"
@@ -40,16 +41,18 @@ func saveCrashDump(err error) {
 	path := fmt.Sprintf("crash_shtx-go_%s.log", t)
 	f, _ := os.Create(path)
 	if f != nil {
-		defer f.Close()
+		defer func(f *os.File) {
+			_ = f.Close()
+		}(f)
 		header := fmt.Sprintf("+++++  build info  +++++\n%s\n\n", getVersion())
-		f.WriteString(header)
-		f.WriteString(err.Error())
+		_, _ = f.WriteString(header)
+		_, _ = f.WriteString(err.Error())
 	}
 	p, e := filepath.Abs(path)
 	if e == nil {
 		path = p
 	}
-	fmt.Fprintf(os.Stderr, "save crash dump:\n\t%s\n", path)
+	_, _ = fmt.Fprintf(os.Stderr, "save crash dump:\n\t%s\n", path)
 }
 
 var transTypes = map[string]TranslationType{
@@ -62,7 +65,8 @@ func main() {
 	options := Options{}
 	p := flags.NewParser(&options, flags.Default)
 	if _, e := p.Parse(); e != nil {
-		if flagsErr, ok := e.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+		var flagsErr *flags.Error
+		if errors.As(e, &flagsErr) && flagsErr.Type == flags.ErrHelp {
 			os.Exit(0)
 		} else {
 			p.WriteHelp(os.Stderr)
@@ -77,7 +81,7 @@ func main() {
 
 	script := options.Args.SCRIPT
 	if script == "" {
-		fmt.Fprintln(os.Stderr, "the argument `SCRIPT` was not provided")
+		_, _ = fmt.Fprintln(os.Stderr, "the argument `SCRIPT` was not provided")
 		p.WriteHelp(os.Stderr)
 		os.Exit(1)
 	}
@@ -87,22 +91,24 @@ func main() {
 
 	buf, e := os.ReadFile(script)
 	if e != nil {
-		fmt.Fprintln(os.Stderr, e.Error())
+		_, _ = fmt.Fprintln(os.Stderr, e.Error())
 		os.Exit(1)
 	}
 	tx := NewTranslator(transTypes[options.Type])
 	if len(options.DumpAST) != 0 {
 		d, e := os.Create(options.DumpAST)
-		defer d.Close()
+		defer func(d *os.File) {
+			_ = d.Close()
+		}(d)
 		if e != nil {
-			fmt.Fprintln(os.Stderr, e.Error())
+			_, _ = fmt.Fprintln(os.Stderr, e.Error())
 			os.Exit(1)
 		}
 		tx.SetDump(d)
 	}
 
 	if e := tx.Translate(buf, os.Stdout); e != nil {
-		fmt.Fprintln(os.Stderr, e.Error())
+		_, _ = fmt.Fprintln(os.Stderr, e.Error())
 		if options.SaveCrashDump {
 			saveCrashDump(e)
 		}

@@ -74,9 +74,9 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 
 	// dump
 	if t.dump != nil {
-		fmt.Fprintln(t.dump, "+++++  dump parsed ast  +++++")
-		syntax.DebugPrint(t.dump, f)
-		fmt.Fprintln(t.dump)
+		_, _ = fmt.Fprintln(t.dump, "+++++  dump parsed ast  +++++")
+		_ = syntax.DebugPrint(t.dump, f)
+		_, _ = fmt.Fprintln(t.dump)
 	}
 
 	defer func() {
@@ -90,7 +90,7 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 	// translate
 	switch t.tranType {
 	case TranslateNone:
-		syntax.NewPrinter().Print(t.out, f)
+		_ = syntax.NewPrinter().Print(t.out, f)
 	case TranslateEval:
 		t.emitLine("{")
 		t.visitStmts(f.Stmts)
@@ -110,15 +110,15 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 }
 
 func (t *Translator) emit(s string) {
-	fmt.Fprint(t.out, s)
+	_, _ = fmt.Fprint(t.out, s)
 }
 
 func (t *Translator) emitLine(s string) {
-	fmt.Fprintln(t.out, s)
+	_, _ = fmt.Fprintln(t.out, s)
 }
 
 func (t *Translator) newline() {
-	fmt.Fprintln(t.out)
+	_, _ = fmt.Fprintln(t.out)
 }
 
 func (t *Translator) indent() {
