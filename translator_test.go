@@ -354,6 +354,10 @@ esac
   )
 }
 `},
+	{`! echo hello`, `{
+  ! echo hello
+}
+`},
 }
 
 func TestEval(t *testing.T) {

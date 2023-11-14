@@ -142,8 +142,14 @@ func (t *Translator) visitStmts(stmts []*syntax.Stmt) {
 }
 
 func (t *Translator) visitStmt(stmt *syntax.Stmt) {
+	if stmt.Negated {
+		if _, ok := stmt.Cmd.(*syntax.CallExpr); ok {
+			t.emit("! ")
+		} else {
+			todo(stmt.Pos(), "support !")
+		}
+	}
 	t.visitCommand(stmt.Cmd, stmt.Redirs)
-	_ = stmt.Negated && todo(stmt.Pos(), "support !")
 	_ = stmt.Background && todo(stmt.Semicolon, "support &")
 	_ = stmt.Coprocess && todo(stmt.Semicolon, "unsupported |&")
 }
