@@ -1,0 +1,51 @@
+
+source $SCRIPT_DIR/../../../shtx as shtx
+
+assert checkenv RUN_IN_CONATINER  # guard
+
+assert !command -v pyenv
+
+# setup pyenv
+git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+
+shtx fake_source /dev/stdin << 'EOF'
+export PYENV_ROOT="$HOME/.pyenv"
+command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+
+EOF
+
+# test pyenv basic op
+shctl set errraise
+assert command -v pyenv
+
+pyenv install graalpython-22.2.0
+pyenv install pypy3.10-7.3.13
+
+## switch to graalpython
+pyenv global graalpython-22.2.0
+assert python -V | grep 'GraalVM Python 3.8.5'
+
+## swicth to pypy
+pyenv global pypy3.10-7.3.13
+assert ! (python -V | grep 'GraalVM Python 3.8.5')
+assert python -V | grep 'PyPy 7.3.13'
+
+## shell integration
+assert ! (setenv | grep 'PYENV_VERSION')
+pyenv shell graalpython-22.2.0
+assert python -V | grep 'GraalVM Python 3.8.5'
+assert setenv | grep 'PYENV_VERSION'
+assert { getenv PYENV_VERSION; $REPLY; } == 'graalpython-22.2.0'
+
+pyenv shell pypy3.10-7.3.13
+assert setenv | grep 'PYENV_VERSION'
+assert { getenv PYENV_VERSION; $REPLY; } == 'pypy3.10-7.3.13'
+assert python -V | grep 'PyPy 7.3.13'
+
+pyenv shell -
+assert python -V | grep 'GraalVM Python 3.8.5'
+assert { getenv PYENV_VERSION; $REPLY; } == 'graalpython-22.2.0'
+
+pyenv shell -
+assert python -V | grep 'PyPy 7.3.13'
