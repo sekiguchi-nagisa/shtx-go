@@ -1,7 +1,7 @@
 
 source $SCRIPT_DIR/../../../shtx as shtx
 
-assert checkenv RUN_IN_CONATINER  # guard
+assert checkenv RUN_IN_CONTAINER  # guard
 
 assert !command -v pyenv
 
@@ -11,7 +11,7 @@ git clone https://github.com/pyenv/pyenv.git ~/.pyenv
 shtx fake_source /dev/stdin << 'EOF'
 export PYENV_ROOT="$HOME/.pyenv"
 command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
+eval "$(pyenv init - bash)"
 
 EOF
 
@@ -49,3 +49,12 @@ assert { getenv PYENV_VERSION; $REPLY; } == 'graalpython-22.2.0'
 
 pyenv shell -
 assert python -V | grep 'PyPy 7.3.13'
+
+# test pyevn completion
+complete "pyenv shell "
+assert $COMPREPLY.size() == 5 : "COMPREPLY=${COMPREPLY}"
+assert $COMPREPLY[0] == "--help"
+assert $COMPREPLY[1] == "--unset"
+assert $COMPREPLY[2] == "graalpython-22.2.0"
+assert $COMPREPLY[3] == "pypy3.10-7.3.13"
+assert $COMPREPLY[4] == "system"
