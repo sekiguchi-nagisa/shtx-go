@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/jessevdk/go-flags"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -20,6 +20,8 @@ type Options struct {
 	} `positional-args:"yes"`
 }
 
+var version = "" // for version embedding (specified like "-X main.version=v0.1.0")
+
 func getVersion() string {
 	info, ok := debug.ReadBuildInfo()
 	if ok {
@@ -30,7 +32,11 @@ func getVersion() string {
 				break
 			}
 		}
-		return fmt.Sprintf("%s (%s)", info.Main.Version, rev)
+		var v = info.Main.Version
+		if version != "" { // set by "-X main.version=v0.1.0"
+			v = version
+		}
+		return fmt.Sprintf("%s (%s)", v, rev)
 	} else {
 		return "(unknown)"
 	}

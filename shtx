@@ -22,6 +22,8 @@ var SHTX_DEV_MODE = $false
 
 var SHTX_CRASH_DUMP = $true
 
+let SHTX_VERSION = "0.0.0"
+
 # +++++ helper functions +++++
 
 var _SHTX_GO_BIN_PATH = ""
@@ -42,7 +44,7 @@ _detect_bin() {
         }
         $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go"
     } else {
-        $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go-$OSTYPE-$MACHTYPE$suffix"
+        $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go-$SHTX_VERSION-$OSTYPE-$MACHTYPE$suffix"
         test -x $_SHTX_GO_BIN_PATH && return 0
         $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go$suffix"
         test -x $_SHTX_GO_BIN_PATH && return 0
