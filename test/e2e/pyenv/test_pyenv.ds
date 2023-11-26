@@ -7,6 +7,9 @@ assert !command -v pyenv
 
 # setup pyenv
 git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+pushd ~/.pyenv
+git checkout v2.3.32
+popd
 
 shtx fake_source /dev/stdin << 'EOF'
 export PYENV_ROOT="$HOME/.pyenv"
