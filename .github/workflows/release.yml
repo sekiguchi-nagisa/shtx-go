@@ -33,5 +33,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           draft: true
-          name: Release ${{ github.ref }}
           files: 'shtx*'
