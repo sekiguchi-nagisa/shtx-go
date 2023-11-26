@@ -35,6 +35,7 @@ _error() : Nothing {
 
 _detect_bin() {
     let suffix = ($OSTYPE == 'cygwin' || $OSTYPE == 'msys') ? ".exe" : ""
+    let ostype = $suffix.empty() ? $OSTYPE : "windows"
     if $SHTX_DEV_MODE || (checkenv SHTX_DEV_MODE) {
         command -v go &>> /dev/null || _error "require go binary"
         if !(test -x $SCRIPT_DIR/shtx-go$suffix) {
@@ -44,7 +45,7 @@ _detect_bin() {
         }
         $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go"
     } else {
-        $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go-$SHTX_VERSION-$OSTYPE-$MACHTYPE$suffix"
+        $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go-$SHTX_VERSION-$ostype-$MACHTYPE$suffix"
         test -x $_SHTX_GO_BIN_PATH && return 0
         $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go$suffix"
         test -x $_SHTX_GO_BIN_PATH && return 0

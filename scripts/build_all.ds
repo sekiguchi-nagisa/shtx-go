@@ -1,0 +1,32 @@
+#!/usr/bin/env ydsh
+
+# build binary for all supported platform
+
+cd $SCRIPT_DIR/../    # move to project top
+
+assert command -v go &>> /dev/null : "command not found: go"
+assert command -v git &>> /dev/null : "command not found: git"
+
+var version = "$(git describe --tags)"
+$version = $version.empty() ? "0.0.0" : $version.split("-")[0]
+if $version.startsWith('v') {
+    $version = $version.slice(1)
+}
+assert $version =~ $/^[0-9]+\.[0-9]+\.[0-9]+.*$/ : "wrong version number: $version"
+echo detect version: $version
+
+var build_matrix = [
+    ('linux', 'x86_64', '', 'amd64'),
+    ('linux', 'aarch64', '', 'arm64'),
+    ('darwin', 'x86_64', '', 'amd64'),
+    ('darwin', 'aarch64', '', 'arm64'),
+    ('windows', 'x86_64', '.exe', 'amd64'),
+]
+
+shctl set errraise
+for conf in $build_matrix {
+  echo build for GOOS=${conf._0} GOARCH=${conf._3}
+  GOOS=${conf._0} GOARCH=${conf._3} \
+    go build -ldflags "-s -w -X main.version=v$version" -trimpath \
+        -o "${$PWD.basename()}-$version-${conf._0}-${conf._1}${conf._2}"
+}

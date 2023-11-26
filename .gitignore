@@ -4,7 +4,7 @@
 *.dll
 *.so
 *.dylib
-shtx-go
+shtx-go*
 *.log
 
 # Test binary, built with `go test -c`
