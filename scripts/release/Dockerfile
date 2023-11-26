@@ -12,4 +12,4 @@ RUN mkdir -p ./ydsh/build
 RUN cd ydsh && cd build && cmake .. -G Ninja && cmake --build . && cmake --build . -- install
 
 WORKDIR /home/tux/dev/
-CMD ls ./ && ydsh ./script/build_all.ds
+CMD ls ./ && ydsh ./scripts/build_all.ds
