@@ -19,7 +19,7 @@ jobs:
           sudo apt install language-pack-ja ninja-build
           git clone https://github.com/sekiguchi-nagisa/ydsh.git
           mkdir -p ./ydsh/build
-          cd ydsh && cd build && cmake .. -G Ninja && cmake --build . && cmake --build . -- install
+          cd ydsh && cd build && cmake .. -G Ninja && cmake --build . && sudo cmake --build . -- install
           ydsh -e shctl info
       - name: Set up Go
         uses: actions/setup-go@v4
