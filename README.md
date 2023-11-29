@@ -6,5 +6,5 @@ experimental bash subset to ydsh transpiler
 
 ## Install
 ```sh
-curl -fL https://github.com/sekiguchi-nagisa/shtx-go/blob/main/scripts/build_all.ds | ydsh
+curl -fL https://raw.githubusercontent.com/sekiguchi-nagisa/shtx-go/main/scripts/install.ds | ydsh
 ```
