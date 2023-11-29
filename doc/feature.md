@@ -68,6 +68,7 @@
 * [x] echo
 * [x] printf
 * [x] read
+* [x] test
 * [x] source
 * [x] eval
 * [x] command
