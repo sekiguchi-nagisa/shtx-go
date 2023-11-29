@@ -22,7 +22,7 @@ var SHTX_DEV_MODE = $false
 
 var SHTX_CRASH_DUMP = $true
 
-let SHTX_VERSION = "0.0.4"
+let SHTX_VERSION = "0.0.5"
 
 # +++++ helper functions +++++
 
@@ -627,11 +627,18 @@ typedef _Param() {
     [<Option(short: "c", stop: $true, help: "execute command")>]
     var cmd : String?
 
+    [<Flag(short: "v", long: "version", stop: $true, help: "show version")>]
+    var version = $false
+
     [<Arg>]
     var args : [String]
 }
 
 _main(param : _Param) {
+    if $param.version {
+        echo $SHTX_VERSION
+        return 0
+    }
     if let input = $param.cmd { # -c cmd
         $__shtx_set_argv($param.args)
         fake_eval $input
