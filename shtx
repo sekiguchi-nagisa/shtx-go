@@ -22,7 +22,7 @@ var SHTX_DEV_MODE = $false
 
 var SHTX_CRASH_DUMP = $true
 
-let SHTX_VERSION = "0.0.0"
+let SHTX_VERSION = "0.0.4"
 
 # +++++ helper functions +++++
 
