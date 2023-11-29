@@ -13,6 +13,7 @@ if $version.startsWith('v') {
     $version = $version.slice(1)
 }
 assert $version =~ $/^[0-9]+\.[0-9]+\.[0-9]+.*$/ : "wrong version number: $version"
+assert $version == "$(./shtx --version)": "version number mismatch, tag: $version, shtx version: $(./shtx --version)"
 echo detect version: $version
 
 var build_matrix = [
