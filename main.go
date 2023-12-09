@@ -13,6 +13,7 @@ import (
 type Options struct {
 	Version       bool   `short:"v" long:"version" description:"Show version info"`
 	Type          string `short:"t" long:"type" description:"Type of translation" choice:"eval" choice:"source" choice:"none" default:"eval"`
+	String        string `short:"c" description:"Use string as input"`
 	DumpAST       string `short:"d" long:"dump" description:"Dump internal ast to specified file (default to stderr)" optional:"true" optional-value:"/dev/stderr"`
 	SaveCrashDump bool   `long:"crash-dump" description:"Save crash dump to file"`
 	Args          struct {
@@ -85,21 +86,28 @@ func main() {
 		os.Exit(0)
 	}
 
-	script := options.Args.SCRIPT
-	if script == "" {
-		_, _ = fmt.Fprintln(os.Stderr, "the argument `SCRIPT` was not provided")
-		p.WriteHelp(os.Stderr)
-		os.Exit(1)
-	}
-	if script == "-" {
-		script = "/dev/stdin"
+	var buf []byte = nil
+	if len(options.String) > 0 {
+		buf = []byte(options.String)
+	} else {
+		script := options.Args.SCRIPT
+		if script == "" {
+			_, _ = fmt.Fprintln(os.Stderr, "the argument `SCRIPT` was not provided")
+			p.WriteHelp(os.Stderr)
+			os.Exit(1)
+		}
+		if script == "-" {
+			script = "/dev/stdin"
+		}
+
+		b, e := os.ReadFile(script)
+		if e != nil {
+			_, _ = fmt.Fprintln(os.Stderr, e.Error())
+			os.Exit(1)
+		}
+		buf = b
 	}
 
-	buf, e := os.ReadFile(script)
-	if e != nil {
-		_, _ = fmt.Fprintln(os.Stderr, e.Error())
-		os.Exit(1)
-	}
 	tx := NewTranslator(transTypes[options.Type])
 	if len(options.DumpAST) != 0 {
 		d, e := os.Create(options.DumpAST)
