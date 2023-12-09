@@ -12,7 +12,7 @@ import (
 
 type Options struct {
 	Version       bool   `short:"v" long:"version" description:"Show version info"`
-	Type          string `short:"t" long:"type" description:"Type of translation" choice:"eval" choice:"source" choice:"none" default:"eval"`
+	Type          string `short:"t" long:"type" description:"Set type of translation" choice:"eval" choice:"source" choice:"pattern" choice:"none" default:"eval"`
 	String        string `short:"c" description:"Use string as input"`
 	DumpAST       string `short:"d" long:"dump" description:"Dump internal ast to specified file (default to stderr)" optional:"true" optional-value:"/dev/stderr"`
 	SaveCrashDump bool   `long:"crash-dump" description:"Save crash dump to file"`
@@ -63,9 +63,10 @@ func saveCrashDump(err error) {
 }
 
 var transTypes = map[string]TranslationType{
-	"none":   TranslateNone,
-	"eval":   TranslateEval,
-	"source": TranslateSource,
+	"none":    TranslateNone,
+	"eval":    TranslateEval,
+	"source":  TranslateSource,
+	"pattern": TranslatePattern,
 }
 
 func main() {

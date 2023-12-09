@@ -25,6 +25,7 @@ const (
 	TranslateNone TranslationType = iota
 	TranslateEval
 	TranslateSource
+	TranslatePattern
 )
 
 type Translator struct {
@@ -105,6 +106,9 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 		t.indentLevel--
 		t.visitStmts(f.Stmts)
 		t.emitLine("}")
+	case TranslatePattern:
+		re := GlobToRegexAs(string(buf), Glob2RegexAsRaw)
+		t.emitLine(re)
 	}
 	return nil
 }
@@ -306,7 +310,7 @@ func (t *Translator) visitIfClause(clause *syntax.IfClause, elif bool) {
 func (t *Translator) visitCasePattern(pattern *syntax.Word, caseVarName string) {
 	literal := pattern.Lit()
 	if literal == "" {
-		todo(pattern.Pos(), "support multiple non literal word parts")
+		todo(pattern.Pos(), "support multiple non-literal word parts")
 	}
 	t.emit("$" + caseVarName)
 	t.emit(" =~ ")

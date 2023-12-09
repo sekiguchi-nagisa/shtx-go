@@ -2,10 +2,18 @@ package main
 
 import "strings"
 
+type Glob2RegexType int
+
+const (
+	Glob2RegexAsLiteral Glob2RegexType = iota
+	Glob2RegexAsRaw
+)
+
 type glob2RegexTranslator struct {
 	runes  []rune
 	length int
 	index  int
+	reType Glob2RegexType
 }
 
 func (g *glob2RegexTranslator) translateCharSet() string {
@@ -53,7 +61,13 @@ func (g *glob2RegexTranslator) translate(glob string) string {
 
 	sb := strings.Builder{}
 	sb.Grow(g.length)
-	sb.WriteString("$/^")
+
+	switch g.reType {
+	case Glob2RegexAsLiteral:
+		sb.WriteString("$/^")
+	case Glob2RegexAsRaw:
+		sb.WriteString("^")
+	}
 	for ; g.index < g.length; g.index++ {
 		ch := g.runes[g.index]
 		switch ch {
@@ -90,11 +104,21 @@ func (g *glob2RegexTranslator) translate(glob string) string {
 			sb.WriteRune(ch)
 		}
 	}
-	sb.WriteString("$/")
+	switch g.reType {
+	case Glob2RegexAsLiteral:
+		sb.WriteString("$/")
+	case Glob2RegexAsRaw:
+		sb.WriteString("$")
+	}
 	return sb.String()
 }
 
-func GlobToRegex(glob string) string {
+func GlobToRegexAs(glob string, reType Glob2RegexType) string {
 	glob2regex := glob2RegexTranslator{}
+	glob2regex.reType = reType
 	return glob2regex.translate(glob)
+}
+
+func GlobToRegex(glob string) string {
+	return GlobToRegexAs(glob, Glob2RegexAsLiteral)
 }
