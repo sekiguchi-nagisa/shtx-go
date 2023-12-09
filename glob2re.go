@@ -54,6 +54,16 @@ func (g *glob2RegexTranslator) translateCharSet() string {
 	return sb.String()
 }
 
+func (g *glob2RegexTranslator) consumeStar() {
+	for g.index+1 < g.length {
+		if g.runes[g.index+1] == '*' {
+			g.index++
+		} else {
+			break
+		}
+	}
+}
+
 func (g *glob2RegexTranslator) translate(glob string) string {
 	g.runes = []rune(glob)
 	g.length = len(g.runes)
@@ -95,6 +105,7 @@ func (g *glob2RegexTranslator) translate(glob string) string {
 			sb.WriteRune('.')
 		case '*':
 			sb.WriteString(".*")
+			g.consumeStar()
 		case '[':
 			sb.WriteString(g.translateCharSet())
 		case ']', '/', '$', '^', '.', '+', '(', ')', '{', '}', '|':
