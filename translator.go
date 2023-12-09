@@ -107,7 +107,7 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 		t.visitStmts(f.Stmts)
 		t.emitLine("}")
 	case TranslatePattern:
-		re := GlobToRegexAs(string(buf), Glob2RegexAsRaw)
+		re := GlobToRegex(string(buf))
 		t.emitLine(re)
 	}
 	return nil
@@ -314,7 +314,7 @@ func (t *Translator) visitCasePattern(pattern *syntax.Word, caseVarName string) 
 	}
 	t.emit("$" + caseVarName)
 	t.emit(" =~ ")
-	t.emit(GlobToRegex(literal))
+	t.emit(LiteralGlobToRegex(literal))
 }
 
 func (t *Translator) visitCaseClause(clause *syntax.CaseClause) {
