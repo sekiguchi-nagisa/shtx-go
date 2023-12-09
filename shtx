@@ -478,6 +478,16 @@ __shtx_printf() {
 __shtx_dyna_call() {
     $@.empty() && return 0
 
+    ## not call internal api (__shtx_)
+    if $@[0].startsWith("__shtx_") {
+        if let cmd = $DYNA_UDCS.get($@[0]) {
+            $cmd.call($@)
+        } else {
+            command $@
+        }
+        return $?
+    }
+
     var cmd = $@.shift()
     $cmd = case $cmd {
         '[' => '__shtx_['

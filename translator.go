@@ -376,19 +376,12 @@ func (t *Translator) visitFuncDecl(clause *syntax.FuncDecl) {
 	t.emit("})")
 }
 
-func isCmdLiteral(word *syntax.Word) bool {
-	if len(word.Parts) != 1 {
-		return false
+func toLiteralCmdName(word *syntax.Word) string {
+	literal := word.Lit()
+	if strings.HasPrefix(literal, "__shtx_") {
+		return ""
 	}
-	switch n := word.Parts[0].(type) {
-	case *syntax.Lit:
-		if len(n.Value) > 0 {
-
-		}
-		return true //FIXME: check literal format
-	default:
-		return false
-	}
+	return literal //FIXME: check literal format
 }
 
 var cmdNameReplacement = map[string]string{
@@ -423,8 +416,7 @@ func remapCmdName(name string) string {
 		builder.WriteRune(c)
 	}
 	unescaped := builder.String()
-	v, ok := cmdNameReplacement[unescaped]
-	if ok {
+	if v, ok := cmdNameReplacement[unescaped]; ok {
 		return v
 	} else {
 		return name // if not found replacement, return original value
@@ -432,8 +424,8 @@ func remapCmdName(name string) string {
 }
 
 func (t *Translator) visitCmdName(word *syntax.Word) {
-	if isCmdLiteral(word) {
-		name := remapCmdName(word.Parts[0].(*syntax.Lit).Value)
+	if literal := toLiteralCmdName(word); len(literal) > 0 {
+		name := remapCmdName(literal)
 		t.emit(name)
 	} else {
 		t.emit("__shtx_dyna_call ")

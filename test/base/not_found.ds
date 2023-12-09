@@ -22,6 +22,18 @@ bash: aaaa: command not found
 failed'
 assert $? == 0
 
+## internal commands start with '__shtx_' are not called
+source ../../shtx as ss
+assert $ss._fullname('__shtx_printf')
+assert "$(fake_eval '__shtx_printf' 2>&1)" == 'bash: __shtx_printf: command not found'
+assert $? == 127
+assert "$(fake_eval '"__shtx_printf"' 2>&1)" == 'bash: __shtx_printf: command not found'
+assert $? == 127
+assert "$(fake_eval 'eval __shtx_printf' 2>&1)" == 'bash: __shtx_printf: command not found'
+assert $? == 127
+
+true
+
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
 # STATUS: 0

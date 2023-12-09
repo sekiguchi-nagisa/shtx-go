@@ -140,6 +140,15 @@ undefined
 ggg'
 assert $? == 0
 
+# define function starting with __shtx_
+assert_fake_eval '
+  __shtx_printf() { echo override; }
+  __shtx_printf
+  __shtx_hoge() { echo override2; }
+  __shtx_hoge
+' 'override
+override2'
+
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
 # STATUS: 0

@@ -150,7 +150,11 @@ false;
 `},
 
 	{`\\[ -n hoge ]`, `{
-  __shtx_dyna_call \\[ -n hoge ]
+  \\[ -n hoge ]
+}
+`},
+	{`__shtx_printf`, `{
+  __shtx_dyna_call __shtx_printf
 }
 `},
 	{
