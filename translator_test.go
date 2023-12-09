@@ -262,20 +262,16 @@ fi
 `},
 	{`function hoge() true`, `{
   $__shtx_func('hoge', (){
-    $__shtx_enter_func($0, $@)
-    let old = $CMD_FALLBACK
-    $CMD_FALLBACK = $__shtx_cmd_fallback
-    defer { $__shtx_exit_func(); $CMD_FALLBACK = $old; }
+    let ctx = $__shtx_enter_func($0, $@)
+    defer { $__shtx_exit_func($ctx); }
     true
   })
 }
 `},
 	{`hoge() { echo hello; } > /dev/null`, `{
   $__shtx_func('hoge', (){
-    $__shtx_enter_func($0, $@)
-    let old = $CMD_FALLBACK
-    $CMD_FALLBACK = $__shtx_cmd_fallback
-    defer { $__shtx_exit_func(); $CMD_FALLBACK = $old; }
+    let ctx = $__shtx_enter_func($0, $@)
+    defer { $__shtx_exit_func($ctx); }
     {
       echo hello
     } with > /dev/null
@@ -284,10 +280,8 @@ fi
 `},
 	{`ff() { local AAA BBB=12; local CCC=12 && echo "$CCC"; }`, `{
   $__shtx_func('ff', (){
-    $__shtx_enter_func($0, $@)
-    let old = $CMD_FALLBACK
-    $CMD_FALLBACK = $__shtx_cmd_fallback
-    defer { $__shtx_exit_func(); $CMD_FALLBACK = $old; }
+    let ctx = $__shtx_enter_func($0, $@)
+    defer { $__shtx_exit_func($ctx); }
     {
       __shtx_local AAA BBB=12
       (__shtx_local CCC=12 && echo "${{__shtx_var_get $? 'CCC'; $REPLY; }}")

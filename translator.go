@@ -361,13 +361,9 @@ func (t *Translator) visitFuncDecl(clause *syntax.FuncDecl) {
 	t.emitLine("', (){")
 	t.indentLevel++
 	t.indent()
-	t.emitLine("$__shtx_enter_func($0, $@)")
+	t.emitLine("let ctx = $__shtx_enter_func($0, $@)")
 	t.indent()
-	t.emitLine("let old = $CMD_FALLBACK")
-	t.indent()
-	t.emitLine("$CMD_FALLBACK = $__shtx_cmd_fallback")
-	t.indent()
-	t.emitLine("defer { $__shtx_exit_func(); $CMD_FALLBACK = $old; }")
+	t.emitLine("defer { $__shtx_exit_func($ctx); }")
 	t.indent()
 	t.visitStmt(clause.Body)
 	t.indentLevel--

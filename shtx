@@ -522,12 +522,23 @@ function __shtx_func(name : String, cmd : Command) : Bool {
     return $true
 }
 
-function __shtx_enter_func(arg0 : String, args : [String]) {
-    $_VARS.enterFunc("bash", $args)  # FIXME: set arg0 ?
+typedef _Context() {
+    let fallback = $CMD_FALLBACK
+    $CMD_FALLBACK = $__shtx_cmd_fallback
 }
 
-function __shtx_exit_func() {
+function restore() for _Context {
+    $CMD_FALLBACK = $this.fallback
+}
+
+function __shtx_enter_func(arg0 : String, args : [String]) : _Context {
+    $_VARS.enterFunc("bash", $args)  # FIXME: set arg0 ?
+    return new _Context()
+}
+
+function __shtx_exit_func(ctx : _Context) {
     $_VARS.exitFunc()
+    $ctx.restore()
 }
 
 function __shtx_concat(values : [Any]) : [String] {
@@ -575,9 +586,8 @@ fake_eval() {
         return 1
     }
     try {
-        let old = $CMD_FALLBACK
-        $CMD_FALLBACK = $__shtx_cmd_fallback
-        defer { $CMD_FALLBACK = $old; }
+        let ctx = new _Context()
+        defer { $ctx.restore(); }
         $MODULE._func($output)()
     } catch e : _SHError {
         return $e.status()
@@ -615,9 +625,8 @@ fake_source() {
         return 1
     }
     try {
-        let old = $CMD_FALLBACK
-        $CMD_FALLBACK = $__shtx_cmd_fallback
-        defer { $CMD_FALLBACK = $old; }
+        let ctx = new _Context()
+        defer { $ctx.restore(); }
         var func = $MODULE._func($output)()! as ([String]) -> Void
         $func($@)
     } catch e : _SHError {
