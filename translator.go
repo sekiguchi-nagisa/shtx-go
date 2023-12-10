@@ -410,9 +410,9 @@ var cmdNameReplacement = map[string]string{
 	"shift":  "__shtx_shift",
 	"read":   "__shtx_read",
 	"printf": "__shtx_printf",
-	"eval":   "__shtx_eval",
-	".":      "__shtx_source",
-	"source": "__shtx_source",
+	"eval":   "fake_eval",
+	".":      "fake_source",
+	"source": "fake_source",
 }
 
 func remapCmdName(name string) string {

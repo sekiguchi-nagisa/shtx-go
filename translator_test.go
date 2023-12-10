@@ -121,7 +121,7 @@ false;
 }
 `},
 	{`\eval echo hello`, `{
-  __shtx_eval echo hello
+  fake_eval echo hello
 }
 `},
 	{`echo "$#: $0: $1 ${002}"`, `{

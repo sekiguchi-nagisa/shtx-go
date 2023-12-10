@@ -473,69 +473,6 @@ __shtx_printf() {
     }
 }
 
-__shtx_eval() {
-    $@.empty() && return 0
-
-    __shtx_detect_bin
-
-    var input = $@.join(" ")
-    var opt : [String]
-    if $SHTX_CRASH_DUMP {
-        $opt.add("--crash-dump")
-    }
-    var output = "$(call $_SHTX_GO_BIN_PATH $opt - <<< $input)"
-    if $? != 0 {
-        return 1
-    }
-    try {
-        $MODULE._func($output)()
-    } catch e : _SHError {
-        return $e.status()
-    } catch e : Error {
-        $e.show()
-        $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)
-        return 255
-    }
-}
-
-source $MODULE_DIR/completion as __comp
-
-__shtx_source() {
-    $@.empty() && {
-        $_error("source", "filename argument required")
-        return 2
-    }
-
-    __shtx_detect_bin
-
-    var input = $@[0]
-    if $input.contains("completion") {  # may be completion script
-        if let target = $__comp.extractCompTarget($input) {
-            __comp compdef --cmd ${target._1} --comp-path $input --comp-target ${target._0} && return 0
-        }
-    }
-
-    var opt = ['--type=source']
-    if $SHTX_CRASH_DUMP {
-        $opt.add("--crash-dump")
-    }
-    var output = "$(call $_SHTX_GO_BIN_PATH $opt $input)"
-    if $? != 0 {
-        return 1
-    }
-    try {
-        var func = $MODULE._func($output)()! as ([String]) -> Void
-        $func($@)
-    } catch e : _SHError {
-        return $e.status()
-    } catch e : Error {
-        $e.show()
-        $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)
-        return 255
-    }
-}
-
-
 # dynamically resolve command name
 __shtx_dyna_call() {
     $@.empty() && return 0
@@ -559,8 +496,8 @@ __shtx_dyna_call() {
         'shift' => '__shtx_shift'
         'read' => '__shtx_read'
         'printf' => '__shtx_printf'
-        'eval' => '__shtx_eval'
-        '.' | 'source' => '__shtx_source'
+        'eval' => 'fake_eval'
+        '.' | 'source' => 'fake_source'
         else => $cmd
     }
     call $cmd $@
@@ -587,20 +524,39 @@ function __shtx_func(name : String, cmd : Command) : Bool {
 typedef _Context() {
     let fallback = $CMD_FALLBACK
     $CMD_FALLBACK = $__shtx_cmd_fallback
+
+    ## set runtime options
+    let option = { shctl set -d; $REPLY; }
+    shctl unset errraise
 }
 
-function restore() for _Context {
-    $CMD_FALLBACK = $this.fallback
+var _CALL_COUNT = 0
+
+function __shtx_setup_context() : _Context? {
+    $_CALL_COUNT++
+    if $_CALL_COUNT == 1 {
+        return new _Context()
+    } else {
+        return $none
+    }
 }
 
-function __shtx_enter_func(arg0 : String, args : [String]) : _Context {
+function __shtx_restore_context($ctx : _Context?) {
+    if let c = $ctx {
+        $CMD_FALLBACK = $c.fallback
+        shctl set -r ${c.option}
+    }
+    $_CALL_COUNT--
+}
+
+function __shtx_enter_func(arg0 : String, args : [String]) : _Context? {
     $_VARS.enterFunc("bash", $args)  # FIXME: set arg0 ?
-    return new _Context()
+    return $__shtx_setup_context()
 }
 
-function __shtx_exit_func(ctx : _Context) {
+function __shtx_exit_func(ctx : _Context?) {
     $_VARS.exitFunc()
-    $ctx.restore()
+    $__shtx_restore_context($ctx)
 }
 
 function __shtx_concat(values : [Any]) : [String] {
@@ -634,16 +590,70 @@ function __shtx_concat(values : [Any]) : [String] {
 
 # evaluate bash script (emulate bash eval command)
 fake_eval() {
-    let ctx = new _Context()
-    defer { $ctx.restore(); }
-    __shtx_eval $@
+    $@.empty() && return 0
+
+    __shtx_detect_bin
+
+    var input = $@.join(" ")
+    var opt : [String]
+    if $SHTX_CRASH_DUMP {
+        $opt.add("--crash-dump")
+    }
+    var output = "$(call $_SHTX_GO_BIN_PATH $opt - <<< $input)"
+    if $? != 0 {
+        return 1
+    }
+    try {
+        let ctx = $__shtx_setup_context()
+        defer { $__shtx_restore_context($ctx); }
+        $MODULE._func($output)()
+    } catch e : _SHError {
+        return $e.status()
+    } catch e : Error {
+        $e.show()
+        $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)
+        return 255
+    }
 }
+
+source $MODULE_DIR/completion as __comp
 
 # evaluate bash script (emulate bash source command)
 fake_source() {
-    let ctx = new _Context()
-    defer { $ctx.restore(); }
-    __shtx_source $@
+    $@.empty() && {
+        $_error("source", "filename argument required")
+        return 2
+    }
+
+    __shtx_detect_bin
+
+    var input = $@[0]
+    if $input.contains("completion") {  # may be completion script
+        if let target = $__comp.extractCompTarget($input) {
+            __comp compdef --cmd ${target._1} --comp-path $input --comp-target ${target._0} && return 0
+        }
+    }
+
+    var opt = ['--type=source']
+    if $SHTX_CRASH_DUMP {
+        $opt.add("--crash-dump")
+    }
+    var output = "$(call $_SHTX_GO_BIN_PATH $opt $input)"
+    if $? != 0 {
+        return 1
+    }
+    try {
+        let ctx = $__shtx_setup_context()
+        defer { $__shtx_restore_context($ctx); }
+        var func = $MODULE._func($output)()! as ([String]) -> Void
+        $func($@)
+    } catch e : _SHError {
+        return $e.status()
+    } catch e : Error {
+        $e.show()
+        $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)
+        return 255
+    }
 }
 
 
