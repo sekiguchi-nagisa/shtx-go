@@ -1,0 +1,12 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+# for non-const pattern
+
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

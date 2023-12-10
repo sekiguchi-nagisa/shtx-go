@@ -19,6 +19,11 @@ func fixmeCase(pos syntax.Pos, a any) {
 	panic(fmt.Sprintf("%s: [FIXME] unsupported switch-case type %T", pos.String(), a))
 }
 
+type WordPartOption struct {
+	dQuoted bool
+	pattern bool
+}
+
 type TranslationType int
 
 const (
@@ -309,12 +314,16 @@ func (t *Translator) visitIfClause(clause *syntax.IfClause, elif bool) {
 
 func (t *Translator) visitCasePattern(pattern *syntax.Word, caseVarName string) {
 	literal := pattern.Lit()
-	if literal == "" {
-		todo(pattern.Pos(), "support multiple non-literal word parts")
+	if literal == "" || strings.HasPrefix(literal, "~") {
+		t.emit("( __shtx_glob_match $" + caseVarName)
+		t.emit(" ")
+		t.visitWordPartsWith(pattern.Parts, WordPartOption{pattern: true})
+		t.emit(" )")
+	} else {
+		t.emit("$" + caseVarName)
+		t.emit(" =~ ")
+		t.emit(LiteralGlobToRegex(literal))
 	}
-	t.emit("$" + caseVarName)
-	t.emit(" =~ ")
-	t.emit(LiteralGlobToRegex(literal))
 }
 
 func (t *Translator) visitCaseClause(clause *syntax.CaseClause) {
@@ -370,27 +379,6 @@ func (t *Translator) visitFuncDecl(clause *syntax.FuncDecl) {
 	t.newline()
 	t.indent()
 	t.emit("})")
-}
-
-func unescapeCmdName(name string) string {
-	sb := strings.Builder{}
-	runes := []rune(name)
-	sb.Grow(len(runes))
-	for i := 0; i < len(runes); i++ {
-		c := runes[i]
-		if c == '\\' {
-			i++
-			next := runes[i]
-			switch next {
-			case '\n', '\r':
-				continue
-			default:
-				c = next
-			}
-		}
-		sb.WriteRune(c)
-	}
-	return sb.String()
 }
 
 func toLiteralCmdName(word *syntax.Word) string {
@@ -473,26 +461,42 @@ func toExpansionOpStr(pos syntax.Pos, expansion *syntax.Expansion) string {
 	return ""
 }
 
-func (t *Translator) visitWordPart(part syntax.WordPart, dQuoted bool) {
+func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) {
 	switch n := part.(type) {
 	case *syntax.Lit:
-		t.emit(n.Value)
+		if option.pattern {
+			t.emit(quoteCmdArgAsGlobStr(n.Value))
+		} else {
+			t.emit(n.Value)
+		}
 	case *syntax.SglQuoted:
+		if option.pattern {
+			t.emit("$__shtx_escape_glob_meta(")
+		}
 		if n.Dollar {
 			t.emit("$")
 		}
 		t.emit("'")
 		t.emit(n.Value)
 		t.emit("'")
+		if option.pattern {
+			t.emit(")")
+		}
 	case *syntax.DblQuoted:
 		_ = n.Dollar // always ignore prefix dollar even if Dollar is true
-		t.emit("\"")
-		for _, wordPart := range n.Parts {
-			t.visitWordPart(wordPart, true)
+		if option.pattern {
+			t.emit("$__shtx_escape_glob_meta(")
 		}
 		t.emit("\"")
+		for _, wordPart := range n.Parts {
+			t.visitWordPart(wordPart, WordPartOption{dQuoted: true})
+		}
+		t.emit("\"")
+		if option.pattern {
+			t.emit(")")
+		}
 	case *syntax.ParamExp:
-		if n.Param.Value != "?" && n.Param.Value != "#" && !dQuoted {
+		if n.Param.Value != "?" && n.Param.Value != "#" && !option.dQuoted && !option.pattern {
 			todo(n.Pos(), "support unquoted parameter expansion")
 		}
 		_ = n.Excl && todo(n.Pos(), "not support ${!a}")
@@ -523,7 +527,10 @@ func (t *Translator) visitWordPart(part syntax.WordPart, dQuoted bool) {
 			return
 		}
 
-		_ = !dQuoted && todo(n.Pos(), "support unquoted command substitution")
+		_ = !option.dQuoted && !option.pattern && todo(n.Pos(), "support unquoted command substitution")
+		if option.pattern {
+			t.emit("\"")
+		}
 		if len(n.Stmts) == 1 {
 			t.emit("$(")
 			t.visitCommand(n.Stmts[0].Cmd, n.Stmts[0].Redirs)
@@ -533,6 +540,9 @@ func (t *Translator) visitWordPart(part syntax.WordPart, dQuoted bool) {
 			t.visitStmts(n.Stmts)
 			t.indent()
 			t.emit("})")
+		}
+		if option.pattern {
+			t.emit("\"")
 		}
 	default:
 		fixmeCase(n.Pos(), n)
@@ -595,18 +605,22 @@ func (t *Translator) expandDblQuoted(quoted *syntax.DblQuoted) {
 				continue
 			}
 		}
-		t.visitWordPart(part, true)
+		option := WordPartOption{}
+		option.dQuoted = true
+		t.visitWordPart(part, option)
 	}
 	t.emit("\"")
 }
 
-func (t *Translator) visitWordParts(parts []syntax.WordPart) {
+func (t *Translator) visitWordPartsWith(parts []syntax.WordPart, option WordPartOption) {
 	if !isArrayExpand(parts) {
 		for _, part := range parts {
-			t.visitWordPart(part, false)
+			t.visitWordPart(part, option)
 		}
 		return
 	}
+
+	_ = option.pattern && todo(parts[0].Pos(), "pattern with array expand is not supported")
 
 	// for `$@` or `$array[@]`
 	if isSimpleArgsExpand(parts) { // "$@"
@@ -626,10 +640,14 @@ func (t *Translator) visitWordParts(parts []syntax.WordPart) {
 				continue
 			}
 		}
-		t.visitWordPart(part, false)
+		t.visitWordPart(part, option)
 	}
 	t.emitLine(")[0] )")
 	t.indentLevel--
 	t.indent()
 	t.emit(")")
+}
+
+func (t *Translator) visitWordParts(parts []syntax.WordPart) {
+	t.visitWordPartsWith(parts, WordPartOption{})
 }

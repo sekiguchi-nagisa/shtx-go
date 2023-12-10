@@ -585,6 +585,50 @@ function __shtx_concat(values : [Any]) : [String] {
     return $ret
 }
 
+let _GLOB2RE_CACHE : [String: Regex]
+let _GLOB_META = $/[?*\[]/
+
+__shtx_glob_match(){
+    let value = $1
+    let pattern = $2
+    if $_GLOB_META !~ $pattern {  # fast path (no glob meta)
+        return ($value == $pattern) ? 0 : 1
+    }
+    var re = $_GLOB2RE_CACHE.get($pattern) ?? { # translate glob to regex
+        _detect_bin
+        var re = try {
+            var s = "$(call $_SHTX_GO_BIN_PATH --type=pattern -c $pattern)"
+            new Regex($s)
+        } catch e : RegexSyntaxError {
+            $e.show()
+            return 1
+        }
+
+        if $_GLOB2RE_CACHE.size() == 32 { # remove old entry
+            var key = for k,_ in $_GLOB2RE_CACHE { break $k }
+            $_GLOB2RE_CACHE.remove($key!)
+        }
+        $_GLOB2RE_CACHE.put($pattern, $re)
+        $re
+    }
+    return ($re =~ $value) ? 0 : 1
+}
+
+function __shtx_escape_glob_meta(pattern : String) : String {
+    if $_GLOB_META !~ $pattern {
+        return $pattern
+    }
+    var ret = ""
+    let size = $pattern.size()
+    for(var i = 0; $i < $size; $i++) {
+        var ch = $pattern[$i]
+        case $ch {
+            '*' | '?' | '[' | ']' | '\' => { $ret += '\'; }
+        }
+        $ret += $ch
+    }
+    return $ret
+}
 
 # +++++ public api functions (starts with fake_) +++++
 

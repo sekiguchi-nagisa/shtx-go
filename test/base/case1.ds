@@ -3,6 +3,8 @@
 source ../../shtx
 source ../common/assert.ds
 
+# for const-pattern
+
 assert_fake_eval '
   f() {
     case "$1" in
@@ -52,6 +54,28 @@ starts with id
 starts with underscore id
 starts with number'
 
+assert_fake_eval '
+  f() {
+    case "$1" in 
+    {1..9}) echo "match {1..9}" ;; 
+    {a,b,c}) echo "match {a,b,c}" ;;
+    \{ ) echo "match {" ;;
+    \} ) echo "match }" ;;
+    * ) echo no match ;;
+    esac
+  }
+  f "{1..9}"
+  f "{a,b,c}"
+  f "{"
+  f "}"
+  f "{1,2,3,4,5,6,7,8,9}"
+  f "{a..c}"
+' 'match {1..9}
+match {a,b,c}
+match {
+match }
+no match
+no match'
 
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
