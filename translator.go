@@ -372,9 +372,31 @@ func (t *Translator) visitFuncDecl(clause *syntax.FuncDecl) {
 	t.emit("})")
 }
 
+func unescapeCmdName(name string) string {
+	sb := strings.Builder{}
+	runes := []rune(name)
+	sb.Grow(len(runes))
+	for i := 0; i < len(runes); i++ {
+		c := runes[i]
+		if c == '\\' {
+			i++
+			next := runes[i]
+			switch next {
+			case '\n', '\r':
+				continue
+			default:
+				c = next
+			}
+		}
+		sb.WriteRune(c)
+	}
+	return sb.String()
+}
+
 func toLiteralCmdName(word *syntax.Word) string {
 	literal := word.Lit()
-	if strings.HasPrefix(literal, "__shtx_") {
+	unescaped := unescapeCmdName(literal)
+	if strings.HasPrefix(unescaped, "__shtx_") || strings.HasPrefix(unescaped, "fake_") {
 		return ""
 	}
 	return literal //FIXME: check literal format
@@ -388,30 +410,13 @@ var cmdNameReplacement = map[string]string{
 	"shift":  "__shtx_shift",
 	"read":   "__shtx_read",
 	"printf": "__shtx_printf",
-	"eval":   "fake_eval",
-	".":      "fake_source",
-	"source": "fake_source",
+	"eval":   "__shtx_eval",
+	".":      "__shtx_source",
+	"source": "__shtx_source",
 }
 
 func remapCmdName(name string) string {
-	builder := strings.Builder{}
-	builder.Grow(len(name))
-	r := []rune(name)
-	for i := 0; i < len(r); i++ {
-		c := r[i]
-		if c == '\\' {
-			i++
-			next := r[i]
-			switch next {
-			case '\n', '\r':
-				continue
-			default:
-				c = next
-			}
-		}
-		builder.WriteRune(c)
-	}
-	unescaped := builder.String()
+	unescaped := unescapeCmdName(name)
 	if v, ok := cmdNameReplacement[unescaped]; ok {
 		return v
 	} else {

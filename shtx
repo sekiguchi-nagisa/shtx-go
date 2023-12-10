@@ -28,20 +28,20 @@ let SHTX_VERSION = "0.1.0"
 
 var _SHTX_GO_BIN_PATH = ""
 
-_error() : Nothing {
+__shtx_error() : Nothing {
     echo 2>&1 $@
     throw new Error($@.join(" "))
 }
 
-_detect_bin() {
+__shtx_detect_bin() {
     let suffix = ($OSTYPE == 'cygwin' || $OSTYPE == 'msys') ? ".exe" : ""
     let ostype = $suffix.empty() ? $OSTYPE : "windows"
     if $SHTX_DEV_MODE || (checkenv SHTX_DEV_MODE) {
-        command -v go &>> /dev/null || _error "require go binary"
+        command -v go &>> /dev/null || __shtx_error "require go binary"
         if !(test -x $SCRIPT_DIR/shtx-go$suffix) {
             # rebuild
             (cd $SCRIPT_DIR && command go build &>> /dev/null) | true
-            test -x $SCRIPT_DIR/shtx-go$suffix || _error cannot build shtx-go
+            test -x $SCRIPT_DIR/shtx-go$suffix || __shtx_error cannot build shtx-go
         }
         $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go"
     } else {
@@ -49,7 +49,7 @@ _detect_bin() {
         test -x $_SHTX_GO_BIN_PATH && return 0
         $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go$suffix"
         test -x $_SHTX_GO_BIN_PATH && return 0
-        _error not found \`shtx-go\` executable in $SCRIPT_DIR
+        __shtx_error not found \`shtx-go\` executable in $SCRIPT_DIR
     }
 }
 
@@ -473,13 +473,75 @@ __shtx_printf() {
     }
 }
 
+__shtx_eval() {
+    $@.empty() && return 0
+
+    __shtx_detect_bin
+
+    var input = $@.join(" ")
+    var opt : [String]
+    if $SHTX_CRASH_DUMP {
+        $opt.add("--crash-dump")
+    }
+    var output = "$(call $_SHTX_GO_BIN_PATH $opt - <<< $input)"
+    if $? != 0 {
+        return 1
+    }
+    try {
+        $MODULE._func($output)()
+    } catch e : _SHError {
+        return $e.status()
+    } catch e : Error {
+        $e.show()
+        $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)
+        return 255
+    }
+}
+
+source $MODULE_DIR/completion as __comp
+
+__shtx_source() {
+    $@.empty() && {
+        $_error("source", "filename argument required")
+        return 2
+    }
+
+    __shtx_detect_bin
+
+    var input = $@[0]
+    if $input.contains("completion") {  # may be completion script
+        if let target = $__comp.extractCompTarget($input) {
+            __comp compdef --cmd ${target._1} --comp-path $input --comp-target ${target._0} && return 0
+        }
+    }
+
+    var opt = ['--type=source']
+    if $SHTX_CRASH_DUMP {
+        $opt.add("--crash-dump")
+    }
+    var output = "$(call $_SHTX_GO_BIN_PATH $opt $input)"
+    if $? != 0 {
+        return 1
+    }
+    try {
+        var func = $MODULE._func($output)()! as ([String]) -> Void
+        $func($@)
+    } catch e : _SHError {
+        return $e.status()
+    } catch e : Error {
+        $e.show()
+        $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)
+        return 255
+    }
+}
+
 
 # dynamically resolve command name
 __shtx_dyna_call() {
     $@.empty() && return 0
 
-    ## not call internal api (__shtx_)
-    if $@[0].startsWith("__shtx_") {
+    ## not call internal api (__shtx_ or fake_)
+    if $@[0].startsWith("__shtx_") || $@[0].startsWith("fake_") {
         if let cmd = $DYNA_UDCS.get($@[0]) {
             $cmd.call($@)
         } else {
@@ -497,8 +559,8 @@ __shtx_dyna_call() {
         'shift' => '__shtx_shift'
         'read' => '__shtx_read'
         'printf' => '__shtx_printf'
-        'eval' => 'fake_eval'
-        '.' | 'source' => 'fake_source'
+        'eval' => '__shtx_eval'
+        '.' | 'source' => '__shtx_source'
         else => $cmd
     }
     call $cmd $@
@@ -572,70 +634,16 @@ function __shtx_concat(values : [Any]) : [String] {
 
 # evaluate bash script (emulate bash eval command)
 fake_eval() {
-    $@.empty() && return 0
-
-    _detect_bin
-
-    var input = $@.join(" ")
-    var opt : [String]
-    if $SHTX_CRASH_DUMP {
-        $opt.add("--crash-dump")
-    }
-    var output = "$(call $_SHTX_GO_BIN_PATH $opt - <<< $input)"
-    if $? != 0 {
-        return 1
-    }
-    try {
-        let ctx = new _Context()
-        defer { $ctx.restore(); }
-        $MODULE._func($output)()
-    } catch e : _SHError {
-        return $e.status()
-    } catch e : Error {
-        $e.show()
-        $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)
-        return 255
-    }
+    let ctx = new _Context()
+    defer { $ctx.restore(); }
+    __shtx_eval $@
 }
-
-source $MODULE_DIR/completion as __comp
 
 # evaluate bash script (emulate bash source command)
 fake_source() {
-    $@.empty() && {
-        $_error("source", "filename argument required")
-        return 2
-    }
-
-    _detect_bin
-
-    var input = $@[0]
-    if $input.contains("completion") {  # may be completion script
-        if let target = $__comp.extractCompTarget($input) {
-            __comp compdef --cmd ${target._1} --comp-path $input --comp-target ${target._0} && return 0
-        }
-    }
-
-    var opt = ['--type=source']
-    if $SHTX_CRASH_DUMP {
-        $opt.add("--crash-dump")
-    }
-    var output = "$(call $_SHTX_GO_BIN_PATH $opt $input)"
-    if $? != 0 {
-        return 1
-    }
-    try {
-        let ctx = new _Context()
-        defer { $ctx.restore(); }
-        var func = $MODULE._func($output)()! as ([String]) -> Void
-        $func($@)
-    } catch e : _SHError {
-        return $e.status()
-    } catch e : Error {
-        $e.show()
-        $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)
-        return 255
-    }
+    let ctx = new _Context()
+    defer { $ctx.restore(); }
+    __shtx_source $@
 }
 
 
@@ -653,7 +661,7 @@ typedef _Param() {
     var args : [String]
 }
 
-_main(param : _Param) {
+__shtx_main(param : _Param) {
     if $param.version {
         echo $SHTX_VERSION
         return 0
@@ -670,4 +678,4 @@ _main(param : _Param) {
     }
 }
 
-shctl is-sourced || _main $@
+shctl is-sourced || __shtx_main $@

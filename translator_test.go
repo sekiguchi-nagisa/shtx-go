@@ -121,7 +121,7 @@ false;
 }
 `},
 	{`\eval echo hello`, `{
-  fake_eval echo hello
+  __shtx_eval echo hello
 }
 `},
 	{`echo "$#: $0: $1 ${002}"`, `{
@@ -155,6 +155,18 @@ false;
 `},
 	{`__shtx_printf`, `{
   __shtx_dyna_call __shtx_printf
+}
+`},
+	{`\__shtx_printf`, `{
+  __shtx_dyna_call \__shtx_printf
+}
+`},
+	{`fake_eval`, `{
+  __shtx_dyna_call fake_eval
+}
+`},
+	{`fake_\source`, `{
+  __shtx_dyna_call fake_\source
 }
 `},
 	{
