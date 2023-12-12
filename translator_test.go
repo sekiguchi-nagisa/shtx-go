@@ -2,19 +2,20 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-var evalTestCases = []struct {
+var evalTestCases = map[string]struct {
 	before string
 	after  string
 }{
-	{"echo hello", `{
+	"simple-command-echo": {"echo hello", `{
   echo hello
 }
 `},
-	{`ls   -la
+	"multiple-command": {`ls   -la
 ps ax  # this is a comment
 # comment
 false;
@@ -24,171 +25,204 @@ false;
   false
 }
 `},
-	{"# this is a comment", `{
+	"comment": {"# this is a comment", `{
 }
 `},
-	{"echo AAA; echo BBB; echo CCC;", `{
+	"simple-command-seq": {"echo AAA; echo BBB; echo CCC;", `{
   echo AAA
   echo BBB
   echo CCC
 }
 `},
-	{`echo hello'he\y'$'\x00qq\na'`, `{
+	"dollar-string": {`echo hello'he\y'$'\x00qq\na'`, `{
   echo hello'he\y'$'\x00qq\na'
 }
 `},
-	{`e'ch''o' hello`, `{
+	"non-literal-command1": {`e'ch''o' hello`, `{
   __shtx_dyna_call e'ch''o' hello
 }
 `},
-	{`"echo" $"hello"\ \ 'world'`, `{
+	"non-literal-command2": {`"echo" $"hello"\ \ 'world'`, `{
   __shtx_dyna_call "echo" "hello"\ \ 'world'
 }
 `},
-	{"echo 1>& 3", `{
+	"redirection1": {"echo 1>& 3", `{
   echo 1>& 3
 }
 `},
-	{"echo 1 >&2", `{
+	"redirection2": {"echo 1 >&2", `{
   echo 1 >& 2
 }
 `},
-	{"echo >>hoge", `{
+	"redirection3": {"echo >>hoge", `{
   echo >> hoge
 }
 `},
-	{"echo &>>hoge", `{
+	"redirection4": {"echo &>>hoge", `{
   echo &>> hoge
 }
 `},
-	{"echo &>hoge", `{
+	"redirection5": {"echo &>hoge", `{
   echo &> hoge
 }
 `},
-	{"echo <hoge", `{
+	"redirection6": {"echo <hoge", `{
   echo < hoge
 }
 `},
-	{"echo jfira<&34", `{
+	"redirection7": {"echo jfira<&34", `{
   echo jfira <& 34
 }
 `},
-	{"echo 12 >| /dev/null", `{
+	"redirection8": {"echo 12 >| /dev/null", `{
   echo 12 >| /dev/null
 }
 `},
-	{"echo \"`echo hello`\" `  # this is a comment` A", `{
+	"back-quote": {"echo \"`echo hello`\" `  # this is a comment` A", `{
   echo "$(echo hello)"  A
 }
 `},
-	{`"$(echo "$(echo AAA; echo BBB)")"`, `{
+	"cmd-sub": {`"$(echo "$(echo AAA; echo BBB)")"`, `{
   __shtx_dyna_call "$(echo "$({
     echo AAA
     echo BBB
   })")"
 }
 `},
-	{`AAA=12 BBB="$(false)" CCC=`, `{
+	"env-assign1": {`AAA=12 BBB="$(false)" CCC=`, `{
   __shtx_var_set AAA 12; __shtx_var_set BBB "$(false)"; __shtx_var_set CCC 
 }
 `},
-	{
+	"env_assign2": {
 		`AA=12 BB=34 echo`, `{
   AA=12 BB=34 echo
 }
 `},
-	{`echo "$AAA" ge"(${GGG}}"`, `{
+	"param-expand": {`echo "$AAA" ge"(${GGG}}"`, `{
   echo "${{__shtx_var_get $? 'AAA'; $REPLY; }}" ge"(${{__shtx_var_get $? 'GGG'; $REPLY; }}}"
 }
 `},
-	{`\ls -la`, `{
+	"escaped-simple-command": {`\ls -la`, `{
   \ls -la
 }
 `},
-	{`\expor\t AAA=@@@; export BBB CCC=56`, `{
+	"builtin-export1": {`\expor\t AAA=@@@; export BBB CCC=56`, `{
   __shtx_export AAA=@@@
   __shtx_export BBB CCC=56
 }
 `},
-	{
+	"builtin-export2": {
 		`\expo\rt AAA=12 BBB=45`, `{
   __shtx_export AAA=12 BBB=45
 }
 `},
-	{`\uns\e\t A; unset B`, `{
+	"builtin-unset": {`\uns\e\t A; unset B`, `{
   __shtx_unset A
   __shtx_unset B
 }
 `},
-	{`\eval echo hello`, `{
+	"builtin-eval": {`\eval echo hello`, `{
   fake_eval echo hello
 }
 `},
-	{`echo "$#: $0: $1 ${002}"`, `{
-  echo "${{__shtx_var_get $? '#'; $REPLY; }}: ${{__shtx_var_get $? '0'; $REPLY; }}: ${{__shtx_var_get $? '1'; $REPLY; }} ${{__shtx_var_get $? '002'; $REPLY; }}"
-}
-`},
-	{`echo $#: "$0: $1 ${002}"`, `{
-  echo ${{__shtx_var_get $? '#'; $REPLY; }}: "${{__shtx_var_get $? '0'; $REPLY; }}: ${{__shtx_var_get $? '1'; $REPLY; }} ${{__shtx_var_get $? '002'; $REPLY; }}"
-}
-`},
-	{"shift 2", `{
+	"builtin-shift1": {"shift 2", `{
   __shtx_shift 2
 }
 `},
-	{`shif\t`, `{
+	"builtin-shift2": {`shif\t`, `{
   __shtx_shift
 }
 `},
-	{`[ -n hoge ]`, `{
+	"builtin-test1": {`[ -n hoge ]`, `{
   __shtx_[ -n hoge ]
 }
 `},
-	{`\[ -n hoge ]`, `{
+	"builtin-test2": {`\[ -n hoge ]`, `{
   __shtx_[ -n hoge ]
 }
 `},
 
-	{`\\[ -n hoge ]`, `{
+	"builtin-test3": {`\\[ -n hoge ]`, `{
   \\[ -n hoge ]
 }
 `},
-	{`__shtx_printf`, `{
+	"builtin-read": {`read $?`, `{
+  __shtx_read ${{__shtx_var_get $? '?'; $REPLY; }}
+}
+`},
+	"non-callable-command1": {`__shtx_printf`, `{
   __shtx_dyna_call __shtx_printf
 }
 `},
-	{`\__shtx_printf`, `{
+	"non-callable-command2": {`\__shtx_printf`, `{
   __shtx_dyna_call \__shtx_printf
 }
 `},
-	{`fake_eval`, `{
+	"non-callable-command3": {`fake_eval`, `{
   __shtx_dyna_call fake_eval
 }
 `},
-	{`fake_\source`, `{
+	"non-callable-command4": {`fake_\source`, `{
   __shtx_dyna_call fake_\source
 }
 `},
-	{
+	"special-param1": {`echo "$#: $0: $1 ${002}"`, `{
+  echo "${{__shtx_var_get $? '#'; $REPLY; }}: ${{__shtx_var_get $? '0'; $REPLY; }}: ${{__shtx_var_get $? '1'; $REPLY; }} ${{__shtx_var_get $? '002'; $REPLY; }}"
+}
+`},
+	"special-param2": {`echo $#: "$0: $1 ${002}"`, `{
+  echo ${{__shtx_var_get $? '#'; $REPLY; }}: "${{__shtx_var_get $? '0'; $REPLY; }}: ${{__shtx_var_get $? '1'; $REPLY; }} ${{__shtx_var_get $? '002'; $REPLY; }}"
+}
+`},
+	"special-param3": {
 		`echo "$?"`, `{
   echo "${{__shtx_var_get $? '?'; $REPLY; }}"
 }
 `},
-	{
+	"special-param4": {`echo "$?"`, `{
+  echo "${{__shtx_var_get $? '?'; $REPLY; }}"
+}
+`},
+	"special-param5": {
+		`printf "$*"`, `{
+  __shtx_printf "${{__shtx_var_get $? '*'; $REPLY; }}"
+}
+`},
+	"special-param6": {`echo "$@"`, `{
+  echo $__shtx_get_args()
+}
+`},
+	"special-param7": {`echo 12"$@"`, `{
+  echo $__shtx_concat(new [Any]()
+    .add( @(12"")[0] )
+    .add($__shtx_get_args())
+    .add( @("")[0] )
+  )
+}
+`},
+	"special-param8": {`echo 23"4${@}5$?"6`, `{
+  echo $__shtx_concat(new [Any]()
+    .add( @(23"4")[0] )
+    .add($__shtx_get_args())
+    .add( @("5${{__shtx_var_get $? '?'; $REPLY; }}"6)[0] )
+  )
+}
+`},
+	"binary1": {
 		`true && echo | grep`, `{
   (true && (echo | grep))
 }
 `},
-	{`echo | grep || echo`, `{
+	"binary2": {`echo | grep || echo`, `{
   ((echo | grep) || echo)
 }
 `},
-	{`true 1 && false 1 || true 2 && false 2`,
+	"binary3": {`true 1 && false 1 || true 2 && false 2`,
 		`{
   (((true 1 && false 1) || true 2) && false 2)
 }
 `},
-	{
+	"group": {
 		`{ echo 1; echo 2;}`, `{
   {
     echo 1
@@ -196,7 +230,7 @@ false;
   }
 }
 `},
-	{`if true 1; then
+	"if1": {`if true 1; then
 echo true 1
 fi`, `{
   if (true 1) {
@@ -204,7 +238,7 @@ fi`, `{
   }
 }
 `},
-	{`if true 1; then
+	"if2": {`if true 1; then
   echo true 1
 elif true 2; then
   echo true 2; echo true 22
@@ -218,7 +252,7 @@ fi
   }
 }
 `},
-	{`if true 1; then
+	"if3": {`if true 1; then
   echo true 1
 else
   echo false
@@ -231,7 +265,7 @@ fi
   }
 }
 `},
-	{`
+	"if4": {`
 if echo false; true 1; then
   if true 11; then
     echo true 11
@@ -256,23 +290,23 @@ fi
   }
 }
 `},
-	{`echo "${hoge:-45}"`, `{
+	"param-expand-op1": {`echo "${hoge:-45}"`, `{
   echo "${{__shtx_var_get $? 'hoge' ':-' 45; $REPLY; }}"
 }
 `},
-	{`echo "${45-hoge}"`, `{
+	"param-expand-op2": {`echo "${45-hoge}"`, `{
   echo "${{__shtx_var_get $? '45' '-' hoge; $REPLY; }}"
 }
 `},
-	{`echo "${?:?hoge}"`, `{
+	"param-expand-op3": {`echo "${?:?hoge}"`, `{
   echo "${{__shtx_var_get $? '?' ':?' hoge; $REPLY; }}"
 }
 `},
-	{`echo "${var=}"`, `{
+	"param-expand-op4": {`echo "${var=}"`, `{
   echo "${{__shtx_var_get $? 'var' '=' ; $REPLY; }}"
 }
 `},
-	{`function hoge() true`, `{
+	"function1": {`function hoge() true`, `{
   $__shtx_func('hoge', (){
     let ctx = $__shtx_enter_func($0, $@)
     defer { $__shtx_exit_func($ctx); }
@@ -280,7 +314,7 @@ fi
   })
 }
 `},
-	{`hoge() { echo hello; } > /dev/null`, `{
+	"function2": {`hoge() { echo hello; } > /dev/null`, `{
   $__shtx_func('hoge', (){
     let ctx = $__shtx_enter_func($0, $@)
     defer { $__shtx_exit_func($ctx); }
@@ -290,7 +324,7 @@ fi
   })
 }
 `},
-	{`ff() { local AAA BBB=12; local CCC=12 && echo "$CCC"; }`, `{
+	"function3": {`ff() { local AAA BBB=12; local CCC=12 && echo "$CCC"; }`, `{
   $__shtx_func('ff', (){
     let ctx = $__shtx_enter_func($0, $@)
     defer { $__shtx_exit_func($ctx); }
@@ -301,20 +335,7 @@ fi
   })
 }
 `},
-	{`read $?`, `{
-  __shtx_read ${{__shtx_var_get $? '?'; $REPLY; }}
-}
-`},
-	{`echo "$?"`, `{
-  echo "${{__shtx_var_get $? '?'; $REPLY; }}"
-}
-`},
-	{
-		`printf "$*"`, `{
-  __shtx_printf "${{__shtx_var_get $? '*'; $REPLY; }}"
-}
-`},
-	{
+	"case1": {
 		`case "$1" in
 shell|rehash) echo match
   case "-$2" in
@@ -344,34 +365,14 @@ esac
   }
 }
 `},
-	{`echo "$@"`, `{
-  echo $__shtx_get_args()
-}
-`},
-	{`echo 12"$@"`, `{
-  echo $__shtx_concat(new [Any]()
-    .add( @(12"")[0] )
-    .add($__shtx_get_args())
-    .add( @("")[0] )
-  )
-}
-`},
-	{`echo 23"4${@}5$?"6`, `{
-  echo $__shtx_concat(new [Any]()
-    .add( @(23"4")[0] )
-    .add($__shtx_get_args())
-    .add( @("5${{__shtx_var_get $? '?'; $REPLY; }}"6)[0] )
-  )
-}
-`},
-	{`! echo hello`, `{
+	"negate": {`! echo hello`, `{
   ! echo hello
 }
 `},
 }
 
 func TestEval(t *testing.T) {
-	for _, testCase := range evalTestCases {
+	for name, testCase := range evalTestCases {
 		tx := NewTranslator(TranslateEval)
 		assert.NotNil(t, tx)
 
@@ -379,22 +380,22 @@ func TestEval(t *testing.T) {
 		buf := bytes.Buffer{}
 
 		e := tx.Translate(r, &buf)
-		assert.NoError(t, e)
+		assert.NoError(t, e, fmt.Sprintf("failed: %s", name))
 
-		assert.Equal(t, testCase.after, buf.String())
+		assert.Equal(t, testCase.after, buf.String(), fmt.Sprintf("failed: %s", name))
 	}
 }
 
-var sourceTestCases = []struct {
+var sourceTestCases = map[string]struct {
 	before string
 	after  string
 }{
-	{``, `function(argv : [String]) => {
+	"empty": {``, `function(argv : [String]) => {
   let old_argv = $__shtx_set_argv($argv)
   defer { $__shtx_set_argv($old_argv); }
 }
 `},
-	{`echo hello`, `function(argv : [String]) => {
+	"simple-command": {`echo hello`, `function(argv : [String]) => {
   let old_argv = $__shtx_set_argv($argv)
   defer { $__shtx_set_argv($old_argv); }
   echo hello
@@ -403,7 +404,7 @@ var sourceTestCases = []struct {
 }
 
 func TestSource(t *testing.T) {
-	for _, testCase := range sourceTestCases {
+	for name, testCase := range sourceTestCases {
 		tx := NewTranslator(TranslateSource)
 		assert.NotNil(t, tx)
 
@@ -411,8 +412,8 @@ func TestSource(t *testing.T) {
 		buf := bytes.Buffer{}
 
 		e := tx.Translate(r, &buf)
-		assert.NoError(t, e)
+		assert.NoError(t, e, fmt.Sprintf("failed: %s", name))
 
-		assert.Equal(t, testCase.after, buf.String())
+		assert.Equal(t, testCase.after, buf.String(), fmt.Sprintf("failed: %s", name))
 	}
 }
