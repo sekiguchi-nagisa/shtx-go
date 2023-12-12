@@ -1,0 +1,16 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+assert_fake_eval 'echo ~' $HOME
+assert_fake_eval 'echo ~/' "$HOME/"
+assert_fake_eval 'echo ~hogehoge' "~hogehoge"
+assert_fake_eval 'echo ~+' "$(echo ~+)"
+assert_fake_eval 'echo ~-' "$(echo ~-)"
+assert_fake_eval 'echo \~' '~'
+##assert_fake_eval 'echo ~"/"' "~/"  #FIXME
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

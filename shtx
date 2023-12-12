@@ -527,7 +527,8 @@ typedef _Context() {
 
     ## set runtime options
     let option = { shctl set -d; $REPLY; }
-    shctl unset errraise
+    shctl unset errraise &>> /dev/null
+    shctl unset fail_tilde &>> /dev/null
 }
 
 var _CALL_COUNT = 0
