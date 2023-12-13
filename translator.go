@@ -71,18 +71,25 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 	t.caseExprCount = 0
 
 	// parse
-	reader := bytes.NewReader(buf)
-	f, e := syntax.NewParser().Parse(reader, "")
-	if e != nil {
-		return fmt.Errorf("+++++  error message  +++++\n%s\n\n"+
-			"+++++  input script  +++++\n%s", e.Error(), withLineNum(buf))
-	}
+	var f *syntax.File
+	switch t.tranType {
+	case TranslateEval, TranslateSource:
+		var e error
+		reader := bytes.NewReader(buf)
+		f, e = syntax.NewParser().Parse(reader, "")
+		if e != nil {
+			return fmt.Errorf("+++++  error message  +++++\n%s\n\n"+
+				"+++++  input script  +++++\n%s", e.Error(), withLineNum(buf))
+		}
 
-	// dump
-	if t.dump != nil {
-		_, _ = fmt.Fprintln(t.dump, "+++++  dump parsed ast  +++++")
-		_ = syntax.DebugPrint(t.dump, f)
-		_, _ = fmt.Fprintln(t.dump)
+		// dump
+		if t.dump != nil {
+			_, _ = fmt.Fprintln(t.dump, "+++++  dump parsed ast  +++++")
+			_ = syntax.DebugPrint(t.dump, f)
+			_, _ = fmt.Fprintln(t.dump)
+		}
+	case TranslateNone:
+	case TranslatePattern: // do nothing
 	}
 
 	defer func() {

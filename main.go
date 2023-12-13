@@ -74,7 +74,7 @@ func main() {
 	p := flags.NewParser(&options, flags.Default)
 	if _, e := p.Parse(); e != nil {
 		var flagsErr *flags.Error
-		if errors.As(e, &flagsErr) && flagsErr.Type == flags.ErrHelp {
+		if errors.As(e, &flagsErr) && errors.Is(flagsErr.Type, flags.ErrHelp) {
 			os.Exit(0)
 		} else {
 			p.WriteHelp(os.Stderr)
