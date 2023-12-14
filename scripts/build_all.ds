@@ -4,8 +4,8 @@
 
 cd $SCRIPT_DIR/../    # move to project top
 
-assert command -v go &>> /dev/null : "command not found: go"
-assert command -v git &>> /dev/null : "command not found: git"
+assert (command -v go &>> /dev/null) : "command not found: go"
+assert (command -v git &>> /dev/null) : "command not found: git"
 
 var version = "$(git describe --tags)"
 $version = $version.empty() ? "0.0.0" : $version.split("-")[0]
