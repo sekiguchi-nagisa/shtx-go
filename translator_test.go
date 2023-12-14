@@ -222,6 +222,10 @@ false;
   (((true 1 && false 1) || true 2) && false 2)
 }
 `},
+	"negate": {`! echo hello`, `{
+  ! echo hello
+}
+`},
 	"group": {
 		`{ echo 1; echo 2;}`, `{
   {
@@ -365,8 +369,29 @@ esac
   }
 }
 `},
-	"negate": {`! echo hello`, `{
-  ! echo hello
+	"case2": {
+		`case 1234 in
+"1234"|'5678') echo 1 ;;
+"$HOME") echo 2 ;;
+~root) echo 3 ;;
+*) echo default
+esac
+`, `{
+  {
+    let case_1 = @(1234)[0]
+    if $__shtx_glob_match(@( $case_1 $__shtx_escape_glob_meta("1234") )) || $__shtx_glob_match(@( $case_1 $__shtx_escape_glob_meta('5678') )) {
+      echo 1
+    }
+    elif $__shtx_glob_match(@( $case_1 $__shtx_escape_glob_meta("${{__shtx_var_get $? 'HOME'; $REPLY; }}") )) {
+      echo 2
+    }
+    elif $__shtx_glob_match(@( $case_1 ~"root" )) {
+      echo 3
+    }
+    elif $case_1 =~ $/^.*$/ {
+      echo default
+    }
+  }
 }
 `},
 }

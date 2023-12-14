@@ -5,7 +5,30 @@ source ../common/assert.ds
 
 # for non-const pattern
 
+assert_fake_eval '
+  f() {
+    local p1="[a-zA-Z]*"
+    local p2="[0-9]*"
+    local p3="[a-zA-Z_]*"
 
+    case "$1" in
+    "$p3"|"$p2") echo match unexpanded glob;;
+    $p1) echo starts with id;;
+    $p2) echo starts with number;;
+    _$p3) echo starts with underscore id;;
+    esac
+  }
+  f Af
+  f c!
+  f _q
+  f 09
+  f @@@
+  f "[a-zA-Z_]*"
+' 'starts with id
+starts with id
+starts with underscore id
+starts with number
+match unexpanded glob'
 
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$

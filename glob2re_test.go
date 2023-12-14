@@ -146,6 +146,7 @@ var globTestCases = []struct {
 	{`\\`, `^\\$`},
 	{`\\\`, `^\\\\$`},
 	{`\\\\`, `^\\\\$`},
+	{`_[a-zA-Z_]*`, `^_[a-zA-Z_].*$`},
 }
 
 func TestGlobToRegex(t *testing.T) {

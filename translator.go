@@ -322,10 +322,10 @@ func (t *Translator) visitIfClause(clause *syntax.IfClause, elif bool) {
 func (t *Translator) visitCasePattern(pattern *syntax.Word, caseVarName string) {
 	literal := pattern.Lit()
 	if literal == "" || strings.HasPrefix(literal, "~") {
-		t.emit("( __shtx_glob_match $" + caseVarName)
+		t.emit("$__shtx_glob_match(@( $" + caseVarName)
 		t.emit(" ")
 		t.visitWordPartsWith(pattern.Parts, WordPartOption{pattern: true})
-		t.emit(" )")
+		t.emit(" ))")
 	} else {
 		t.emit("$" + caseVarName)
 		t.emit(" =~ ")

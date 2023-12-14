@@ -589,20 +589,20 @@ function __shtx_concat(values : [Any]) : [String] {
 let _GLOB2RE_CACHE : [String: Regex]
 let _GLOB_META = $/[?*\[]/
 
-__shtx_glob_match(){
-    let value = $1
-    let pattern = $2
+function __shtx_glob_match(values : [String]): Bool {
+    let value = $values[0]
+    let pattern = $values[1]
     if $_GLOB_META !~ $pattern {  # fast path (no glob meta)
-        return ($value == $pattern) ? 0 : 1
+        return $value == $pattern
     }
     var re = $_GLOB2RE_CACHE.get($pattern) ?? { # translate glob to regex
-        _detect_bin
+        __shtx_detect_bin
         var re = try {
             var s = "$(call $_SHTX_GO_BIN_PATH --type=pattern -c $pattern)"
             new Regex($s)
         } catch e : RegexSyntaxError {
             $e.show()
-            return 1
+            return $false
         }
 
         if $_GLOB2RE_CACHE.size() == 32 { # remove old entry
@@ -612,7 +612,7 @@ __shtx_glob_match(){
         $_GLOB2RE_CACHE.put($pattern, $re)
         $re
     }
-    return ($re =~ $value) ? 0 : 1
+    return $re =~ $value
 }
 
 function __shtx_escape_glob_meta(pattern : String) : String {

@@ -18,6 +18,8 @@
 
 ## Word Expansion
 * [ ] tilde expansion
+  * [x] tilde expansion without quote removal and parameter expansion
+  * [ ] tilde expansion with quote removal and parameter expansion
 * [x] parameter expansion
 * [x] command substitution
 * [ ] arithmetic expansion
@@ -58,7 +60,8 @@
 * [x] if
 * [ ] case
   * [x] const glob pattern
-  * [ ] non-const glob pattern
+  * [x] non-const glob pattern
+  * [ ] tilde expansion with quote removal and parameter expansion
 * [ ] for
 * [ ] while
 * [ ] until
