@@ -10,6 +10,7 @@ chmod +x $MODULE_HOME/shtx
 # get latest `shtx-go`
 let SHTX_VERSION = "$(call $MODULE_HOME/shtx --version)"
 assert $SHTX_VERSION =~ $/^[0-9]+\.[0-9]+\.[0-9]+$/ : "wrong version number: $SHTX_VERSION"
+echo detect latest version: $SHTX_VERSION
 
 let suffix = ($OSTYPE == 'cygwin' || $OSTYPE == 'msys') ? ".exe" : ""
 let ostype = $suffix.empty() ? $OSTYPE : "windows"
