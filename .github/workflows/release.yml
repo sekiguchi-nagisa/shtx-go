@@ -17,10 +17,10 @@ jobs:
         run: |
           sudo apt update
           sudo apt install language-pack-ja ninja-build
-          git clone https://github.com/sekiguchi-nagisa/ydsh.git
-          mkdir -p ./ydsh/build
-          cd ydsh && cd build && cmake .. -G Ninja && cmake --build . && sudo cmake --build . -- install
-          ydsh -e shctl info
+          git clone https://github.com/sekiguchi-nagisa/arsh.git
+          mkdir -p ./arsh/build
+          cd arsh && cd build && cmake .. -G Ninja && cmake --build . && sudo cmake --build . -- install
+          arsh -e shctl info
       - name: Set up Go
         uses: actions/setup-go@v4
         with:

@@ -1,4 +1,4 @@
-#!/usr/bin/env ydsh
+#!/usr/bin/env arsh
 
 _usage() : Nothing {
     echo 1>&2 $@
@@ -50,7 +50,7 @@ _main() {
     }
     var failed : [String]
     for target in $targets {
-        var r = call $YDSH_BIN $litecheck -b $YDSH_BIN $target
+        var r = call $BIN_NAME $litecheck -b $BIN_NAME $target
         echo ${$r ? "[OK]" : "[NG]"} $target
         if !$r {
             $failed.add($target)

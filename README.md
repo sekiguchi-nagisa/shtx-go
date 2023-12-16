@@ -2,9 +2,9 @@
 [![Go](https://github.com/sekiguchi-nagisa/shtx-go/actions/workflows/go.yml/badge.svg)](https://github.com/sekiguchi-nagisa/shtx-go/actions/workflows/go.yml)
 
 # shtx
-experimental bash subset to ydsh transpiler
+experimental bash subset to arsh transpiler
 
 ## Install
 ```sh
-curl -fL https://raw.githubusercontent.com/sekiguchi-nagisa/shtx-go/main/scripts/install.ds | ydsh
+curl -fL https://raw.githubusercontent.com/sekiguchi-nagisa/shtx-go/main/scripts/install.ds | arsh
 ```
