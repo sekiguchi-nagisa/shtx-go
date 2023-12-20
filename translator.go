@@ -11,13 +11,33 @@ import (
 	"strings"
 )
 
-func todo(pos syntax.Pos, s string) bool {
-	panic(fmt.Sprintf("%s: [TODO] %s", pos.String(), s))
+type ErrorType int
+
+const (
+	ErrorTodo ErrorType = iota
+	ErrorFixme
+)
+
+type Error struct {
+	pos syntax.Pos
+	t   ErrorType
+	msg string
 }
 
-func fixmeCase(pos syntax.Pos, a any) {
-	panic(fmt.Sprintf("%s: [FIXME] unsupported switch-case type %T", pos.String(), a))
+func (e Error) Error() string {
+	prefix := "[error]"
+	switch e.t {
+	case ErrorTodo:
+		prefix = "[TODO]"
+	case ErrorFixme:
+		prefix = "[FIXME]"
+	}
+	return fmt.Sprintf("%s: %s %s", e.pos.String(), prefix, e.msg)
 }
+
+var _ error = Error{} // check error interface implementation
+
+type ErrorCallback func(e *Error)
 
 type WordPartOption struct {
 	dQuoted bool
@@ -40,6 +60,7 @@ type Translator struct {
 	indentLevel   int
 	funcLevel     int
 	caseExprCount int
+	errorCallback ErrorCallback
 }
 
 func NewTranslator(tt TranslationType) *Translator {
@@ -50,6 +71,22 @@ func NewTranslator(tt TranslationType) *Translator {
 
 func (t *Translator) SetDump(d io.Writer) {
 	t.dump = d
+}
+
+func (t *Translator) todo(pos syntax.Pos, s string) bool {
+	e := Error{pos: pos, t: ErrorTodo, msg: s}
+	if t.errorCallback != nil {
+		t.errorCallback(&e)
+	}
+	panic(e)
+}
+
+func (t *Translator) fixmeCase(pos syntax.Pos, a any) {
+	e := Error{pos: pos, t: ErrorFixme, msg: fmt.Sprintf("unsupported switch-case type %T", a)}
+	if t.errorCallback != nil {
+		t.errorCallback(&e)
+	}
+	panic(e)
 }
 
 func withLineNum(buf []byte) string {
@@ -162,12 +199,12 @@ func (t *Translator) visitStmt(stmt *syntax.Stmt) {
 		if _, ok := stmt.Cmd.(*syntax.CallExpr); ok {
 			t.emit("! ")
 		} else {
-			todo(stmt.Pos(), "support !")
+			t.todo(stmt.Pos(), "support !")
 		}
 	}
 	t.visitCommand(stmt.Cmd, stmt.Redirs)
-	_ = stmt.Background && todo(stmt.Semicolon, "support &")
-	_ = stmt.Coprocess && todo(stmt.Semicolon, "unsupported |&")
+	_ = stmt.Background && t.todo(stmt.Semicolon, "support &")
+	_ = stmt.Coprocess && t.todo(stmt.Semicolon, "unsupported |&")
 }
 
 var declReplacement = map[string]string{
@@ -187,13 +224,13 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 	case *syntax.DeclClause:
 		v, ok := declReplacement[n.Variant.Value]
 		if !ok {
-			todo(n.Variant.Pos(), "unsupported decl: "+n.Variant.Value)
+			t.todo(n.Variant.Pos(), "unsupported decl: "+n.Variant.Value)
 		}
 		t.emit(v)
 		t.emit(" ")
 		t.visitAssigns(n.Args, true)
 	case *syntax.BinaryCmd:
-		_ = n.Op == syntax.PipeAll && todo(n.OpPos, "unsupported: |&")
+		_ = n.Op == syntax.PipeAll && t.todo(n.OpPos, "unsupported: |&")
 		t.emit("(")
 		t.visitStmt(n.X)
 		t.emit(" " + n.Op.String() + " ")
@@ -211,16 +248,16 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 	case *syntax.FuncDecl:
 		t.visitFuncDecl(n)
 	default:
-		fixmeCase(n.Pos(), n)
+		t.fixmeCase(n.Pos(), n)
 	}
 	t.visitRedirects(redirs, cmdRedir)
 }
 
-func toRedirOpStr(redirect *syntax.Redirect) string {
+func (t *Translator) toRedirOpStr(redirect *syntax.Redirect) string {
 	var op = redirect.Op
 	switch op {
 	case syntax.RdrInOut, syntax.Hdoc:
-		todo(redirect.OpPos, "unsupported redir op: "+op.String())
+		t.todo(redirect.OpPos, "unsupported redir op: "+op.String())
 	default:
 		return op.String()
 	}
@@ -236,26 +273,26 @@ func (t *Translator) visitRedirects(redirs []*syntax.Redirect, cmd bool) {
 		if redir.N != nil {
 			fd, e := strconv.Atoi(redir.N.Value)
 			if e != nil {
-				todo(redir.N.Pos(), "must be integer: "+redir.N.Value)
+				t.todo(redir.N.Pos(), "must be integer: "+redir.N.Value)
 			}
 			if fd != 1 && fd != 2 {
-				todo(redir.N.Pos(), "only allow 1 or 2")
+				t.todo(redir.N.Pos(), "only allow 1 or 2")
 			}
 			t.emit(strconv.Itoa(fd))
 		}
-		t.emit(toRedirOpStr(redir))
+		t.emit(t.toRedirOpStr(redir))
 		t.emit(" ")
 		t.visitWordParts(redir.Word.Parts)
-		_ = redir.Hdoc != nil && todo(redir.OpPos, "support heredoc")
+		_ = redir.Hdoc != nil && t.todo(redir.OpPos, "support heredoc")
 	}
 }
 
 func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 	for i, assign := range assigns {
-		_ = assign.Append && todo(assign.Pos(), "support +=")
-		_ = (assign.Naked && !shellAssign) && todo(assign.Pos(), "support Naked")
-		_ = assign.Index != nil && todo(assign.Index.Pos(), "support indexed assign")
-		_ = assign.Array != nil && todo(assign.Array.Pos(), "support array literal assign")
+		_ = assign.Append && t.todo(assign.Pos(), "support +=")
+		_ = (assign.Naked && !shellAssign) && t.todo(assign.Pos(), "support Naked")
+		_ = assign.Index != nil && t.todo(assign.Index.Pos(), "support indexed assign")
+		_ = assign.Array != nil && t.todo(assign.Array.Pos(), "support array literal assign")
 		if shellAssign {
 			if i > 0 {
 				t.emit(" ")
@@ -346,7 +383,7 @@ func (t *Translator) visitCaseClause(clause *syntax.CaseClause) {
 
 	// case items
 	for i, item := range clause.Items {
-		_ = item.Op != syntax.Break && todo(item.OpPos, "not support "+item.Op.String())
+		_ = item.Op != syntax.Break && t.todo(item.OpPos, "not support "+item.Op.String())
 
 		t.indent()
 		if i == 0 {
@@ -456,14 +493,14 @@ func isValidParamName(name string) bool {
 	return isVarName(name) || RePositional.MatchString(name) || name == "#" || name == "?" || name == "*"
 }
 
-func toExpansionOpStr(pos syntax.Pos, expansion *syntax.Expansion) string {
+func (t *Translator) toExpansionOpStr(pos syntax.Pos, expansion *syntax.Expansion) string {
 	var op = expansion.Op
 	switch op {
 	case syntax.AlternateUnset, syntax.AlternateUnsetOrNull, syntax.DefaultUnset, syntax.DefaultUnsetOrNull,
 		syntax.ErrorUnset, syntax.ErrorUnsetOrNull, syntax.AssignUnset, syntax.AssignUnsetOrNull:
 		return op.String()
 	default:
-		todo(pos, "unsupported expansion op: "+op.String())
+		t.todo(pos, "unsupported expansion op: "+op.String())
 	}
 	return ""
 }
@@ -504,22 +541,22 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 		}
 	case *syntax.ParamExp:
 		if n.Param.Value != "?" && n.Param.Value != "#" && !option.dQuoted && !option.pattern {
-			todo(n.Pos(), "support unquoted parameter expansion")
+			t.todo(n.Pos(), "support unquoted parameter expansion")
 		}
-		_ = n.Excl && todo(n.Pos(), "not support ${!a}")
-		_ = n.Length && todo(n.Pos(), "support ${#a}")
-		_ = n.Width && todo(n.Pos(), "not support ${%a}")
-		_ = n.Index != nil && todo(n.Index.Pos(), "support ${a[i]}")
-		_ = n.Slice != nil && todo(n.Pos(), "not support ${a:x:y}")
-		_ = n.Repl != nil && todo(n.Pos(), "not support ${a/x/y}")
-		_ = n.Names != 0 && todo(n.Pos(), "not support ${!prefix*}")
-		_ = !isValidParamName(n.Param.Value) && todo(n.Param.Pos(), "unsupported param name: "+n.Param.Value)
+		_ = n.Excl && t.todo(n.Pos(), "not support ${!a}")
+		_ = n.Length && t.todo(n.Pos(), "support ${#a}")
+		_ = n.Width && t.todo(n.Pos(), "not support ${%a}")
+		_ = n.Index != nil && t.todo(n.Index.Pos(), "support ${a[i]}")
+		_ = n.Slice != nil && t.todo(n.Pos(), "not support ${a:x:y}")
+		_ = n.Repl != nil && t.todo(n.Pos(), "not support ${a/x/y}")
+		_ = n.Names != 0 && t.todo(n.Pos(), "not support ${!prefix*}")
+		_ = !isValidParamName(n.Param.Value) && t.todo(n.Param.Pos(), "unsupported param name: "+n.Param.Value)
 		t.emit("${{__shtx_var_get $? '")
 		t.emit(n.Param.Value)
 		t.emit("'")
 		if n.Exp != nil {
 			t.emit(" '")
-			t.emit(toExpansionOpStr(n.Pos(), n.Exp))
+			t.emit(t.toExpansionOpStr(n.Pos(), n.Exp))
 			t.emit("' ")
 			if n.Exp.Word != nil {
 				t.visitWordParts(n.Exp.Word.Parts)
@@ -527,14 +564,14 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 		}
 		t.emit("; $REPLY; }}")
 	case *syntax.CmdSubst:
-		_ = n.TempFile && todo(n.Pos(), "not support ${")
-		_ = n.ReplyVar && todo(n.Pos(), "not support ${|")
+		_ = n.TempFile && t.todo(n.Pos(), "not support ${")
+		_ = n.ReplyVar && t.todo(n.Pos(), "not support ${|")
 		if len(n.Stmts) == 0 {
 			// skip empty command substitution, $(), ``, `# this is a comment`
 			return
 		}
 
-		_ = !option.dQuoted && !option.pattern && todo(n.Pos(), "support unquoted command substitution")
+		_ = !option.dQuoted && !option.pattern && t.todo(n.Pos(), "support unquoted command substitution")
 		if option.pattern {
 			t.emit("\"")
 		}
@@ -552,7 +589,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 			t.emit("\"")
 		}
 	default:
-		fixmeCase(n.Pos(), n)
+		t.fixmeCase(n.Pos(), n)
 	}
 }
 
@@ -627,7 +664,7 @@ func (t *Translator) visitWordPartsWith(parts []syntax.WordPart, option WordPart
 		return
 	}
 
-	_ = option.pattern && todo(parts[0].Pos(), "pattern with array expand is not supported")
+	_ = option.pattern && t.todo(parts[0].Pos(), "pattern with array expand is not supported")
 
 	// for `$@` or `$array[@]`
 	if isSimpleArgsExpand(parts) { // "$@"

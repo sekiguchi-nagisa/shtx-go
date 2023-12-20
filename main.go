@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/jessevdk/go-flags"
@@ -122,11 +123,15 @@ func main() {
 		tx.SetDump(d)
 	}
 
-	if e := tx.Translate(buf, os.Stdout); e != nil {
-		_, _ = fmt.Fprintln(os.Stderr, e.Error())
+	tx.errorCallback = func(e *Error) {
+		fmt.Println(e.Error())
+	}
+	out := bytes.Buffer{}
+	if e := tx.Translate(buf, &out); e != nil {
 		if options.SaveCrashDump {
 			saveCrashDump(e)
 		}
 		os.Exit(1)
 	}
+	_, _ = os.Stdout.Write(out.Bytes())
 }
