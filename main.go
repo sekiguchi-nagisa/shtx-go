@@ -123,11 +123,17 @@ func main() {
 		tx.SetDump(d)
 	}
 
-	tx.errorCallback = func(e *Error) {
-		fmt.Println(e.Error())
+	var txError error
+	tx.errorCallback = func(e error) {
+		txError = e
 	}
 	out := bytes.Buffer{}
 	if e := tx.Translate(buf, &out); e != nil {
+		if txError != nil {
+			_, _ = fmt.Fprintln(os.Stderr, txError.Error())
+		} else {
+			_, _ = fmt.Fprintln(os.Stderr, e.Error())
+		}
 		if options.SaveCrashDump {
 			saveCrashDump(e)
 		}

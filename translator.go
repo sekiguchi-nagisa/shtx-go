@@ -37,7 +37,7 @@ func (e Error) Error() string {
 
 var _ error = Error{} // check error interface implementation
 
-type ErrorCallback func(e *Error)
+type ErrorCallback func(e error)
 
 type WordPartOption struct {
 	dQuoted bool
@@ -115,6 +115,9 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 		reader := bytes.NewReader(buf)
 		f, e = syntax.NewParser().Parse(reader, "")
 		if e != nil {
+			if t.errorCallback != nil {
+				t.errorCallback(e)
+			}
 			return fmt.Errorf("+++++  error message  +++++\n%s\n\n"+
 				"+++++  input script  +++++\n%s", e.Error(), withLineNum(buf))
 		}
