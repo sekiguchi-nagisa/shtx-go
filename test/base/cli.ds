@@ -1,3 +1,4 @@
+# RUN: call $cmd $self
 
 # test shtx cli
 
@@ -15,3 +16,7 @@ assert "$(shtx -c 'echo |& echo' 2>&1)" == '1:6: [TODO] unsupported: |&'
 assert $? == 1
 
 true
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0
