@@ -37,7 +37,6 @@ __shtx_detect_bin() {
     let suffix = ($OSTYPE == 'cygwin' || $OSTYPE == 'msys') ? ".exe" : ""
     let ostype = $suffix.empty() ? $OSTYPE : "windows"
     if $SHTX_DEV_MODE || (checkenv SHTX_DEV_MODE) {
-        $SHTX_CRASH_DUMP = $true
         command -v go &>> /dev/null || __shtx_error "require go binary"
         if !(test -x $SCRIPT_DIR/shtx-go$suffix) {
             # rebuild
@@ -46,7 +45,6 @@ __shtx_detect_bin() {
         }
         $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go"
     } else {
-        $SHTX_CRASH_DUMP = $false
         $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go-$SHTX_VERSION-$ostype-$MACHTYPE$suffix"
         test -x $_SHTX_GO_BIN_PATH && return 0
         $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go$suffix"
@@ -711,6 +709,9 @@ typedef _Param() {
     [<Option(short: "c", stop: $true, help: "execute command")>]
     var cmd : String?
 
+    [<Flag(help: "enable crash dump (disabled by default)")>]
+    var crash_dump = $false
+
     [<Flag(short: "v", long: "version", stop: $true, help: "show version")>]
     var version = $false
 
@@ -723,6 +724,7 @@ __shtx_main(param : _Param) {
         echo $SHTX_VERSION
         return 0
     }
+    $SHTX_CRASH_DUMP = $param.crash_dump
     if let input = $param.cmd { # -c cmd
         $__shtx_set_argv($param.args)
         fake_eval $input
