@@ -1,0 +1,17 @@
+
+# test shtx cli
+
+shtx() {
+    SHTX_DEV_MODE=on call $SCRIPT_DIR/../../shtx $@
+}
+
+assert "$(shtx -v)" =~ $/[0-9]+\.[0-9]+\.[0-9]+/
+assert "$(shtx -c 'echo hello')" == 'hello'
+
+assert "$(shtx -c 'echo (' 2>&1)" == '1:1: "foo(" must be followed by )'
+assert $? == 1
+
+assert "$(shtx -c 'echo |& echo' 2>&1)" == '1:6: [TODO] unsupported: |&'
+assert $? == 1
+
+true
