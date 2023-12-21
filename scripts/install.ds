@@ -1,5 +1,7 @@
 #!/usr/bin/env arsh
 
+{ # guard for broken download
+
 shctl set errraise
 
 # get latest `shtx`
@@ -24,3 +26,5 @@ if $OSTYPE == "darwin" && (ls -l@ $MODULE_HOME/$bin | grep 'com.apple.quarantine
 }
 
 true
+
+} # guard for broken download
