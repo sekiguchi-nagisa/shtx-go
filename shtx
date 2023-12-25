@@ -529,6 +529,8 @@ typedef _Context() {
     let option = { shctl set -d; $REPLY; }
     shctl unset errraise &>> /dev/null
     shctl unset fail_tilde &>> /dev/null
+    shctl unset fail_glob &>> /dev/null
+    true
 }
 
 var _CALL_COUNT = 0
