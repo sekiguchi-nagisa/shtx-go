@@ -177,6 +177,7 @@ typedef _VarScope(_arg0 : String, _args : [String]) {
     let locals : [_VarMap]
 
     $global.put("IFS", $IFS)
+    $global.put("BASH", "$(command -v bash)")
 }
 
 function arg0() : String for _VarScope {
