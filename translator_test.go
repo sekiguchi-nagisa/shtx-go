@@ -374,6 +374,7 @@ esac
 "1234"|'5678') echo 1 ;;
 "$HOME") echo 2 ;;
 ~root) echo 3 ;;
+"/*"\**) echo 4 ;;
 *) echo default
 esac
 `, `{
@@ -387,6 +388,9 @@ esac
     }
     elif $__shtx_glob_match(@( $case_1 ~"root" )) {
       echo 3
+    }
+    elif $__shtx_glob_match(@( $case_1 $__shtx_escape_glob_meta("/*")"\**" )) {
+      echo 4
     }
     elif $case_1 =~ $/^.*$/ {
       echo default
