@@ -40,8 +40,9 @@ var _ error = Error{} // check error interface implementation
 type ErrorCallback func(e error)
 
 type WordPartOption struct {
-	dQuoted bool
-	pattern bool
+	dQuoted    bool
+	pattern    bool
+	singleWord bool // not perform glob/brace expansion, field splitting
 }
 
 type TranslationType int
@@ -304,7 +305,7 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 			if !assign.Naked {
 				t.emit("=")
 				if assign.Value != nil {
-					t.visitWordParts(assign.Value.Parts)
+					t.visitWordPartsWith(assign.Value.Parts, WordPartOption{singleWord: true})
 				}
 			}
 		} else {
@@ -315,7 +316,7 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 			t.emit(assign.Name.Value)
 			t.emit(" ")
 			if assign.Value != nil {
-				t.visitWordParts(assign.Value.Parts)
+				t.visitWordPartsWith(assign.Value.Parts, WordPartOption{singleWord: true})
 			}
 		}
 	}
@@ -493,7 +494,7 @@ func isVarName(name string) bool {
 }
 
 func isValidParamName(name string) bool {
-	return isVarName(name) || RePositional.MatchString(name) || name == "#" || name == "?" || name == "*"
+	return isVarName(name) || RePositional.MatchString(name) || name == "#" || name == "?" || name == "*" || name == "@"
 }
 
 func (t *Translator) toExpansionOpStr(pos syntax.Pos, expansion *syntax.Expansion) string {
@@ -513,6 +514,8 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 	case *syntax.Lit:
 		if option.pattern {
 			t.emit(quoteCmdArgAsGlobStr(n.Value))
+		} else if option.singleWord {
+			t.emit(quoteCmdArgAsLiteralStr(n.Value))
 		} else {
 			t.emit(n.Value)
 		}
@@ -543,7 +546,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 			t.emit(")")
 		}
 	case *syntax.ParamExp:
-		if n.Param.Value != "?" && n.Param.Value != "#" && !option.dQuoted && !option.pattern {
+		if n.Param.Value != "?" && n.Param.Value != "#" && !option.dQuoted && !option.pattern && !option.singleWord {
 			t.todo(n.Pos(), "support unquoted parameter expansion")
 		}
 		_ = n.Excl && t.todo(n.Pos(), "not support ${!a}")
@@ -574,8 +577,8 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 			return
 		}
 
-		_ = !option.dQuoted && !option.pattern && t.todo(n.Pos(), "support unquoted command substitution")
-		if option.pattern {
+		_ = !option.dQuoted && !option.pattern && !option.singleWord && t.todo(n.Pos(), "support unquoted command substitution")
+		if option.pattern || option.singleWord {
 			t.emit("\"")
 		}
 		if len(n.Stmts) == 1 {
@@ -588,7 +591,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 			t.indent()
 			t.emit("})")
 		}
-		if option.pattern {
+		if option.pattern || option.singleWord {
 			t.emit("\"")
 		}
 	default:
@@ -660,7 +663,7 @@ func (t *Translator) expandDblQuoted(quoted *syntax.DblQuoted) {
 }
 
 func (t *Translator) visitWordPartsWith(parts []syntax.WordPart, option WordPartOption) {
-	if !isArrayExpand(parts) {
+	if !isArrayExpand(parts) || option.singleWord {
 		for _, part := range parts {
 			t.visitWordPart(part, option)
 		}

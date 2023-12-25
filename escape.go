@@ -40,13 +40,34 @@ func quoteCmdArgAsGlobStr(value string) string {
 				index++
 				next := runes[index]
 				switch next {
-				case '?', '*', '[', ']', '\\', '`', '"':
+				case '?', '*', '[', ']', '\\', '`', '"', '$':
 					sb.WriteRune('\\')
 				}
 				ch = next
 			} else {
 				sb.WriteRune('\\')
 			}
+		}
+		sb.WriteRune(ch)
+	}
+	sb.WriteRune('"')
+	return sb.String()
+}
+
+func quoteCmdArgAsLiteralStr(value string) string {
+	sb := strings.Builder{}
+	sb.Grow(len(value))
+
+	if len(value) > 0 && value[0] == '~' {
+		sb.WriteRune('~')
+		value = value[1:]
+	}
+
+	sb.WriteRune('"')
+	for _, ch := range []rune(unescapeCmdName(value)) {
+		switch ch {
+		case '"', '\\', '`', '$':
+			sb.WriteRune('\\')
 		}
 		sb.WriteRune(ch)
 	}

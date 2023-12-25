@@ -90,12 +90,12 @@ false;
 }
 `},
 	"env-assign1": {`AAA=12 BBB="$(false)" CCC=`, `{
-  __shtx_var_set AAA 12; __shtx_var_set BBB "$(false)"; __shtx_var_set CCC 
+  __shtx_var_set AAA "12"; __shtx_var_set BBB "$(false)"; __shtx_var_set CCC 
 }
 `},
 	"env_assign2": {
 		`AA=12 BB=34 echo`, `{
-  AA=12 BB=34 echo
+  AA="12" BB="34" echo
 }
 `},
 	"param-expand": {`echo "$AAA" ge"(${GGG}}"`, `{
@@ -108,7 +108,7 @@ false;
 `},
 	"builtin-export1": {`\expor\t AAA=@@@; export BBB CCC=56`, `{
   __shtx_export AAA=@@@
-  __shtx_export BBB CCC=56
+  __shtx_export BBB CCC="56"
 }
 `},
 	"builtin-export2": {
@@ -333,8 +333,8 @@ fi
     let ctx = $__shtx_enter_func($0, $@)
     defer { $__shtx_exit_func($ctx); }
     {
-      __shtx_local AAA BBB=12
-      (__shtx_local CCC=12 && echo "${{__shtx_var_get $? 'CCC'; $REPLY; }}")
+      __shtx_local AAA BBB="12"
+      (__shtx_local CCC="12" && echo "${{__shtx_var_get $? 'CCC'; $REPLY; }}")
     }
   })
 }
@@ -396,6 +396,36 @@ esac
       echo default
     }
   }
+}
+`},
+	"assign-param-expand": {
+		`AAA=$aaa`, `{
+  __shtx_var_set AAA ${{__shtx_var_get $? 'aaa'; $REPLY; }}
+}
+`},
+	"assign-cmdsub": {
+		`AAA=$(echo a b c)`, `{
+  __shtx_var_set AAA "$(echo a b c)"
+}
+`},
+	"assign-glob": {
+		`AAA=*\*`, `{
+  __shtx_var_set AAA "**"
+}
+`},
+	"assign-special1": {
+		`AAA=$@`, `{
+  __shtx_var_set AAA ${{__shtx_var_get $? '@'; $REPLY; }}
+}
+`},
+	"assign-special2": {
+		`AAA="$@"`, `{
+  __shtx_var_set AAA "${{__shtx_var_get $? '@'; $REPLY; }}"
+}
+`},
+	"assign-special3": {
+		`AAA=$*`, `{
+  __shtx_var_set AAA ${{__shtx_var_get $? '*'; $REPLY; }}
 }
 `},
 }

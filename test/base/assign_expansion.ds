@@ -1,0 +1,81 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+## right hand-side is parameter expansion (not perform glob/field split)
+assert_fake_eval '
+BBB="1  2 3 "
+AAA=$BBB
+printf "<%s>\n" "$AAA"
+' '<1  2 3 >'
+
+## right hand-side is command substitution
+assert_fake_eval '
+AAA=$(echo a b c)
+printf "<%s>\n" "$AAA"
+' '<a b c>'
+
+## right hand-side is glob (not expand)
+assert_fake_eval '
+AAA=*\*\??
+printf "<%s>\n" "$AAA"
+' '<**??>'
+
+assert_fake_eval '
+AAA=/*
+printf "<%s>\n" "$AAA"
+' '</*>'
+
+assert_fake_eval '
+AAA=\$aaa
+printf "<%s>\n" "$AAA"
+' '<$aaa>'
+
+
+## right hand-side is brace expansion
+assert_fake_eval '
+AAA={1..3}
+printf "<%s>\n" "$AAA"
+' '<{1..3}>'
+
+## right hand-side is tilde
+assert_fake_eval '
+AAA=~/*
+printf "<%s>\n" "$AAA"
+' "<$HOME/*>"
+
+## right hand-side is @
+assert_fake_eval '
+ff1() {
+    AAA=$@
+    printf "<%s>\n" "$AAA"
+}
+ff2() {
+    AAA="$@"
+    printf "?%s?\n" "$AAA"
+}
+ff1 1 "  2 "
+ff2 1 "  2 "
+' '<1   2 >
+?1   2 ?'
+
+assert_fake_eval '
+ff1() {
+    IFS=@
+    AAA=$*
+    printf "<%s>\n" "$AAA"
+}
+ff2() {
+    IFS=@
+    AAA="$*"
+    printf "?%s?\n" "$AAA"
+}
+ff1 1 "  2 "
+ff2 1 "  2 "
+' '<1@  2 >
+?1@  2 ?'
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

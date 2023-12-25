@@ -289,6 +289,10 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
             $sep = $sep.empty() ? "" : $sep[0]
             return $_VARS.args().join($sep)
         }
+        '@' => {
+            # FIXME: support expansion op
+            return $_VARS.args().join(" ")
+        }
         $/^[0-9]+$/ => {
             var n = $param.toInt(10)!
             assert $n > -1
