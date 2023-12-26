@@ -350,11 +350,11 @@ shell|rehash) echo match
 esac
 `, `{
   {
-    let case_1 = @("${{__shtx_var_get $? '1'; $REPLY; }}")[0]
+    var case_1=''; case_1="${{__shtx_var_get $? '1'; $REPLY; }}"
     if $case_1 =~ $/^shell$/ || $case_1 =~ $/^rehash$/ {
       echo match
       {
-        let case_2 = @("-${{__shtx_var_get $? '2'; $REPLY; }}")[0]
+        var case_2=''; case_2="-${{__shtx_var_get $? '2'; $REPLY; }}"
         if $case_2 =~ $/^-s$/ {
           echo '-s'
         }
@@ -379,7 +379,7 @@ esac
 esac
 `, `{
   {
-    let case_1 = @(1234)[0]
+    var case_1=''; case_1="1234"
     if $__shtx_glob_match(@( $case_1 $__shtx_escape_glob_meta("1234") )) || $__shtx_glob_match(@( $case_1 $__shtx_escape_glob_meta('5678') )) {
       echo 1
     }

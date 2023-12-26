@@ -1,0 +1,111 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+## parameter expansion (not perform glob/field split)
+assert_fake_eval '
+AAA="*"
+
+case $AAA in
+-1) echo match1;;
+-2) echo match2;;
+do) echo match3;;
+\*) echo match4;;
+*) echo default
+esac
+' 'match4'
+
+assert_fake_eval '
+AAA=" A  B "
+
+case $AAA in
+A) echo match1;;
+B) echo match2;;
+" A  B ") echo match3;;
+"A B") echo match4;;
+*) echo default
+esac
+' 'match3'
+
+## command substitution
+assert_fake_eval '
+case $(echo "A " B "C  ") in
+A) echo match1;;
+B) echo match2;;
+" A  B ") echo match3;;
+"A  B C  ") echo match4;;
+*) echo default
+esac
+' 'match4'
+
+## glob (not expand)
+assert_fake_eval '
+case /* in
+A) echo match1;;
+B) echo match2;;
+" A  B ") echo match3;;
+"/*") echo match4;;
+*) echo default
+esac
+' 'match4'
+
+assert_fake_eval '
+case /*?\* in
+A) echo match1;;
+/\*\?\*) echo match2;;
+*) echo default
+esac
+' 'match2'
+
+## brace expansion (not expand)
+assert_fake_eval '
+case {1..3} in
+1\ 2\ 3) echo match1;;
+"1 2 3") echo match2;;
+{1..3}) echo match3;;
+*) echo default
+esac
+' 'match3'
+
+## tilde expansion
+assert_fake_eval '
+case ~/ in
+~/) echo match1;;
+\~/) echo match2;;
+{1..3}) echo match3;;
+*) echo default
+esac
+' 'match1'
+
+## special parameter
+assert_fake_eval '
+ff() {
+    case $@ in 
+    "**") echo match1;;
+    "  1 2 ") echo match2;;
+    *) echo default;;
+    esac
+}
+ff "  1" 2 ""
+ff \*\*
+' 'match2
+match1'
+
+assert_fake_eval '
+ff() {
+    IFS=%
+    case $* in 
+    "**") echo match1;;
+    "  1%2%") echo match2;;
+    *) echo default;;
+    esac
+}
+ff "  1" 2 ""
+ff \*\*
+' 'match2
+match1'
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

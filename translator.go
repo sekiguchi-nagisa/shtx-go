@@ -381,9 +381,9 @@ func (t *Translator) visitCaseClause(clause *syntax.CaseClause) {
 	t.emitLine("{")
 	t.indentLevel++
 	t.indent()
-	t.emit("let " + caseVarName + " = @(")
-	t.visitWordParts(clause.Word.Parts)
-	t.emitLine(")[0]")
+	t.emit("var " + caseVarName + "=''; " + caseVarName + "=")
+	t.visitWordPartsWith(clause.Word.Parts, WordPartOption{singleWord: true})
+	t.emitLine("")
 
 	// case items
 	for i, item := range clause.Items {
