@@ -468,6 +468,7 @@ __shtx_read() {
     for k, v in $reply {
         __shtx_var_set $k $v
     }
+    $_VARS.put('REPLY', $REPLY)
 }
 
 __shtx_printf() {

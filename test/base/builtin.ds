@@ -23,6 +23,15 @@ assert_fake_eval '
 local: #echo hello world # dummy for read
 global2: 111'
 
+assert_fake_eval '
+  ff() { local REPLY; read; echo "local=<$REPLY>";  }
+  echo "1<$REPLY>"
+  ff < '"$SCRIPT_NAME"'
+  echo "2<$REPLY>"
+' '1<>
+local=<#echo hello world # dummy for read>
+2<>'
+
 ## printf
 assert_fake_eval '
     printf -v var "<%s>+" 1 2 3
