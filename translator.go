@@ -54,10 +54,17 @@ const (
 	TranslatePattern
 )
 
+type Offset struct {
+	line uint
+	col  uint
+}
+
 type Translator struct {
+	in            []byte    // original input buffer
 	out           io.Writer // for output
 	dump          io.Writer // for parsed ast dump
 	tranType      TranslationType
+	offset        Offset
 	indentLevel   int
 	funcLevel     int
 	caseExprCount int
@@ -74,8 +81,21 @@ func (t *Translator) SetDump(d io.Writer) {
 	t.dump = d
 }
 
+func adjustPos(pos syntax.Pos, offset Offset) syntax.Pos {
+	if offset.line == 0 && offset.col == 0 {
+		return pos
+	}
+	line := pos.Line()
+	col := pos.Col()
+	if line == 1 {
+		col += offset.col
+	}
+	line += offset.line
+	return syntax.NewPos(pos.Offset(), line, col)
+}
+
 func (t *Translator) todo(pos syntax.Pos, s string) bool {
-	e := Error{pos: pos, t: ErrorTodo, msg: s}
+	e := Error{pos: adjustPos(pos, t.offset), t: ErrorTodo, msg: s}
 	if t.errorCallback != nil {
 		t.errorCallback(&e)
 	}
@@ -83,7 +103,7 @@ func (t *Translator) todo(pos syntax.Pos, s string) bool {
 }
 
 func (t *Translator) fixmeCase(pos syntax.Pos, a any) {
-	e := Error{pos: pos, t: ErrorFixme, msg: fmt.Sprintf("unsupported switch-case type %T", a)}
+	e := Error{pos: adjustPos(pos, t.offset), t: ErrorFixme, msg: fmt.Sprintf("unsupported switch-case type %T", a)}
 	if t.errorCallback != nil {
 		t.errorCallback(&e)
 	}
@@ -101,8 +121,22 @@ func withLineNum(buf []byte) string {
 	return sb.String()
 }
 
+func (t *Translator) parse(buf []byte) (file *syntax.File, err error) {
+	reader := bytes.NewReader(buf)
+	file, err = syntax.NewParser().Parse(reader, "")
+	if err != nil {
+		if t.errorCallback != nil {
+			t.errorCallback(err)
+		}
+		err = fmt.Errorf("+++++  error message  +++++\n%s\n\n"+
+			"+++++  input script  +++++\n%s", err.Error(), withLineNum(buf))
+	}
+	return
+}
+
 func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 	// reset state
+	t.in = buf
 	t.out = out
 	t.indentLevel = 0
 	t.funcLevel = 0
@@ -112,15 +146,9 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 	var f *syntax.File
 	switch t.tranType {
 	case TranslateEval, TranslateSource:
-		var e error
-		reader := bytes.NewReader(buf)
-		f, e = syntax.NewParser().Parse(reader, "")
-		if e != nil {
-			if t.errorCallback != nil {
-				t.errorCallback(e)
-			}
-			return fmt.Errorf("+++++  error message  +++++\n%s\n\n"+
-				"+++++  input script  +++++\n%s", e.Error(), withLineNum(buf))
+		f, err = t.parse(buf)
+		if err != nil {
+			return
 		}
 
 		// dump
@@ -577,17 +605,33 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 			return
 		}
 
+		stmts := n.Stmts
+
 		_ = !option.dQuoted && !option.pattern && !option.singleWord && t.todo(n.Pos(), "support unquoted command substitution")
+		if option.dQuoted && n.Backquotes { // unescape and re-parse
+			tmpBuf := t.in[n.Pos().Offset()+1 : n.End().Offset()-1] // remove prefix and suffix back-quote
+			t.offset = Offset{                                      // adjust line num offset for better error message
+				line: n.Pos().Line() - 1,
+				col:  n.Pos().Col(),
+			}
+			f, e := t.parse([]byte(unescapeDoubleQuoted(string(tmpBuf), false)))
+			defer func() { t.offset = Offset{0, 0} }()
+			if e != nil {
+				panic(e) // force return
+			}
+			stmts = f.Stmts
+		}
+
 		if option.pattern || option.singleWord {
 			t.emit("\"")
 		}
-		if len(n.Stmts) == 1 {
+		if len(stmts) == 1 {
 			t.emit("$(")
-			t.visitCommand(n.Stmts[0].Cmd, n.Stmts[0].Redirs)
+			t.visitCommand(stmts[0].Cmd, stmts[0].Redirs)
 			t.emit(")")
 		} else {
 			t.emitLine("$({")
-			t.visitStmts(n.Stmts)
+			t.visitStmts(stmts)
 			t.indent()
 			t.emit("})")
 		}

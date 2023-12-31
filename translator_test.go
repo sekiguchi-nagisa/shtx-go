@@ -82,6 +82,10 @@ false;
   echo "$(echo hello)"  A
 }
 `},
+	"back-quote-escape": {"printf '%s\\n'  \"`echo \\\"$BASH\\\"`\"", `{
+  __shtx_printf '%s\n' "$(echo "${{__shtx_var_get $? 'BASH'; $REPLY; }}")"
+}
+`},
 	"cmd-sub": {`"$(echo "$(echo AAA; echo BBB)")"`, `{
   __shtx_dyna_call "$(echo "$({
     echo AAA

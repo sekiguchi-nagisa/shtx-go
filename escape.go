@@ -12,10 +12,38 @@ func unescapeCmdName(name string) string {
 			i++
 			next := runes[i]
 			switch next {
-			case '\n', '\r':
+			case '\n':
 				continue
 			default:
 				c = next
+			}
+		}
+		sb.WriteRune(c)
+	}
+	return sb.String()
+}
+
+func unescapeDoubleQuoted(value string, removeAround bool) string {
+	sb := strings.Builder{}
+	runes := []rune(value)
+	sb.Grow(len(runes))
+	i := 0
+	size := len(runes)
+	if removeAround { // remove prefix and suffix "
+		i++
+		size--
+	}
+	for ; i < size; i++ {
+		c := runes[i]
+		if c == '\\' && i+1 < size {
+			next := runes[i+1]
+			switch next {
+			case '$', '`', '"':
+				c = next
+				i++
+			case '\n':
+				i++
+				continue
 			}
 		}
 		sb.WriteRune(c)

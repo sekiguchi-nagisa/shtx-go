@@ -10,6 +10,11 @@ assert_fake_eval \
     'echo "`echo ABC`"' "ABC"
 assert $? == 0
 
+assert_fake_eval '
+   AAA="`printf "%s\n" \"\$BASH\"`"
+   printf "<%s>\n" "$AAA"
+' "<$(command -v bash)>"
+
 # comment
 assert_fake_eval \
     'echo `# echo ABC` DEF' "DEF"
