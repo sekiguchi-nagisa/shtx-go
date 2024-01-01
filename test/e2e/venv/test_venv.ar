@@ -1,0 +1,50 @@
+
+source $SCRIPT_DIR/../../../shtx as shtx
+
+assert checkenv RUN_IN_CONTAINER  # guard
+
+# setup pyenv
+git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+pushd ~/.pyenv
+git checkout v2.3.32
+popd
+
+
+shctl set errraise
+
+# install multiple python versions
+hash -r 
+~/.pyenv/bin/pyenv install pypy3.10-7.3.13
+~/.pyenv/bin/pyenv install graalpython-22.2.0
+
+pypy() { ~/.pyenv/versions/pypy3.10-7.3.13/bin/python $@; }
+graalpython() { ~/.pyenv/versions/graalpython-22.2.0/bin/python $@; }
+
+assert pypy -V | grep 'PyPy 7.3.13'
+assert graalpython -V | grep 'GraalVM Python 3.8.5'
+
+# test venv
+## create venv for pypy
+let env1 = "env_$RANDOM"
+pypy -m venv $env1
+shtx fake_source $env1/bin/activate
+assert python -V | grep 'PyPy 7.3.13'
+deactivate
+if (command -v python) {
+    assert ! (python -V | grep 'GraalVM Python 3.8.5')
+    assert ! (python -V | grep 'PyPy 7.3.13')
+}
+
+# ## create venv for graalpython  ## need to support unquoted command substitution
+# let env2 = "env_$RANDOM"
+# graalpython -m venv $env2
+# shtx fake_source $env2/bin/activate
+# assert python -V | grep 'GraalVM Python 3.8.5'
+# deactivate
+# if (command -v python) {
+#     assert ! (python -V | grep 'GraalVM Python 3.8.5')
+#     assert ! (python -V | grep 'PyPy 7.3.13')
+# }
+
+
+true

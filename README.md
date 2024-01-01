@@ -8,3 +8,10 @@ experimental bash subset to arsh transpiler
 ```sh
 curl -fL https://raw.githubusercontent.com/sekiguchi-nagisa/shtx-go/main/scripts/install.ds | arsh
 ```
+
+## Tested Plugin
+
+| **name** | **version** |
+|----------|-------------|
+| pyenv    | v2.3.32     |
+| venv     | 3.9         |
