@@ -40,6 +40,21 @@ AAA A B C D
 (a b c)
 (A+B+C+D)'
 
+## local ( "$*" ) with local IFS
+assert_fake_eval '
+function AAA() {
+    local IFS=%
+    printf "(%s)\n" "$*"
+}
+function BBB() {
+    printf "<%s>\n" "$*"
+}
+IFS=\$
+AAA 1 2 3
+BBB 9 8 7
+' '(1%2%3)
+<9$8$7>'
+
 
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$

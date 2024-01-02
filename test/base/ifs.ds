@@ -27,7 +27,24 @@ C=(world # dummy for read)
 <>
 <@>'
 
+## read command with local IFS
+assert_fake_eval '
+AAA() {
+  local IFS="#"
+  read A B C
+}
+AAA <'"$SCRIPT_NAME"'
+printf "<%s>\n" "$A" "$B" "${C}"
+read A B C < '"$SCRIPT_NAME"'
+printf "[%s]\n" "$A" "$B" "${C}"
+' '<>
+<echo hello world >
+< dummy for read>
+[#echo]
+[hello]
+[world # dummy for read]'
 
-# CHECK: IFS=(@)
+
+# CHECK_RE: ^$
 # CHECKERR_RE: ^$
 # STATUS: 0
