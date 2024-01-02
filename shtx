@@ -74,7 +74,6 @@ function __save_crash_dump(in : String, out : String, e : Error) : Bool {
 
 let __VAR_ATTR_EXPORT = 0x01
 let __VAR_ATTR_UNSET = 0x02
-let __VAR_ATTR_IFS = 0x04
 
 typedef _VarEntry(v: String?, a : Int?) {
     var _value = $v ?? ""  # if indicate env, value is env name
@@ -89,19 +88,12 @@ function isUnset() : Bool for _VarEntry {
     return ($this._attr and $__VAR_ATTR_UNSET) == $__VAR_ATTR_UNSET
 }
 
-function ifs() : Bool for _VarEntry {
-    return ($this._attr and $__VAR_ATTR_IFS) == $__VAR_ATTR_IFS
-}
-
 # update value, if entry indicates env, update env value
 function set(value : String) : String for _VarEntry {
     if $this.exported() {
         setenv -- ${this._value}=$value
     } else {
         $this._value = $value
-    }
-    if $this.ifs() {    # sync IFS
-        $IFS = $value
     }
     $this._attr = $this._attr and !$__VAR_ATTR_UNSET
     return $value
@@ -122,23 +114,12 @@ function export(name : String) : _VarEntry for _VarEntry {
 }
 
 # get value. if entry indicates env, get env value
-function _get_impl() : String? for _VarEntry {
+function get() : String? for _VarEntry {
     if $this.exported() {
         return (getenv -- ${this._value}) ? $REPLY : $none
     } else {
         return $this._value
     }
-}
-
-function get() : String? for _VarEntry {
-    var r = $this._get_impl()
-    if $this.ifs() {
-        if !$r || $r! != $IFS {
-            $this.set($IFS)  # sync IFS
-            $r = $IFS
-        }
-    }
-    return $r
 }
 
 typedef _VarMap(_arg0 : String, _args : [String]) {
@@ -148,9 +129,10 @@ typedef _VarMap(_arg0 : String, _args : [String]) {
 }
 
 # get variable entry. if entry is not found, but corresponding env is found, set and return entry
-function get(name : String) : _VarEntry? for _VarMap {
+function get(name : String, set : Bool?) : _VarEntry? for _VarMap {
+    let s = $set ?? $true
     return $this.entries.get($name) ?? {
-        if(checkenv -- $name) {
+        if($s && checkenv -- $name) {
             var e = new _VarEntry($name, $__VAR_ATTR_EXPORT)
             $this.entries.put($name, $e)
             return $e
@@ -163,11 +145,7 @@ function put(name : String, value : String) : String for _VarMap {
     if let entry = $this.get($name) {
         $entry.set($value)
     } else {
-        let ifs = $name == 'IFS'
-        if $ifs && $value != $IFS {
-            $IFS = $value
-        }
-        $this.entries.put($name, new _VarEntry($value, $ifs ? $__VAR_ATTR_IFS : $none))
+        $this.entries.put($name, new _VarEntry($value))
     }
     return $value
 }
@@ -195,7 +173,7 @@ function setArgs(args : [String]) for _VarScope {
     $v.args = $args
 }
 
-function get(name : String) : _VarEntry? for _VarScope {
+function get(name : String, use_env : Bool?) : _VarEntry? for _VarScope {
     ## first, get from local scope
     if !$this.locals.empty() {
         var local = $this.locals.peek()
@@ -204,7 +182,7 @@ function get(name : String) : _VarEntry? for _VarScope {
         }
     }
     ## if not found, get from global scope
-    return $this.global.get($name)
+    return $this.global.get($name, $use_env)
 }
 
 function put(name : String, value : String) : String for _VarScope {
@@ -285,7 +263,7 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
         }
         '*' => {
             # FIXME: support expansion op
-            let ifs = if let entry = $_VARS.get('IFS') { $entry.get(); } else { $none; }
+            let ifs = if let entry = $_VARS.get('IFS', $false) { $entry.get(); } else { $none; }
             var sep = ($ifs ?? " ")
             $sep = $sep.empty() ? "" : $sep[0]
             return $_VARS.args().join($sep)
@@ -426,9 +404,6 @@ __shtx_unset() {
         if $var {
             if let entry = $_VARS.remove($arg) {
                 $entry.exported() && unsetenv -- $arg
-                if $entry.ifs() {
-                    $IFS = $' \t\n' # reset to default
-                }
                 continue
             }
         }
@@ -464,7 +439,8 @@ __shtx_[() {
 
 __shtx_read() {
     $reply.clear()
-    read $@
+    let ifs = if let entry = $_VARS.get('IFS', $false) { $entry.get(); } else { $none; } ?? $' \t\n'
+    IFS=$ifs read $@
     for k, v in $reply {
         __shtx_var_set $k $v
     }

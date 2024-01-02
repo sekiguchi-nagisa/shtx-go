@@ -28,22 +28,6 @@ C=(world # dummy for read)
 <@>'
 
 
-## sync IFS
-assert $IFS != '@'
-$IFS='@'
-fake_eval 'echo "IFS=($IFS)"'
-
-assert $IFS == '@'
-fake_eval 'IFS=:'
-assert $IFS == ':'
-fake_eval 'function ff() { IFS="11$IFS"; }
-ff
-'
-assert $IFS == '11:'
-
-fake_eval 'unset IFS'
-assert $IFS == $' \t\n'  # reset to default
-
 # CHECK: IFS=(@)
 # CHECKERR_RE: ^$
 # STATUS: 0
