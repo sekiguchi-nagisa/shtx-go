@@ -14,14 +14,17 @@ shctl set errraise
 
 # install multiple python versions
 hash -r 
+~/.pyenv/bin/pyenv install 3.12.0
 ~/.pyenv/bin/pyenv install pypy3.10-7.3.13
 ~/.pyenv/bin/pyenv install graalpython-22.2.0
 
+python3.12() { ~/.pyenv/versions/3.12.0/bin/python $@; }
 pypy() { ~/.pyenv/versions/pypy3.10-7.3.13/bin/python $@; }
 graalpython() { ~/.pyenv/versions/graalpython-22.2.0/bin/python $@; }
 
 assert pypy -V | grep 'PyPy 7.3.13'
 assert graalpython -V | grep 'GraalVM Python 3.8.5'
+assert python3.12 -V | grep 'Python 3.12.0'
 
 # test venv
 ## create venv for pypy
@@ -33,12 +36,26 @@ deactivate
 if (command -v python) {
     assert ! (python -V | grep 'GraalVM Python 3.8.5')
     assert ! (python -V | grep 'PyPy 7.3.13')
+    assert ! (python -V | grep 'Python 3.12.0')
 }
 
+## create venv for python 3.12
+let env2 = "env_$RANDOM"
+python3.12 -m venv $env2
+shtx fake_source $env2/bin/activate
+assert python -V | grep 'Python 3.12.0'
+deactivate
+if (command -v python) {
+    assert ! (python -V | grep 'GraalVM Python 3.8.5')
+    assert ! (python -V | grep 'PyPy 7.3.13')
+    assert ! (python -V | grep 'Python 3.12.0')
+}
+
+
 # ## create venv for graalpython  ## need to support unquoted command substitution
-# let env2 = "env_$RANDOM"
-# graalpython -m venv $env2
-# shtx fake_source $env2/bin/activate
+# let env3 = "env_$RANDOM"
+# graalpython -m venv $env3
+# shtx fake_source $env3/bin/activate
 # assert python -V | grep 'GraalVM Python 3.8.5'
 # deactivate
 # if (command -v python) {
