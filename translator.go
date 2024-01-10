@@ -329,8 +329,14 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 			if i > 0 {
 				t.emit(" ")
 			}
-			t.emit(assign.Name.Value)
-			if !assign.Naked {
+			if assign.Naked {
+				if assign.Name != nil {
+					t.emit(assign.Name.Value)
+				} else if assign.Value != nil {
+					t.visitWordPartsWith(assign.Value.Parts, WordPartOption{singleWord: true})
+				}
+			} else {
+				t.emit(assign.Name.Value)
 				t.emit("=")
 				if assign.Value != nil {
 					t.visitWordPartsWith(assign.Value.Parts, WordPartOption{singleWord: true})

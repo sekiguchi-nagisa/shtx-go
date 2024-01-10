@@ -343,6 +343,12 @@ fi
   })
 }
 `},
+	"local": {`local aaa; local -q; local aaa=`, `{
+  __shtx_local aaa
+  __shtx_local "-q"
+  __shtx_local aaa=
+}
+`},
 	"case1": {
 		`case "$1" in
 shell|rehash) echo match
