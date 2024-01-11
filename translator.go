@@ -240,8 +240,9 @@ func (t *Translator) visitStmt(stmt *syntax.Stmt) {
 }
 
 var declReplacement = map[string]string{
-	"export": "__shtx_export",
-	"local":  "__shtx_local",
+	"declare": "__shtx_declare",
+	"export":  "__shtx_export",
+	"local":   "__shtx_local",
 }
 
 func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect) {
@@ -473,16 +474,17 @@ func toLiteralCmdName(word *syntax.Word) string {
 }
 
 var cmdNameReplacement = map[string]string{
-	"[":      "__shtx_[",
-	"export": "__shtx_export",
-	"local":  "__shtx_local",
-	"unset":  "__shtx_unset",
-	"shift":  "__shtx_shift",
-	"read":   "__shtx_read",
-	"printf": "__shtx_printf",
-	"eval":   "fake_eval",
-	".":      "fake_source",
-	"source": "fake_source",
+	"[":       "__shtx_[",
+	"declare": "__shtx_declare",
+	"export":  "__shtx_export",
+	"local":   "__shtx_local",
+	"unset":   "__shtx_unset",
+	"shift":   "__shtx_shift",
+	"read":    "__shtx_read",
+	"printf":  "__shtx_printf",
+	"eval":    "fake_eval",
+	".":       "fake_source",
+	"source":  "fake_source",
 }
 
 func remapCmdName(name string) string {

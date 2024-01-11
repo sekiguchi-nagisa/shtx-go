@@ -312,6 +312,59 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
     }
 }
 
+[<CLI>]
+typedef _DeclareOpt() {
+    [<Flag(short: 'F', help: "display function names")>]
+    var funcDecl = $false
+
+    [<Flag(short: 'f', help: "display function names with body")>]
+    var funcBody = $false
+
+    [<Arg()>]
+    var args : [String]
+}
+
+function __shtx_define_vars(cmd: String, args: [String]) : Int {
+    let local = $cmd == "local"
+    let opt = new _DeclareOpt()
+    $opt.setName($cmd)
+    try {
+        $opt.parse($args)
+    } catch e : CLIError {
+        echo ${$e.message()} 1>&2
+        return $e.status()
+    }
+    if ($opt.funcDecl||$opt.funcBody) && $opt.args.empty() && $cmd == 'declare' {
+        var prefix = $opt.funcDecl ? "declare -f " : ""
+        for f, _ in $DYNA_UDCS {
+            printf "%s%s\n" $prefix $f
+        }
+        return 0
+    }
+    var fail = $false
+    for arg in $opt.args {
+        $arg.empty() && continue
+        let i = $arg.indexOf('=')
+        let name = $i != -1 ? $arg.slice(0, $i) : $arg
+        if $opt.funcDecl {
+            if $i != -1 { 
+                $_error($cmd, "cannot use \`-f' option with assignment")
+                return 1
+            }
+            if $DYNA_UDCS.get($name) {
+                printf "%s\n" $name
+            } else {
+                $fail = $true
+            }
+            continue
+        }
+        let value = $i != -1 ? $arg.slice($i + 1) : ""
+        $local ? $_VARS.local($name, $value) : $_VARS.put($name, $value)
+    }
+    return $fail ? 1 : 0
+}
+
+
 # +++++ runtime helper functions (starts with __shtx_) +++++
 
 # for global varibale access
@@ -333,20 +386,18 @@ __shtx_var_set() {
     return 0
 }
 
+# for bash declare command
+__shtx_declare() {
+    return $__shtx_define_vars("declare", $@)
+}
+
 # for bash local command
 __shtx_local() {
     $_VARS.inFunc() || {
         $_error("local", "can only be used in a function")
         return 1;
     }
-
-    for arg in $@ {
-        ($arg.empty() || $arg.startsWith("-")) && continue
-        let i = $arg.indexOf('=')
-        let name = $i != -1 ? $arg.slice(0, $i) : $arg
-        let value = $i != -1 ? $arg.slice($i + 1) : ""
-        $_VARS.local($name, $value)
-    }
+    return $__shtx_define_vars("local", $@)
 }
 
 # for bash export command
@@ -472,6 +523,7 @@ __shtx_dyna_call() {
     var cmd = $@.shift()
     $cmd = case $cmd {
         '[' => '__shtx_['
+        'declare' => '__shtx_declare'
         'export' => '__shtx_export'
         'local' => '__shtx_local'
         'unset' => '__shtx_unset'

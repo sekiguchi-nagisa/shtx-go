@@ -1,0 +1,31 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+assert_fake_eval '
+fff(){ true; }
+declare -F fff
+' 'fff'
+assert $? == 0
+
+assert_fake_eval '
+fff(){ true; }
+declare -F fffss fff
+' 'fff'
+assert $? == 1
+
+assert_fake_eval '
+fff(){ true; }
+ggg() { local -F; }
+declare -F
+echo ---
+ggg
+' 'declare -f fff
+declare -f ggg
+---'
+assert $? == 0
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

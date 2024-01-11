@@ -120,6 +120,18 @@ false;
   __shtx_export AAA=12 BBB=45
 }
 `},
+	"builtin-local": {`local aaa; local -q; local aaa=`, `{
+  __shtx_local aaa
+  __shtx_local "-q"
+  __shtx_local aaa=
+}
+`},
+	"builtin-declare": {`"declare"; declare -f hoge; declare AAA=12`, `{
+  __shtx_dyna_call "declare"
+  __shtx_declare "-f" hoge
+  __shtx_declare AAA="12"
+}
+`},
 	"builtin-unset": {`\uns\e\t A; unset B`, `{
   __shtx_unset A
   __shtx_unset B
@@ -341,12 +353,6 @@ fi
       (__shtx_local CCC="12" && echo "${{__shtx_var_get $? 'CCC'; $REPLY; }}")
     }
   })
-}
-`},
-	"local": {`local aaa; local -q; local aaa=`, `{
-  __shtx_local aaa
-  __shtx_local "-q"
-  __shtx_local aaa=
 }
 `},
 	"case1": {
