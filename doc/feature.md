@@ -80,6 +80,6 @@
 * [x] unset
 * [ ] export
   * not support options
-* [ ] local
-  * not support options
+* [x] declare
+* [x] local
 * [ ] trap

@@ -26,6 +26,47 @@ declare -f ggg
 ---'
 assert $? == 0
 
+var out = "$(fake_source /dev/stdin << 'EOF'
+AAA=34525
+IFS=
+BASH=/bin/bash
+export BBB=2344
+fff() {
+    local CCC=2345
+    local -p
+    echo @1
+    local -p CCC
+    echo @2
+    declare -p
+}
+fff
+echo @3
+declare -p AAA
+
+EOF
+)" 
+assert $out == 'CCC="2345"
+@1
+@2
+declare -- CCC="2345"
+declare -- IFS=""
+declare -- BASH="/bin/bash"
+declare -- AAA="34525"
+declare -x BBB="2344"
+@3
+declare -- AAA="34525"' : $out
+
+
+$out = "$(fake_eval '
+AAA=1234
+declare -p HOGE AAA 2>&1
+')"
+assert $out == 'bash: declare: HOGE: not found
+declare -- AAA="1234"' : $out
+assert $? == 1
+
+true
+
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
 # STATUS: 0

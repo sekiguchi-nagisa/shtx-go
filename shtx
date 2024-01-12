@@ -69,6 +69,18 @@ function __save_crash_dump(in : String, out : String, e : Error) : Bool {
     return $true
 }
 
+function __doubleQuote(v : String) : String {
+    var ret = '"'
+    for ch in $v {
+        case $ch {
+            '`'|'"'|'\'|'$' => $ret += '\'
+        }
+        $ret += $ch
+    }
+    $ret += '"'
+    return $ret
+}
+
 
 # +++++ for shell variable +++++
 
@@ -119,6 +131,19 @@ function get() : String? for _VarEntry {
         return (getenv -- ${this._value}) ? $REPLY : $none
     } else {
         return $this._value
+    }
+}
+
+function print(name : String, verbose : Bool) for _VarEntry {
+    var value = $__doubleQuote($this.get() ?? "")
+    if $verbose {
+        var attr = ''
+        if $this.exported() {
+            $attr += 'x'
+        }
+        printf "declare -%s %s=%s\n" ${$attr :- '-'} $name $value
+    } else {
+        printf "%s=%s\n" $name $value
     }
 }
 
@@ -312,6 +337,38 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
     }
 }
 
+function __printEntries(entries: [String: _VarEntry], verbose : Bool) {
+    for n, e in $entries {
+        $e.isUnset() && continue
+        $e.print($n, $verbose)
+    }
+}
+
+function __show_vars(args: [String], local : Bool) : Int {
+    var fail = $false
+    (!$args.empty() && $local) && return 0
+    if $local { # only show locals
+        $__printEntries($_VARS.locals.peek().entries, $false)
+    } elif !$args.empty() {
+        for arg in $args {
+            if let ret = $_VARS.get($arg, $false) {
+                if !$ret.isUnset() {
+                    $ret.print($arg, $true)
+                    continue
+                }
+            }
+            $fail = $true
+            $_error('declare', "$arg: not found")
+        }
+    } else {
+        if $_VARS.inFunc() {
+            $__printEntries($_VARS.locals.peek().entries, $true)
+        }
+        $__printEntries($_VARS.global.entries, $true)
+    }
+    return $fail ? 1 : 0
+}
+
 [<CLI>]
 typedef _DeclareOpt() {
     [<Flag(short: 'F', help: "display function names")>]
@@ -319,6 +376,9 @@ typedef _DeclareOpt() {
 
     [<Flag(short: 'f', help: "display function names with body")>]
     var funcBody = $false
+
+    [<Flag(short: 'p', help: 'display the attribute and value of variable')>]
+    var printVar = $false
 
     [<Arg()>]
     var args : [String]
@@ -334,12 +394,15 @@ function __shtx_define_vars(cmd: String, args: [String]) : Int {
         echo ${$e.message()} 1>&2
         return $e.status()
     }
-    if ($opt.funcDecl||$opt.funcBody) && $opt.args.empty() && $cmd == 'declare' {
+    if ($opt.funcDecl||$opt.funcBody) && $opt.args.empty() && !$local {
         var prefix = $opt.funcDecl ? "declare -f " : ""
         for f, _ in $DYNA_UDCS {
             printf "%s%s\n" $prefix $f
         }
         return 0
+    }
+    if $opt.printVar {
+        return $__show_vars($opt.args, $local)
     }
     var fail = $false
     for arg in $opt.args {
