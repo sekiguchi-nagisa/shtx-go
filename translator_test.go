@@ -78,6 +78,10 @@ false;
   echo 12 >| /dev/null
 }
 `},
+	"redirection89": {"declare -p AAA BBB 2>&1", `{
+  __shtx_declare "-p" AAA BBB 2>& 1
+}
+`},
 	"back-quote": {"echo \"`echo hello`\" `  # this is a comment` A", `{
   echo "$(echo hello)"  A
 }

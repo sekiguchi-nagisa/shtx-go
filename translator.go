@@ -259,6 +259,7 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 		if !ok {
 			t.todo(n.Variant.Pos(), "unsupported decl: "+n.Variant.Value)
 		}
+		cmdRedir = true
 		t.emit(v)
 		t.emit(" ")
 		t.visitAssigns(n.Args, true)
