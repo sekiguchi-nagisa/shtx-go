@@ -60,9 +60,9 @@ function __save_crash_dump(in : String, out : String, e : Error) : Bool {
         echo '+++++  error message  +++++'
         $e.show() with 2>&1
         echo $'\n+++++  input script  +++++'
-        echo $in
+        printf "%s\n" $in
         echo $'\n+++++  output script  +++++'
-        echo $out
+        printf "%s\n" $out
     } with > $name
     echo 1>&2 "save crash dump:"
     echo 1>&2 -e "\t${$name.realpath()}"
@@ -719,7 +719,7 @@ fake_source() {
     if $SHTX_CRASH_DUMP {
         $opt.add("--crash-dump")
     }
-    var output = "$(call $_SHTX_GO_BIN_PATH $opt $input)"
+    var output = "$(call $_SHTX_GO_BIN_PATH $opt -- $input)"
     if $? != 0 {
         return 1
     }
@@ -732,7 +732,12 @@ fake_source() {
         return $e.status()
     } catch e : Error {
         $e.show()
-        $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)
+        var lines = ""
+        for line in new FD($input) {
+            $lines += $line
+            $lines += $'\n'
+        }
+        $SHTX_CRASH_DUMP && $__save_crash_dump($lines, $output, $e)
         return 255
     }
 }
