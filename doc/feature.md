@@ -66,6 +66,7 @@
 * [ ] while
 * [ ] until
 * [x] function
+* [x] ``[[ ]]``
 
 ## Builtins
 * [x] echo

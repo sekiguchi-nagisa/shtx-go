@@ -281,6 +281,8 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 		t.visitCaseClause(n)
 	case *syntax.FuncDecl:
 		t.visitFuncDecl(n)
+	case *syntax.TestClause:
+		t.visitTestExpr(n.X)
 	default:
 		t.fixmeCase(n.Pos(), n)
 	}
@@ -753,4 +755,80 @@ func (t *Translator) visitWordPartsWith(parts []syntax.WordPart, option WordPart
 
 func (t *Translator) visitWordParts(parts []syntax.WordPart) {
 	t.visitWordPartsWith(parts, WordPartOption{})
+}
+
+func (t *Translator) visitTestExpr(expr syntax.TestExpr) {
+	t.emit("(")
+	switch n := expr.(type) {
+	case *syntax.BinaryTest:
+		switch n.Op {
+		case syntax.AndTest:
+			t.visitTestExpr(n.X)
+			t.emit(" && ")
+			t.visitTestExpr(n.Y)
+		case syntax.OrTest:
+			t.visitTestExpr(n.X)
+			t.emit(" || ")
+			t.visitTestExpr(n.Y)
+		case syntax.TsReMatch:
+			t.todo(n.Pos(), "support "+n.Op.String())
+		case syntax.TsMatch, syntax.TsMatchShort, syntax.TsNoMatch:
+			if n.Op == syntax.TsNoMatch {
+				t.emit("!")
+			}
+			t.emit("$__shtx_glob_match(@( ")
+			switch left := n.X.(type) {
+			case *syntax.Word:
+				t.visitWordPartsWith(left.Parts, WordPartOption{singleWord: true})
+			default:
+				t.fixmeCase(left.Pos(), left)
+			}
+			t.emit(" ")
+			switch right := n.Y.(type) {
+			case *syntax.Word:
+				t.visitWordPartsWith(right.Parts, WordPartOption{pattern: true})
+			default:
+				t.fixmeCase(right.Pos(), right)
+			}
+			t.emit(" ))")
+		default:
+			t.emit("test ")
+			switch left := n.X.(type) {
+			case *syntax.Word:
+				t.visitWordPartsWith(left.Parts, WordPartOption{singleWord: true})
+			default:
+				t.fixmeCase(left.Pos(), left)
+			}
+			t.emit(" \"")
+			t.emit(n.Op.String())
+			t.emit("\" ")
+			switch right := n.Y.(type) {
+			case *syntax.Word:
+				t.visitWordPartsWith(right.Parts, WordPartOption{singleWord: true})
+			default:
+				t.fixmeCase(right.Pos(), right)
+			}
+		}
+	case *syntax.UnaryTest:
+		if n.Op == syntax.TsNot {
+			t.emit("!")
+			t.visitTestExpr(n.X)
+		} else { // use test command
+			t.emit("test ")
+			t.emit(n.Op.String())
+			t.emit(" ")
+			switch n2 := n.X.(type) {
+			case *syntax.Word:
+				t.visitWordPartsWith(n2.Parts, WordPartOption{singleWord: true})
+			default:
+				t.fixmeCase(n2.Pos(), n2)
+			}
+		}
+	case *syntax.ParenTest:
+		t.visitTestExpr(n.X)
+	case *syntax.Word:
+		t.emit("test ")
+		t.visitWordPartsWith(n.Parts, WordPartOption{singleWord: true})
+	}
+	t.emit(")")
 }

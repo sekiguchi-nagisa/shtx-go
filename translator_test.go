@@ -448,6 +448,18 @@ esac
   __shtx_var_set AAA ${{__shtx_var_get $? '*'; $REPLY; }}
 }
 `},
+	"test-expr1": {`[[ $HOME && ! ($HOME == *.txt) ]]`, `{
+  ((test ${{__shtx_var_get $? 'HOME'; $REPLY; }}) && (!(($__shtx_glob_match(@( ${{__shtx_var_get $? 'HOME'; $REPLY; }} "*.txt" ))))))
+}
+`},
+	"test-expr2": {`[[ -x $BASH || $BASH != 'bash' ]]`, `{
+  ((test -x ${{__shtx_var_get $? 'BASH'; $REPLY; }}) || (!$__shtx_glob_match(@( ${{__shtx_var_get $? 'BASH'; $REPLY; }} $__shtx_escape_glob_meta('bash') ))))
+}
+`},
+	"test-expr3": {`[[ 1234 < 4567 ]]`, `{
+  (test "1234" "<" "4567")
+}
+`},
 }
 
 func TestEval(t *testing.T) {
