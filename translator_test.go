@@ -242,8 +242,16 @@ false;
   (((true 1 && false 1) || true 2) && false 2)
 }
 `},
-	"negate": {`! echo hello`, `{
+	"negate1": {`! echo hello`, `{
   ! echo hello
+}
+`},
+	"negate2": {`! ls | grep ds`, `{
+  ! (ls | grep ds)
+}
+`},
+	"negate3": {`! [[ -e ~/test ]]`, `{
+  ! (test -e ~"/test")
 }
 `},
 	"group": {

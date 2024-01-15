@@ -228,10 +228,11 @@ func (t *Translator) visitStmts(stmts []*syntax.Stmt) {
 
 func (t *Translator) visitStmt(stmt *syntax.Stmt) {
 	if stmt.Negated {
-		if _, ok := stmt.Cmd.(*syntax.CallExpr); ok {
+		switch n := stmt.Cmd.(type) {
+		case *syntax.CallExpr, *syntax.DeclClause, *syntax.BinaryCmd, *syntax.TestClause:
 			t.emit("! ")
-		} else {
-			t.todo(stmt.Pos(), "support !")
+		default:
+			t.fixmeCase(n.Pos(), n)
 		}
 	}
 	t.visitCommand(stmt.Cmd, stmt.Redirs)
