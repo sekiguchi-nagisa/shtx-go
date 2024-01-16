@@ -752,6 +752,8 @@ fake_eval() {
         defer { $__shtx_restore_context($ctx); }
         $MODULE._func($output)()
     } catch e : _SHError {
+        var m = $e.message()
+        if !$m.empty() { echo 1>&2 $m; }
         return $e.status()
     } catch e : Error {
         $e.show()
@@ -792,6 +794,8 @@ fake_source() {
         var func = $MODULE._func($output)()! as ([String]) -> Void
         $func($@)
     } catch e : _SHError {
+        var m = $e.message()
+        if !$m.empty() { echo 1>&2 $m; }
         return $e.status()
     } catch e : Error {
         $e.show()
