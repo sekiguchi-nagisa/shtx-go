@@ -60,20 +60,22 @@ type Offset struct {
 }
 
 type Translator struct {
-	in            []byte    // original input buffer
-	out           io.Writer // for output
-	dump          io.Writer // for parsed ast dump
-	tranType      TranslationType
-	offset        Offset
-	indentLevel   int
-	funcLevel     int
-	caseExprCount int
-	errorCallback ErrorCallback
+	in              []byte    // original input buffer
+	out             io.Writer // for output
+	dump            io.Writer // for parsed ast dump
+	tranType        TranslationType
+	offset          Offset
+	indentLevel     int
+	funcLevel       int
+	caseExprCount   int
+	errorCallback   ErrorCallback
+	staticReturnMap map[*syntax.CallExpr]struct{}
 }
 
 func NewTranslator(tt TranslationType) *Translator {
 	return &Translator{
-		tranType: tt,
+		tranType:        tt,
+		staticReturnMap: make(map[*syntax.CallExpr]struct{}),
 	}
 }
 
@@ -178,7 +180,7 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 		t.visitStmts(f.Stmts)
 		t.emitLine("}")
 	case TranslateSource:
-		t.emitLine("function(argv : [String]) => {")
+		t.emitLine("function(argv: [String]): Int => {")
 		t.indentLevel++
 		t.indent()
 		t.emitLine("let old_argv = $__shtx_set_argv($argv)")
@@ -186,6 +188,10 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 		t.emitLine("defer { $__shtx_set_argv($old_argv); }")
 		t.indentLevel--
 		t.visitStmts(f.Stmts)
+		t.indentLevel++
+		t.indent()
+		t.emitLine("return $?")
+		t.indentLevel--
 		t.emitLine("}")
 	case TranslatePattern:
 		re := GlobToRegex(string(buf))
@@ -451,7 +457,21 @@ func (t *Translator) visitCaseClause(clause *syntax.CaseClause) {
 	t.emit("}")
 }
 
+func (t *Translator) resolveStaticReturn(funcBody *syntax.Stmt) {
+	switch n := funcBody.Cmd.(type) {
+	case *syntax.CallExpr:
+		if t.isStaticReturn(n.Args) {
+			t.staticReturnMap[n] = struct{}{}
+		}
+	case *syntax.Block:
+		if size := len(n.Stmts); size > 0 {
+			t.resolveStaticReturn(n.Stmts[size-1])
+		}
+	}
+}
+
 func (t *Translator) visitFuncDecl(clause *syntax.FuncDecl) {
+	t.funcLevel++
 	t.emit("$__shtx_func('")
 	t.emit(clause.Name.Value) // FIXME: escape command name
 	t.emitLine("', (){")
@@ -461,11 +481,20 @@ func (t *Translator) visitFuncDecl(clause *syntax.FuncDecl) {
 	t.indent()
 	t.emitLine("defer { $__shtx_exit_func($ctx); }")
 	t.indent()
+	t.emitLine("try {")
+	t.indentLevel++
+	t.indent()
+	t.resolveStaticReturn(clause.Body)
 	t.visitStmt(clause.Body)
-	t.indentLevel--
 	t.newline()
+	t.indentLevel--
+	t.indent()
+	t.emitLine("} catch e: _Return { return $e.status(); }")
+	t.indentLevel--
 	t.indent()
 	t.emit("})")
+	t.funcLevel--
+	t.staticReturnMap = make(map[*syntax.CallExpr]struct{}) // clear map
 }
 
 func toLiteralCmdName(word *syntax.Word) string {
@@ -486,6 +515,7 @@ var cmdNameReplacement = map[string]string{
 	"shift":   "__shtx_shift",
 	"read":    "__shtx_read",
 	"printf":  "__shtx_printf",
+	"return":  "__shtx_return",
 	"eval":    "fake_eval",
 	".":       "fake_source",
 	"source":  "fake_source",
@@ -510,11 +540,34 @@ func (t *Translator) visitCmdName(word *syntax.Word) {
 	}
 }
 
+var ReIdentifier = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+var RePositional = regexp.MustCompile(`^[0-9]+$`)
+
+func (t *Translator) isStaticReturn(args []*syntax.Word) bool {
+	return len(args) > 0 && len(args) <= 2 && args[0].Lit() == "return" && !t.isToplevel()
+}
+
 func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 	envAssign := len(expr.Args) > 0
 	t.visitAssigns(expr.Assigns, envAssign)
 	if len(expr.Assigns) > 0 && envAssign {
 		t.emit(" ")
+	}
+
+	if _, v := t.staticReturnMap[expr]; v {
+		t.emit("return")
+		if len(expr.Args) == 2 {
+			t.emit(" ")
+			word := expr.Args[1].Lit()
+			if RePositional.MatchString(word) {
+				t.emit(word)
+			} else { //FIXME: perform expansion?
+				t.emit("{ var s='';s=")
+				t.visitWordPartsWith(expr.Args[1].Parts, WordPartOption{singleWord: true})
+				t.emit("; $__shtx_parse_status($s); }")
+			}
+		}
+		return
 	}
 	for i, arg := range expr.Args {
 		if i == 0 {
@@ -525,9 +578,6 @@ func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 		}
 	}
 }
-
-var ReIdentifier = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
-var RePositional = regexp.MustCompile(`^[0-9]*$`)
 
 func isVarName(name string) bool {
 	return ReIdentifier.MatchString(name)

@@ -13,9 +13,9 @@
 
 ## Shell Variables (affect shell behavior)
 
-* [ ] `IFS`
+* [x] `IFS`
     * [x] global
-    * [ ] local
+    * [x] local
 * [ ] `PS1`
 * [ ] `PROMPT_COMMAND`
 
@@ -94,4 +94,9 @@
     * not support options
 * [x] declare
 * [x] local
+* [ ] return
+    * [x] return from function
+    * [ ] return from sourced
+* [ ] break
+* [ ] continue
 * [ ] trap

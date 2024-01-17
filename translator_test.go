@@ -342,7 +342,9 @@ fi
   $__shtx_func('hoge', (){
     let ctx = $__shtx_enter_func($0, $@)
     defer { $__shtx_exit_func($ctx); }
-    true
+    try {
+      true
+    } catch e: _Return { return $e.status(); }
   })
 }
 `},
@@ -350,9 +352,11 @@ fi
   $__shtx_func('hoge', (){
     let ctx = $__shtx_enter_func($0, $@)
     defer { $__shtx_exit_func($ctx); }
-    {
-      echo hello
-    } with > /dev/null
+    try {
+      {
+        echo hello
+      } with > /dev/null
+    } catch e: _Return { return $e.status(); }
   })
 }
 `},
@@ -360,10 +364,12 @@ fi
   $__shtx_func('ff', (){
     let ctx = $__shtx_enter_func($0, $@)
     defer { $__shtx_exit_func($ctx); }
-    {
-      __shtx_local AAA BBB="12"
-      (__shtx_local CCC="12" && echo "${{__shtx_var_get $? 'CCC'; $REPLY; }}")
-    }
+    try {
+      {
+        __shtx_local AAA BBB="12"
+        (__shtx_local CCC="12" && echo "${{__shtx_var_get $? 'CCC'; $REPLY; }}")
+      }
+    } catch e: _Return { return $e.status(); }
   })
 }
 `},
@@ -468,6 +474,24 @@ esac
   (test "1234" "<" "4567")
 }
 `},
+	"return1": {`test -e 23 || return $?; return 56`, `{
+  (test -e 23 || __shtx_return ${{__shtx_var_get $? '?'; $REPLY; }})
+  __shtx_return 56
+}
+`},
+	"return2": {`fff() { return 12; return 34; }`, `{
+  $__shtx_func('fff', (){
+    let ctx = $__shtx_enter_func($0, $@)
+    defer { $__shtx_exit_func($ctx); }
+    try {
+      {
+        __shtx_return 12
+        return 34
+      }
+    } catch e: _Return { return $e.status(); }
+  })
+}
+`},
 }
 
 func TestEval(t *testing.T) {
@@ -489,15 +513,24 @@ var sourceTestCases = map[string]struct {
 	before string
 	after  string
 }{
-	"empty": {``, `function(argv : [String]) => {
+	"empty": {``, `function(argv: [String]): Int => {
   let old_argv = $__shtx_set_argv($argv)
   defer { $__shtx_set_argv($old_argv); }
+  return $?
 }
 `},
-	"simple-command": {`echo hello`, `function(argv : [String]) => {
+	"simple-command": {`echo hello`, `function(argv: [String]): Int => {
   let old_argv = $__shtx_set_argv($argv)
   defer { $__shtx_set_argv($old_argv); }
   echo hello
+  return $?
+}
+`},
+	"return": {`return 34`, `function(argv: [String]): Int => {
+  let old_argv = $__shtx_set_argv($argv)
+  defer { $__shtx_set_argv($old_argv); }
+  __shtx_return 34
+  return $?
 }
 `},
 }

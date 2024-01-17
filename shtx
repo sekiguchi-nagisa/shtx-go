@@ -151,6 +151,7 @@ typedef _VarMap(_arg0 : String, _args : [String]) {
     var arg0 = $_arg0
     var args = $_args
     let entries : [String : _VarEntry]
+    let pid = $PID
 }
 
 # get variable entry. if entry is not found, but corresponding env is found, set and return entry
@@ -569,6 +570,28 @@ __shtx_printf() {
     }
 }
 
+function __shtx_parse_status(s : String) : Int {
+    if let r = $s.toInt() {
+        return $r
+    }
+    $_error("return", "numeric argument required")
+    return 2
+}
+
+typedef _Return : Error
+
+__shtx_return() {
+    if !$_VARS.inFunc() {  # FIXME: check sourced
+        $_error('return', 'return is only available in function or sourced script')
+        return 1
+    }
+    var status = $@.size() > 0 ? $__shtx_parse_status($1) : $?
+    if $PID != $_VARS.locals.peek().pid { # in subshell
+        _exit $status
+    }
+    throw new _Return('', $status)
+}
+
 # dynamically resolve command name
 __shtx_dyna_call() {
     $@.empty() && return 0
@@ -593,6 +616,7 @@ __shtx_dyna_call() {
         'shift' => '__shtx_shift'
         'read' => '__shtx_read'
         'printf' => '__shtx_printf'
+        'return' => '__shtx_return'
         'eval' => 'fake_eval'
         '.' | 'source' => 'fake_source'
         else => $cmd
@@ -752,8 +776,7 @@ fake_eval() {
         defer { $__shtx_restore_context($ctx); }
         $MODULE._func($output)()
     } catch e : _SHError {
-        var m = $e.message()
-        if !$m.empty() { echo 1>&2 $m; }
+        echo 1>&2 ${$e.message()}
         return $e.status()
     } catch e : Error {
         $e.show()
@@ -791,11 +814,10 @@ fake_source() {
     try {
         let ctx = $__shtx_setup_context()
         defer { $__shtx_restore_context($ctx); }
-        var func = $MODULE._func($output)()! as ([String]) -> Void
-        $func($@)
+        var func = $MODULE._func($output)()! as ([String]) -> Int
+        return $func($@)
     } catch e : _SHError {
-        var m = $e.message()
-        if !$m.empty() { echo 1>&2 $m; }
+        echo 1>&2 ${$e.message()}
         return $e.status()
     } catch e : Error {
         $e.show()
