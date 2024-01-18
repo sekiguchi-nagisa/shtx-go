@@ -87,7 +87,7 @@ false;
 }
 `},
 	"back-quote-escape": {"printf '%s\\n'  \"`echo \\\"$BASH\\\"`\"", `{
-  __shtx_printf '%s\n' "$(echo "${{__shtx_var_get $? 'BASH'; $REPLY; }}")"
+  __shtx_printf '%s\n' "$(echo "${$__shtx_get_var(@( 'BASH' ))}")"
 }
 `},
 	"cmd-sub": {`"$(echo "$(echo AAA; echo BBB)")"`, `{
@@ -98,7 +98,7 @@ false;
 }
 `},
 	"env-assign1": {`AAA=12 BBB="$(false)" CCC=`, `{
-  __shtx_var_set AAA "12"; __shtx_var_set BBB "$(false)"; __shtx_var_set CCC 
+  $__shtx_set_var(@( AAA "12" )); $__shtx_set_var(@( BBB "$(false)" )); $__shtx_set_var(@( CCC  ))
 }
 `},
 	"env_assign2": {
@@ -107,7 +107,7 @@ false;
 }
 `},
 	"param-expand": {`echo "$AAA" ge"(${GGG}}"`, `{
-  echo "${{__shtx_var_get $? 'AAA'; $REPLY; }}" ge"(${{__shtx_var_get $? 'GGG'; $REPLY; }}}"
+  echo "${$__shtx_get_var(@( 'AAA' ))}" ge"(${$__shtx_get_var(@( 'GGG' ))}}"
 }
 `},
 	"escaped-simple-command": {`\ls -la`, `{
@@ -167,7 +167,7 @@ false;
 }
 `},
 	"builtin-read": {`read $?`, `{
-  __shtx_read ${{__shtx_var_get $? '?'; $REPLY; }}
+  __shtx_read ${$__shtx_get_var(@( '?' ))}
 }
 `},
 	"non-callable-command1": {`__shtx_printf`, `{
@@ -187,25 +187,25 @@ false;
 }
 `},
 	"special-param1": {`echo "$#: $0: $1 ${002}"`, `{
-  echo "${{__shtx_var_get $? '#'; $REPLY; }}: ${{__shtx_var_get $? '0'; $REPLY; }}: ${{__shtx_var_get $? '1'; $REPLY; }} ${{__shtx_var_get $? '002'; $REPLY; }}"
+  echo "${$__shtx_get_var(@( '#' ))}: ${$__shtx_get_var(@( '0' ))}: ${$__shtx_get_var(@( '1' ))} ${$__shtx_get_var(@( '002' ))}"
 }
 `},
 	"special-param2": {`echo $#: "$0: $1 ${002}"`, `{
-  echo ${{__shtx_var_get $? '#'; $REPLY; }}: "${{__shtx_var_get $? '0'; $REPLY; }}: ${{__shtx_var_get $? '1'; $REPLY; }} ${{__shtx_var_get $? '002'; $REPLY; }}"
+  echo ${$__shtx_get_var(@( '#' ))}: "${$__shtx_get_var(@( '0' ))}: ${$__shtx_get_var(@( '1' ))} ${$__shtx_get_var(@( '002' ))}"
 }
 `},
 	"special-param3": {
 		`echo "$?"`, `{
-  echo "${{__shtx_var_get $? '?'; $REPLY; }}"
+  echo "${$__shtx_get_var(@( '?' ))}"
 }
 `},
 	"special-param4": {`echo "$?"`, `{
-  echo "${{__shtx_var_get $? '?'; $REPLY; }}"
+  echo "${$__shtx_get_var(@( '?' ))}"
 }
 `},
 	"special-param5": {
 		`printf "$*"`, `{
-  __shtx_printf "${{__shtx_var_get $? '*'; $REPLY; }}"
+  __shtx_printf "${$__shtx_get_var(@( '*' ))}"
 }
 `},
 	"special-param6": {`echo "$@"`, `{
@@ -224,7 +224,7 @@ false;
   echo $__shtx_concat(new [Any]()
     .add( @(23"4")[0] )
     .add($__shtx_get_args())
-    .add( @("5${{__shtx_var_get $? '?'; $REPLY; }}"6)[0] )
+    .add( @("5${$__shtx_get_var(@( '?' ))}"6)[0] )
   )
 }
 `},
@@ -323,19 +323,19 @@ fi
 }
 `},
 	"param-expand-op1": {`echo "${hoge:-45}"`, `{
-  echo "${{__shtx_var_get $? 'hoge' ':-' 45; $REPLY; }}"
+  echo "${$__shtx_get_var(@( 'hoge' ':-' 45 ))}"
 }
 `},
 	"param-expand-op2": {`echo "${45-hoge}"`, `{
-  echo "${{__shtx_var_get $? '45' '-' hoge; $REPLY; }}"
+  echo "${$__shtx_get_var(@( '45' '-' hoge ))}"
 }
 `},
 	"param-expand-op3": {`echo "${?:?hoge}"`, `{
-  echo "${{__shtx_var_get $? '?' ':?' hoge; $REPLY; }}"
+  echo "${$__shtx_get_var(@( '?' ':?' hoge ))}"
 }
 `},
 	"param-expand-op4": {`echo "${var=}"`, `{
-  echo "${{__shtx_var_get $? 'var' '=' ; $REPLY; }}"
+  echo "${$__shtx_get_var(@( 'var' '='  ))}"
 }
 `},
 	"function1": {`function hoge() true`, `{
@@ -367,7 +367,7 @@ fi
     try {
       {
         __shtx_local AAA BBB="12"
-        (__shtx_local CCC="12" && echo "${{__shtx_var_get $? 'CCC'; $REPLY; }}")
+        (__shtx_local CCC="12" && echo "${$__shtx_get_var(@( 'CCC' ))}")
       }
     } catch e: _Return { return $e.status(); }
   })
@@ -384,11 +384,11 @@ shell|rehash) echo match
 esac
 `, `{
   {
-    var case_1=''; case_1="${{__shtx_var_get $? '1'; $REPLY; }}"
+    var case_1=''; case_1="${$__shtx_get_var(@( '1' ))}"
     if $case_1 =~ $/^shell$/ || $case_1 =~ $/^rehash$/ {
       echo match
       {
-        var case_2=''; case_2="-${{__shtx_var_get $? '2'; $REPLY; }}"
+        var case_2=''; case_2="-${$__shtx_get_var(@( '2' ))}"
         if $case_2 =~ $/^-s$/ {
           echo '-s'
         }
@@ -417,7 +417,7 @@ esac
     if $__shtx_glob_match(@( $case_1 $__shtx_escape_glob_meta("1234") )) || $__shtx_glob_match(@( $case_1 $__shtx_escape_glob_meta('5678') )) {
       echo 1
     }
-    elif $__shtx_glob_match(@( $case_1 $__shtx_escape_glob_meta("${{__shtx_var_get $? 'HOME'; $REPLY; }}") )) {
+    elif $__shtx_glob_match(@( $case_1 $__shtx_escape_glob_meta("${$__shtx_get_var(@( 'HOME' ))}") )) {
       echo 2
     }
     elif $__shtx_glob_match(@( $case_1 ~"root" )) {
@@ -434,40 +434,40 @@ esac
 `},
 	"assign-param-expand": {
 		`AAA=$aaa`, `{
-  __shtx_var_set AAA ${{__shtx_var_get $? 'aaa'; $REPLY; }}
+  $__shtx_set_var(@( AAA ${$__shtx_get_var(@( 'aaa' ))} ))
 }
 `},
 	"assign-cmdsub": {
 		`AAA=$(echo a b c)`, `{
-  __shtx_var_set AAA "$(echo a b c)"
+  $__shtx_set_var(@( AAA "$(echo a b c)" ))
 }
 `},
 	"assign-glob": {
 		`AAA=*\*`, `{
-  __shtx_var_set AAA "**"
+  $__shtx_set_var(@( AAA "**" ))
 }
 `},
 	"assign-special1": {
 		`AAA=$@`, `{
-  __shtx_var_set AAA ${{__shtx_var_get $? '@'; $REPLY; }}
+  $__shtx_set_var(@( AAA ${$__shtx_get_var(@( '@' ))} ))
 }
 `},
 	"assign-special2": {
 		`AAA="$@"`, `{
-  __shtx_var_set AAA "${{__shtx_var_get $? '@'; $REPLY; }}"
+  $__shtx_set_var(@( AAA "${$__shtx_get_var(@( '@' ))}" ))
 }
 `},
 	"assign-special3": {
 		`AAA=$*`, `{
-  __shtx_var_set AAA ${{__shtx_var_get $? '*'; $REPLY; }}
+  $__shtx_set_var(@( AAA ${$__shtx_get_var(@( '*' ))} ))
 }
 `},
 	"test-expr1": {`[[ $HOME && ! ($HOME == *.txt) ]]`, `{
-  ((test ${{__shtx_var_get $? 'HOME'; $REPLY; }}) && (!(($__shtx_glob_match(@( ${{__shtx_var_get $? 'HOME'; $REPLY; }} "*.txt" ))))))
+  ((test ${$__shtx_get_var(@( 'HOME' ))}) && (!(($__shtx_glob_match(@( ${$__shtx_get_var(@( 'HOME' ))} "*.txt" ))))))
 }
 `},
 	"test-expr2": {`[[ -x $BASH || $BASH != 'bash' ]]`, `{
-  ((test -x ${{__shtx_var_get $? 'BASH'; $REPLY; }}) || (!$__shtx_glob_match(@( ${{__shtx_var_get $? 'BASH'; $REPLY; }} $__shtx_escape_glob_meta('bash') ))))
+  ((test -x ${$__shtx_get_var(@( 'BASH' ))}) || (!$__shtx_glob_match(@( ${$__shtx_get_var(@( 'BASH' ))} $__shtx_escape_glob_meta('bash') ))))
 }
 `},
 	"test-expr3": {`[[ 1234 < 4567 ]]`, `{
@@ -475,7 +475,7 @@ esac
 }
 `},
 	"return1": {`test -e 23 || return $?; return 56`, `{
-  (test -e 23 || __shtx_return ${{__shtx_var_get $? '?'; $REPLY; }})
+  (test -e 23 || __shtx_return ${$__shtx_get_var(@( '?' ))})
   __shtx_return 56
 }
 `},

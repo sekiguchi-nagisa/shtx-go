@@ -432,22 +432,18 @@ function __shtx_define_vars(cmd: String, args: [String]) : Int {
 # +++++ runtime helper functions (starts with __shtx_) +++++
 
 # for global varibale access
-__shtx_var_get() {
-    # __shtx_var_get $? $param $op $word
-    var old = $1.toInt()!
-    var param = $2
-    var op = $3
-    var word = $4
-    $? = $old
-    $REPLY = $__shtx_var_get_impl($param, $op, $word)
-    return $old
+function __shtx_get_var(args: [String]): String {
+    var param = $args[0]
+    var op = $args.get(1) ?? ''
+    var word = $args.get(2) ?? ''
+    return $__shtx_var_get_impl($param, $op, $word)
 }
 
-__shtx_var_set() {
-    var param = $1 :- return 0
-    var word = $2
+function __shtx_set_var(args: [String]): Bool {
+    var param = $args[0] :- return $true
+    var word = $args.get(1) ?? ''
     $_VARS.put($param, $word)
-    return 0
+    return $true
 }
 
 # for bash declare command
@@ -557,7 +553,7 @@ __shtx_read() {
     let ifs = if let entry = $_VARS.get('IFS', $false) { $entry.get(); } else { $none; } ?? $' \t\n'
     IFS=$ifs read $@
     for k, v in $reply {
-        __shtx_var_set $k $v
+        $_VARS.put($k, $v)
     }
     $_VARS.put('REPLY', $REPLY)
 }
@@ -566,7 +562,7 @@ __shtx_printf() {
     $reply.clear()
     printf $@
     for k,v in $reply {
-        __shtx_var_set $k $v
+        $_VARS.put($k, $v)
     }
 }
 

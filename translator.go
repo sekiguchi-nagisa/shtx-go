@@ -357,12 +357,13 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 			if i > 0 {
 				t.emit("; ")
 			}
-			t.emit("__shtx_var_set ")
+			t.emit("$__shtx_set_var(@( ")
 			t.emit(assign.Name.Value)
 			t.emit(" ")
 			if assign.Value != nil {
 				t.visitWordPartsWith(assign.Value.Parts, WordPartOption{singleWord: true})
 			}
+			t.emit(" ))")
 		}
 	}
 }
@@ -647,7 +648,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 		_ = n.Repl != nil && t.todo(n.Pos(), "not support ${a/x/y}")
 		_ = n.Names != 0 && t.todo(n.Pos(), "not support ${!prefix*}")
 		_ = !isValidParamName(n.Param.Value) && t.todo(n.Param.Pos(), "unsupported param name: "+n.Param.Value)
-		t.emit("${{__shtx_var_get $? '")
+		t.emit("${$__shtx_get_var(@( '")
 		t.emit(n.Param.Value)
 		t.emit("'")
 		if n.Exp != nil {
@@ -658,7 +659,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 				t.visitWordParts(n.Exp.Word.Parts)
 			}
 		}
-		t.emit("; $REPLY; }}")
+		t.emit(" ))}")
 	case *syntax.CmdSubst:
 		_ = n.TempFile && t.todo(n.Pos(), "not support ${")
 		_ = n.ReplyVar && t.todo(n.Pos(), "not support ${|")
