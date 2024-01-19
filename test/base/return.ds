@@ -1,0 +1,55 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+assert_fake_eval '
+fff() { AAA=$(return 56); echo "$?"; }
+fff
+' '56'
+
+assert "$(fake_eval '
+ff() { return hoge; }
+ff
+' 2>&1)" == 'bash: return: numeric argument required'
+assert $? == 2
+
+assert "$(fake_eval '
+ff() { return 0xFF; }
+ff
+' 2>&1)" == 'bash: return: numeric argument required'
+assert $? == 2
+
+assert "$(fake_eval '
+return 45
+' 2>&1)" == 'bash: return: only available in function or sourced script'
+assert $? == 1
+
+assert_fake_eval '
+ff() { return 300; }
+gg() { return; }
+
+ff
+echo "$?"
+false
+gg
+echo "$?"
+' '44
+1'
+
+assert_fake_eval '
+fff() { return "$1"; }
+fff 23
+echo "$?"
+fff 300
+echo "$?"
+fff 0
+echo "$?"
+' '23
+44
+0'
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

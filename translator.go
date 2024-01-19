@@ -74,8 +74,7 @@ type Translator struct {
 
 func NewTranslator(tt TranslationType) *Translator {
 	return &Translator{
-		tranType:        tt,
-		staticReturnMap: make(map[*syntax.CallExpr]struct{}),
+		tranType: tt,
 	}
 }
 
@@ -143,6 +142,7 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 	t.indentLevel = 0
 	t.funcLevel = 0
 	t.caseExprCount = 0
+	t.staticReturnMap = make(map[*syntax.CallExpr]struct{})
 
 	// parse
 	var f *syntax.File
@@ -541,11 +541,8 @@ func (t *Translator) visitCmdName(word *syntax.Word) {
 	}
 }
 
-var ReIdentifier = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
-var RePositional = regexp.MustCompile(`^[0-9]+$`)
-
 func (t *Translator) isStaticReturn(args []*syntax.Word) bool {
-	return len(args) > 0 && len(args) <= 2 && args[0].Lit() == "return" && !t.isToplevel()
+	return len(args) == 2 && args[0].Lit() == "return" && !t.isToplevel()
 }
 
 func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
@@ -560,8 +557,11 @@ func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 		if len(expr.Args) == 2 {
 			t.emit(" ")
 			word := expr.Args[1].Lit()
-			if RePositional.MatchString(word) {
-				t.emit(word)
+			if n, e := strconv.ParseInt(word, 10, 64); e == nil {
+				t.emit(strconv.FormatInt(n, 10))
+				if n < 0 || n > 255 {
+					t.emit(" and 255")
+				}
 			} else { //FIXME: perform expansion?
 				t.emit("{ var s='';s=")
 				t.visitWordPartsWith(expr.Args[1].Parts, WordPartOption{singleWord: true})
@@ -579,6 +579,9 @@ func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 		}
 	}
 }
+
+var ReIdentifier = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+var RePositional = regexp.MustCompile(`^[0-9]+$`)
 
 func isVarName(name string) bool {
 	return ReIdentifier.MatchString(name)

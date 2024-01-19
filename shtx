@@ -572,8 +572,8 @@ __shtx_printf() {
 }
 
 function __shtx_parse_status(s : String) : Int {
-    if let r = $s.toInt() {
-        return $r
+    if let r = $s.toInt(10) {
+        return $r and 255
     }
     $_error("return", "numeric argument required")
     return 2
@@ -583,7 +583,7 @@ typedef _Return : Error
 
 __shtx_return() {
     if !$_VARS.inFunc() {  # FIXME: check sourced
-        $_error('return', 'return is only available in function or sourced script')
+        $_error('return', 'only available in function or sourced script')
         return 1
     }
     var status = $@.size() > 0 ? $__shtx_parse_status($1) : $?
