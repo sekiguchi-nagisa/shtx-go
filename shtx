@@ -667,6 +667,8 @@ function __shtx_setup_context() : _Context? {
 }
 
 function __shtx_restore_context($ctx : _Context?) {
+    let old = $?
+    defer { $? = $old; }
     if let c = $ctx {
         $CMD_FALLBACK = $c.fallback
         shctl set -r ${c.option}
@@ -719,6 +721,8 @@ function __shtx_glob_match(values : [String]): Bool {
     if $_GLOB_META !~ $pattern {  # fast path (no glob meta)
         return $value == $pattern
     }
+    let old = $?
+    defer { $? = $old; }
     var re = $_GLOB2RE_CACHE.get($pattern) ?? { # translate glob to regex
         __shtx_detect_bin
         var re = try {
