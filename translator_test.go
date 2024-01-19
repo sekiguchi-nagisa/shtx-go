@@ -46,6 +46,10 @@ false;
   __shtx_dyna_call "echo" "hello"\ \ 'world'
 }
 `},
+	"non-literal-command3": {`2to3`, `{
+  __shtx_dyna_call 2to3
+}
+`},
 	"redirection1": {"echo 1>& 3", `{
   echo 1>& 3
 }
@@ -163,7 +167,7 @@ false;
 `},
 
 	"builtin-test3": {`\\[ -n hoge ]`, `{
-  \\[ -n hoge ]
+  __shtx_dyna_call \\[ -n hoge ]
 }
 `},
 	"builtin-read": {`read $?`, `{

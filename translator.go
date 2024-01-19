@@ -498,13 +498,18 @@ func (t *Translator) visitFuncDecl(clause *syntax.FuncDecl) {
 	t.staticReturnMap = make(map[*syntax.CallExpr]struct{}) // clear map
 }
 
+var ReCmdName = regexp.MustCompile(`^[_a-zA-Z][_a-zA-Z0-9-]*$`)
+
 func toLiteralCmdName(word *syntax.Word) string {
 	literal := word.Lit()
 	unescaped := unescapeCmdName(literal)
 	if strings.HasPrefix(unescaped, "__shtx_") || strings.HasPrefix(unescaped, "fake_") {
 		return ""
 	}
-	return literal //FIXME: check literal format
+	if unescaped == "[" || unescaped == ":" || ReCmdName.MatchString(unescaped) {
+		return literal
+	}
+	return ""
 }
 
 var cmdNameReplacement = map[string]string{
