@@ -18,7 +18,7 @@
 # +++++ public configuration variables (starts with SHTX_) ++++++
 
 # if true, use current shtx-go binary
-var SHTX_DEV_MODE = $false
+var SHTX_DEV_MODE = (checkenv SHTX_DEV_MODE)
 
 var SHTX_CRASH_DUMP = $false
 
@@ -36,7 +36,7 @@ __shtx_error() : Nothing {
 __shtx_detect_bin() {
     let suffix = ($OSTYPE == 'cygwin' || $OSTYPE == 'msys') ? ".exe" : ""
     let ostype = $suffix.empty() ? $OSTYPE : "windows"
-    if $SHTX_DEV_MODE || (checkenv SHTX_DEV_MODE) {
+    if $SHTX_DEV_MODE {
         command -v go &>> /dev/null || __shtx_error "require go binary"
         if !(test -x $SCRIPT_DIR/shtx-go$suffix) {
             # rebuild
