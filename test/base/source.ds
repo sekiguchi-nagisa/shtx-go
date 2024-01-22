@@ -17,6 +17,11 @@ assert_fake_eval '. ./scripts/arg_in_source.sh' \
 assert_fake_eval 'source ./scripts/return.sh' 'hello11'
 assert $? == 67
 
+assert_fake_eval 'source ./scripts/return2.sh' 'hello11
+<=67>
+hello22'
+assert $? == 123
+
 true
 
 # CHECK_RE: ^$

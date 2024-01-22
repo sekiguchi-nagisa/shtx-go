@@ -564,7 +564,7 @@ func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 		if len(expr.Args) == 2 {
 			t.emit(" ")
 			word := expr.Args[1].Lit()
-			if n, e := strconv.ParseInt(word, 10, 64); e == nil {
+			if n, e := strconv.ParseInt(word, 10, 32); e == nil {
 				t.emit(strconv.FormatInt(n, 10))
 				if n < 0 || n > 255 {
 					t.emit(" and 255")
