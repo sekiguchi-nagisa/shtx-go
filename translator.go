@@ -186,9 +186,11 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 		t.emitLine("let old_argv = $__shtx_set_argv($argv)")
 		t.indent()
 		t.emitLine("defer { $__shtx_set_argv($old_argv); }")
-		t.indentLevel--
+		t.indent()
+		t.emitLine("try {")
 		t.visitStmts(f.Stmts)
-		t.indentLevel++
+		t.indent()
+		t.emitLine("} catch e: _Return { return $e.status(); }")
 		t.indent()
 		t.emitLine("return $?")
 		t.indentLevel--

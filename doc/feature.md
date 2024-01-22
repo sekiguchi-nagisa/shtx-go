@@ -94,9 +94,9 @@
     * not support options
 * [x] declare
 * [x] local
-* [ ] return
+* [x] return
     * [x] return from function
-    * [ ] return from sourced
+    * [x] return from sourced
 * [ ] break
 * [ ] continue
 * [ ] trap

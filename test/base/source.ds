@@ -14,6 +14,10 @@ assert_fake_eval '\source ./scripts/arg_in_source.sh' \
 assert_fake_eval '. ./scripts/arg_in_source.sh' \
     'source=bash, args=aaa bbb ccc, len=4' aaa bbb ccc ddd
 
+assert_fake_eval 'source ./scripts/return.sh' 'hello11'
+assert $? == 67
+
+true
 
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$

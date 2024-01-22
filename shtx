@@ -579,15 +579,17 @@ function __shtx_parse_status(s : String) : Int {
     return 2
 }
 
+var _SOURCE_LEVEL = 0;
+
 typedef _Return : Error
 
 __shtx_return() {
-    if !$_VARS.inFunc() {  # FIXME: check sourced
+    if !$_VARS.inFunc() && $_SOURCE_LEVEL == 0 {
         $_error('return', 'only available in function or sourced script')
         return 1
     }
     var status = $@.size() > 0 ? $__shtx_parse_status($1) : $?
-    if $PID != $_VARS.locals.peek().pid { # in subshell
+    if $_VARS.inFunc() && $PID != $_VARS.locals.peek().pid { # in subshell
         _exit $status
     }
     throw new _Return('', $status)
@@ -783,6 +785,8 @@ fake_eval() {
     } catch e : _SHError {
         echo 1>&2 ${$e.message()}
         return $e.status()
+    } catch e: _Return {
+        throw $e  # propagate
     } catch e : Error {
         $e.show()
         $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)
@@ -818,7 +822,8 @@ fake_source() {
     }
     try {
         let ctx = $__shtx_setup_context()
-        defer { $__shtx_restore_context($ctx); }
+        $_SOURCE_LEVEL++
+        defer { $__shtx_restore_context($ctx); $_SOURCE_LEVEL--; }
         var func = $MODULE._func($output)()! as ([String]) -> Int
         return $func($@)
     } catch e : _SHError {

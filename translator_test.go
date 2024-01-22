@@ -520,20 +520,26 @@ var sourceTestCases = map[string]struct {
 	"empty": {``, `function(argv: [String]): Int => {
   let old_argv = $__shtx_set_argv($argv)
   defer { $__shtx_set_argv($old_argv); }
+  try {
+  } catch e: _Return { return $e.status(); }
   return $?
 }
 `},
 	"simple-command": {`echo hello`, `function(argv: [String]): Int => {
   let old_argv = $__shtx_set_argv($argv)
   defer { $__shtx_set_argv($old_argv); }
-  echo hello
+  try {
+    echo hello
+  } catch e: _Return { return $e.status(); }
   return $?
 }
 `},
 	"return": {`return 34`, `function(argv: [String]): Int => {
   let old_argv = $__shtx_set_argv($argv)
   defer { $__shtx_set_argv($old_argv); }
-  __shtx_return 34
+  try {
+    __shtx_return 34
+  } catch e: _Return { return $e.status(); }
   return $?
 }
 `},
