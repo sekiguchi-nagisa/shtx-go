@@ -1,0 +1,26 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+source $MODULE_DIR/repl_impl/prompt as p
+
+assert !checkenv AABZ
+fake_eval 'PROMPT_COMMAND="export AABZ=\"@\$AABZ\";"'
+assert $p.PRE_PROMPTS.size() == 1
+
+assert "$(fake_eval 'echo "$PROMPT_COMMAND"')" == 'export AABZ="@$AABZ";'
+
+$p.PRE_PROMPTS.peek()()
+assert checkenv AABZ
+assert { getenv AABZ; $REPLY; } == "@"
+
+$p.PRE_PROMPTS.peek()()
+assert checkenv AABZ
+assert { getenv AABZ; $REPLY; } == "@@"
+
+assert "$(fake_eval 'echo "$AABZ"')" == '@@'
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0
