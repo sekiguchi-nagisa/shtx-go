@@ -147,7 +147,7 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 	// parse
 	var f *syntax.File
 	switch t.tranType {
-	case TranslateEval, TranslateSource:
+	case TranslateEval, TranslateSource, TranslateNone:
 		f, err = t.parse(buf)
 		if err != nil {
 			return
@@ -159,7 +159,6 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 			_ = syntax.DebugPrint(t.dump, f)
 			_, _ = fmt.Fprintln(t.dump)
 		}
-	case TranslateNone:
 	case TranslatePattern: // do nothing
 	}
 
