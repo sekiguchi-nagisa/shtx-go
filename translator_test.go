@@ -90,8 +90,8 @@ false;
   echo "$(echo hello)"  A
 }
 `},
-	"back-quote-escape": {"printf '%s\\n'  \"`echo \\\"$BASH\\\"`\"", `{
-  __shtx_printf '%s\n' "$(echo "${$__shtx_get_var(@( 'BASH' ))}")"
+	"back-quote-escape1": {"printf '%s\\n'  \"`echo \\\"$BASH\\\" '\\\\@'`\"", `{
+  __shtx_printf '%s\n' "$(echo "${$__shtx_get_var(@( 'BASH' ))}" '\@')"
 }
 `},
 	"cmd-sub": {`"$(echo "$(echo AAA; echo BBB)")"`, `{

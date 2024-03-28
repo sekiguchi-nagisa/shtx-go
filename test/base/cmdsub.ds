@@ -15,6 +15,12 @@ assert_fake_eval '
    printf "<%s>\n" "$AAA"
 ' "<$(command -v bash)>"
 
+assert_fake_eval "$(cat << 'EOF'
+x="`echo "1.2" | sed -e 's/\./\\\\./g'`"
+echo "$x"
+EOF
+)" '1\.2'
+
 # comment
 assert_fake_eval \
     'echo `# echo ABC` DEF' "DEF"

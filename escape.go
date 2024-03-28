@@ -38,7 +38,7 @@ func unescapeDoubleQuoted(value string, removeAround bool) string {
 		if c == '\\' && i+1 < size {
 			next := runes[i+1]
 			switch next {
-			case '$', '`', '"':
+			case '$', '`', '"', '\\':
 				c = next
 				i++
 			case '\n':
