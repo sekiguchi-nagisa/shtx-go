@@ -1,6 +1,6 @@
 FROM opensuse/tumbleweed
 
-RUN zypper in -y pcre2-devel gcc-c++ cmake git ninja go1.20 diffutils
+RUN zypper in -y pcre2-devel gcc-c++ cmake git ninja go1.21 diffutils
 
 COPY . /home/tux/dev
 RUN git clone https://github.com/sekiguchi-nagisa/arsh.git
