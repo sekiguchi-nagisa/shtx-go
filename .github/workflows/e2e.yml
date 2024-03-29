@@ -6,20 +6,20 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: End-to-end test target
         uses: ./test/
 
   build-e2e-pyenv:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: pyenv test
         uses: ./test/e2e/pyenv
 
   build-e2e-venv:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: venv test
         uses: ./test/e2e/venv
