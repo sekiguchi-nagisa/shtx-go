@@ -22,7 +22,7 @@ jobs:
           cd arsh && cd build && cmake .. -G Ninja && cmake --build . && sudo cmake --build . -- install
           arsh -e shctl info
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '1.21'
       - name: Build Release Asset
