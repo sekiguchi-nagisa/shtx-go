@@ -4,8 +4,9 @@ RUN zypper in -y pcre2-devel gcc-c++ cmake git ninja go1.21 diffutils
 
 COPY . /home/tux/dev
 RUN git clone https://github.com/sekiguchi-nagisa/arsh.git
-RUN mkdir -p ./arsh/build
-RUN cd arsh && cd build && cmake .. -G Ninja && cmake --build . && cmake --build . -- install
+RUN zypper addrepo https://download.opensuse.org/repositories/home:nsekiguchi/openSUSE_Tumbleweed/home:nsekiguchi.repo && \
+    zypper refresh && \
+    zypper install arsh
 
 WORKDIR /home/tux/dev/
 CMD ls ./ && go build -buildvcs=false -v ./... && \
