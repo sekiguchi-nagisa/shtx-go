@@ -1,10 +1,10 @@
 FROM opensuse/tumbleweed
 
-RUN zypper in -y pcre2-devel gcc-c++ cmake git ninja go1.21 diffutils
+RUN zypper in -y pcre2 go1.21 diffutils
 
 COPY . /home/tux/dev
 RUN git clone https://github.com/sekiguchi-nagisa/arsh.git
-RUN zypper addrepo -y https://download.opensuse.org/repositories/home:nsekiguchi/openSUSE_Tumbleweed/home:nsekiguchi.repo && \
+RUN zypper addrepo --no-gpgcheck -f https://download.opensuse.org/repositories/home:nsekiguchi/openSUSE_Tumbleweed/home:nsekiguchi.repo && \
     zypper refresh && \
     zypper install -y arsh
 
