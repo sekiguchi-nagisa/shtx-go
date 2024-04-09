@@ -812,8 +812,8 @@ function __shtx_eval(input : String, caching: Bool) : Int {
     }
 }
 
-source $MODULE_DIR/repl_impl/prompt as __prompt
-$__prompt.PRE_PROMPTS.add(function() => {
+source $MODULE_DIR/repl as __repl
+$__repl.PRE_PROMPTS.add(function() => {
     var prompt_cmd = $_VARS.find('PROMPT_COMMAND') ?? return
     $prompt_cmd :- return
     $__shtx_eval($prompt_cmd, $true)
