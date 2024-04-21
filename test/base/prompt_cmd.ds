@@ -3,7 +3,7 @@
 source ../../shtx
 source ../common/assert.ds
 
-source $MODULE_DIR/repl_impl/prompt as p
+source $MODULE_DIR/repl as p
 
 assert !checkenv AABZ
 fake_eval 'PROMPT_COMMAND="export AABZ=\"@\$AABZ\";"'
