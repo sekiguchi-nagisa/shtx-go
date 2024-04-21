@@ -1,0 +1,69 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+# for [[ ]] expression
+
+assert_fake_eval '
+[[ aaa < bbb ]] && echo OK1
+[[ aaa > bbb ]] || echo NG1
+[[ ! (aaa < bbb) ]] || echo NG2
+! [[ aaa > bbb ]] && echo OK2
+[[ $HOME && -d "$HOME" && $HOME == "/*" ]] || echo NG3
+[[ $HOME && -d "$HOME" && $HOME == /* ]] && echo OK3
+[[ $HOME/hoge == ~/* ]] && echo OK4
+[[ "" ]] || echo NG4
+[[ $DHUEWHDH ]] || echo NG5
+[[ $? -eq 0 ]] && echo OK5
+' 'OK1
+NG1
+NG2
+OK2
+NG3
+OK3
+OK4
+NG4
+NG5
+OK5'
+
+# for regex operator '=~'
+
+assert_fake_eval "$(cat << 'EOF'
+pattern='\.'
+[[ . =~ $pattern ]] && echo match1
+[[ . =~ \. ]] && echo match2
+
+[[ . =~ "$pattern" ]] || echo unmatch1
+[[ . =~ '\.' ]] || echo unmatch2
+
+[[ '.' =~ [.] ]] && echo match3
+[[ '$' =~ [$] ]] && echo match4
+
+EOF
+)" 'match1
+match2
+unmatch1
+unmatch2
+match3
+match4'
+
+assert_fake_eval "$(cat << 'EOF'
+[[ 'aab' =~ [[:space:]]*(a)?b ]] && echo match1
+[[ ' aaaab' =~ [[:space:]]*(a)?b ]] && echo match2
+[[ 'xaby' =~ [[:space:]]*(a)?b ]] && echo match3
+
+[[ $BASH =~ bash ]] && echo match4
+! [[ $BASH =~ bash ]] || echo unmatch1
+
+EOF
+)" 'match1
+match2
+match3
+match4
+unmatch1'
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

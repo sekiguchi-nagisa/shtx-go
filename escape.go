@@ -82,6 +82,37 @@ func quoteCmdArgAsGlobStr(value string) string {
 	return sb.String()
 }
 
+func quoteCmdArgAsRegexStr(value string) string {
+	sb := strings.Builder{}
+	runes := []rune(value)
+	sb.Grow(len(runes))
+	index := 0
+	if len(runes) > 0 && runes[0] == '~' {
+		sb.WriteRune('~')
+		index++
+	}
+	sb.WriteRune('"')
+	for ; index < len(runes); index++ {
+		ch := runes[index]
+		if ch == '\\' {
+			if index+1 < len(runes) {
+				index++
+				next := runes[index]
+				switch next {
+				case '^', '$', '.', '-', '?', '*', '[', ']', '\\', '`', '"', '{', '}':
+					sb.WriteRune('\\')
+				}
+				ch = next
+			} else {
+				sb.WriteRune('\\')
+			}
+		}
+		sb.WriteRune(ch)
+	}
+	sb.WriteRune('"')
+	return sb.String()
+}
+
 func quoteCmdArgAsLiteralStr(value string) string {
 	sb := strings.Builder{}
 	sb.Grow(len(value))

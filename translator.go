@@ -41,7 +41,8 @@ type ErrorCallback func(e error)
 
 type WordPartOption struct {
 	dQuoted    bool
-	pattern    bool
+	pattern    bool // for glob
+	regex      bool // for =~
 	singleWord bool // not perform glob/brace expansion, field splitting
 }
 
@@ -614,6 +615,8 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 	case *syntax.Lit:
 		if option.pattern {
 			t.emit(quoteCmdArgAsGlobStr(n.Value))
+		} else if option.regex {
+			t.emit(quoteCmdArgAsRegexStr(n.Value))
 		} else if option.singleWord {
 			t.emit(quoteCmdArgAsLiteralStr(n.Value))
 		} else {
@@ -622,6 +625,8 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 	case *syntax.SglQuoted:
 		if option.pattern {
 			t.emit("$__shtx_escape_glob_meta(")
+		} else if option.regex {
+			t.emit("$__shtx_escape_regex_meta(")
 		}
 		if n.Dollar {
 			t.emit("$")
@@ -629,24 +634,26 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 		t.emit("'")
 		t.emit(n.Value)
 		t.emit("'")
-		if option.pattern {
+		if option.pattern || option.regex {
 			t.emit(")")
 		}
 	case *syntax.DblQuoted:
 		_ = n.Dollar // always ignore prefix dollar even if Dollar is true
 		if option.pattern {
 			t.emit("$__shtx_escape_glob_meta(")
+		} else if option.regex {
+			t.emit("$__shtx_escape_regex_meta(")
 		}
 		t.emit("\"")
 		for _, wordPart := range n.Parts {
 			t.visitWordPart(wordPart, WordPartOption{dQuoted: true})
 		}
 		t.emit("\"")
-		if option.pattern {
+		if option.pattern || option.regex {
 			t.emit(")")
 		}
 	case *syntax.ParamExp:
-		if n.Param.Value != "?" && n.Param.Value != "#" && !option.dQuoted && !option.pattern && !option.singleWord {
+		if n.Param.Value != "?" && n.Param.Value != "#" && !option.dQuoted && !option.pattern && !option.regex && !option.singleWord {
 			t.todo(n.Pos(), "support unquoted parameter expansion")
 		}
 		_ = n.Excl && t.todo(n.Pos(), "not support ${!a}")
@@ -679,7 +686,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 
 		stmts := n.Stmts
 
-		_ = !option.dQuoted && !option.pattern && !option.singleWord && t.todo(n.Pos(), "support unquoted command substitution")
+		_ = !option.dQuoted && !option.pattern && !option.regex && !option.singleWord && t.todo(n.Pos(), "support unquoted command substitution")
 		if option.dQuoted && n.Backquotes { // unescape and re-parse
 			tmpBuf := t.in[n.Pos().Offset()+1 : n.End().Offset()-1] // remove prefix and suffix back-quote
 			t.offset = Offset{                                      // adjust line num offset for better error message
@@ -694,7 +701,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 			stmts = f.Stmts
 		}
 
-		if option.pattern || option.singleWord {
+		if option.pattern || option.regex || option.singleWord {
 			t.emit("\"")
 		}
 		if len(stmts) == 1 {
@@ -707,7 +714,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 			t.indent()
 			t.emit("})")
 		}
-		if option.pattern || option.singleWord {
+		if option.pattern || option.regex || option.singleWord {
 			t.emit("\"")
 		}
 	default:
@@ -786,7 +793,7 @@ func (t *Translator) visitWordPartsWith(parts []syntax.WordPart, option WordPart
 		return
 	}
 
-	_ = option.pattern && t.todo(parts[0].Pos(), "pattern with array expand is not supported")
+	_ = (option.pattern || option.regex) && t.todo(parts[0].Pos(), "pattern with array expand is not supported")
 
 	// for `$@` or `$array[@]`
 	if isSimpleArgsExpand(parts) { // "$@"
@@ -832,7 +839,21 @@ func (t *Translator) visitTestExpr(expr syntax.TestExpr) {
 			t.emit(" || ")
 			t.visitTestExpr(n.Y)
 		case syntax.TsReMatch:
-			t.todo(n.Pos(), "support "+n.Op.String())
+			t.emit("$__shtx_regex_match(@( ")
+			switch left := n.X.(type) {
+			case *syntax.Word:
+				t.visitWordPartsWith(left.Parts, WordPartOption{singleWord: true})
+			default:
+				t.fixmeCase(left.Pos(), left)
+			}
+			t.emit(" ")
+			switch right := n.Y.(type) {
+			case *syntax.Word:
+				t.visitWordPartsWith(right.Parts, WordPartOption{regex: true})
+			default:
+				t.fixmeCase(right.Pos(), right)
+			}
+			t.emit(" ))")
 		case syntax.TsMatch, syntax.TsMatchShort, syntax.TsNoMatch:
 			if n.Op == syntax.TsNoMatch {
 				t.emit("!")

@@ -18,6 +18,9 @@
     * [x] local
 * [ ] `PS1`
 * [ ] `PROMPT_COMMAND`
+  * [x] string variable
+  * [ ] array variable
+* [ ] `BASH_REMATCH`
 
 ## Word Expansion
 
@@ -49,7 +52,7 @@
 
 * [x] `?`
 * [x] `*`
-* [ ] `[^a-z]`
+* [x] `[^a-z]`
 
 ## Commands
 

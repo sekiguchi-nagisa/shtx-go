@@ -765,6 +765,43 @@ function __shtx_escape_glob_meta(pattern : String) : String {
     return $ret
 }
 
+let _REGEX_CACHE : [String: Regex]
+
+function __shtx_regex_match(values: [String]): Bool {
+    let value = $values[0]
+    let pattern = $values[1]
+    var re = $_REGEX_CACHE.get($pattern) ?? {
+        var re = try { 
+            new Regex($pattern)
+        } catch e: RegexSyntaxError {
+            $e.show()
+            return $false
+        }
+
+        if $_REGEX_CACHE.size() == 32 { # remove old entry
+            var key = for k,_ in $_REGEX_CACHE { break $k; }
+            $_REGEX_CACHE.remove($key!)
+        }
+        $_REGEX_CACHE.put($pattern, $re)
+        $re
+    }
+    return $re =~ $value  # FIXME: store match results as string array
+}
+
+function __shtx_escape_regex_meta(pattern: String): String {
+    var ret = ""
+    let size = $pattern.size()
+    for(var i = 0; $i < $size; $i++) {
+        var ch = $pattern[$i]
+        case $ch {
+            '^' | '$' | '.' | '*' | '?' | '[' | ']' | '\' => { $ret += '\'; }
+        }
+        $ret += $ch
+    }
+    return $ret
+}
+
+
 let _EVAL_CODE_CACHE : [String : ()->Void]
 
 function __shtx_eval(input : String, caching: Bool) : Int {

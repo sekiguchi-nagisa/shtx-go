@@ -478,6 +478,14 @@ esac
   (test "1234" "<" "4567")
 }
 `},
+	"test-expr-regex1": {`[[ $BASH =~ b*sh ]]`, `{
+  ($__shtx_regex_match(@( ${$__shtx_get_var(@( 'BASH' ))} "b*sh" )))
+}
+`},
+	"test-expr-regex2": {`[[ $BASH =~ 'b*sh'$PID ]]`, `{
+  ($__shtx_regex_match(@( ${$__shtx_get_var(@( 'BASH' ))} $__shtx_escape_regex_meta('b*sh')${$__shtx_get_var(@( 'PID' ))} )))
+}
+`},
 	"return1": {`test -e 23 || return $?; return 56`, `{
   (test -e 23 || __shtx_return ${$__shtx_get_var(@( '?' ))})
   __shtx_return 56
