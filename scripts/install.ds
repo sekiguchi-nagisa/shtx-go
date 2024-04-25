@@ -6,6 +6,7 @@ shctl set errraise
 
 # get latest `shtx`
 echo "****" install shtx to $MODULE_HOME/shtx
+test -e $MODULE_HOME/shtx && rm $MODULE_HOME/shtx
 curl -fL https://github.com/sekiguchi-nagisa/shtx-go/releases/latest/download/shtx > $MODULE_HOME/shtx
 chmod +x $MODULE_HOME/shtx
 
@@ -19,6 +20,7 @@ let ostype = $suffix.empty() ? $OSTYPE : "windows"
 let bin = "shtx-go-$SHTX_VERSION-$ostype-$MACHTYPE$suffix"
 
 echo "****" install $bin to $MODULE_HOME/$bin
+test -e $MODULE_HOME/$bin && rm $MODULE_HOME/$bin
 curl -fL https://github.com/sekiguchi-nagisa/shtx-go/releases/latest/download/$bin > $MODULE_HOME/$bin
 chmod +x $MODULE_HOME/$bin
 if $OSTYPE == "darwin" && (ls -l@ $MODULE_HOME/$bin | grep 'com.apple.quarantine') {
