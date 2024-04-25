@@ -1,0 +1,104 @@
+
+source $SCRIPT_DIR/../../../shtx as shtx
+
+assert checkenv RUN_IN_CONTAINER  # guard
+
+assert !command -v pyenv
+
+source $MODULE_DIR/repl.arsh as repl
+preprompt() {
+    for a in $repl.PRE_PROMPTS {
+        $a()
+    }
+}
+
+shctl set errraise
+
+# setup pyenv
+git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+pushd ~/.pyenv
+git checkout v2.3.32
+popd
+
+# setup pyenv-virtualenv
+git clone https://github.com/pyenv/pyenv-virtualenv.git ~/.pyenv/plugins/pyenv-virtualenv
+pushd ~/.pyenv/plugins/pyenv-virtualenv
+git checkout v1.2.3
+popd
+
+shtx fake_source /dev/stdin << 'EOF'
+export PYENV_ROOT="$HOME/.pyenv"
+command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init - bash)"
+eval "$(pyenv virtualenv-init - bash)"
+
+EOF
+
+preprompt
+
+# install python
+assert command -v pyenv
+
+pyenv install graalpython-22.2.0
+pyenv install pypy3.10-7.3.13
+
+assert ! (python -V | grep 'GraalVM Python 3.8.5')
+assert ! (python -V | grep 'PyPy 7.3.13')
+
+## create venvs
+preprompt
+pyenv virtualenv graalpython-22.2.0 venv-graal1
+pyenv virtualenv pypy3.10-7.3.13 venv-pypy1
+pyenv virtualenv pypy3.10-7.3.13 venv-pypy2
+
+assert pyenv virtualenvs | grep 'venv-graal1'
+assert pyenv virtualenvs | grep 'venv-pypy1'
+assert pyenv virtualenvs | grep 'venv-pypy2'
+
+
+## use venv (install difference version package in separate env)
+preprompt
+pyenv activate venv-graal1
+pip install antlr4-python3-runtime==4.11.0
+
+preprompt
+pyenv activate venv-pypy1
+pip install antlr4-python3-runtime==4.12.0
+
+preprompt
+pyenv activate venv-pypy2
+pip install antlr4-python3-runtime==4.13.0
+
+preprompt
+pyenv activate venv-graal1
+assert pip show antlr4-python3-runtime | grep 'Version: 4.11.0'
+pyenv deactivate
+assert ! pip show antlr4-python3-runtime 
+
+preprompt
+pyenv activate venv-pypy1
+assert pip show antlr4-python3-runtime | grep 'Version: 4.12.0'
+pyenv deactivate
+assert ! pip show antlr4-python3-runtime 
+
+preprompt
+pyenv activate venv-pypy2
+assert pip show antlr4-python3-runtime | grep 'Version: 4.13.0'
+pyenv deactivate
+assert ! pip show antlr4-python3-runtime
+
+
+# test pyevn completion
+complete 'pyenv virt'
+assert $COMPREPLY.size() == 5
+assert $COMPREPLY[0] == 'virtualenv'
+assert $COMPREPLY[1] == 'virtualenv-delete'
+assert $COMPREPLY[2] == 'virtualenv-init'
+assert $COMPREPLY[3] == 'virtualenv-prefix'
+assert $COMPREPLY[4] == 'virtualenvs'
+
+complete 'pyenv virtualenv venv'
+assert $COMPREPLY.size() == 3
+assert $COMPREPLY[0] == 'venv-graal1'
+assert $COMPREPLY[1] == 'venv-pypy1'
+assert $COMPREPLY[2] == 'venv-pypy2'

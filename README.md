@@ -11,7 +11,8 @@ curl -fL https://raw.githubusercontent.com/sekiguchi-nagisa/shtx-go/main/scripts
 
 ## Tested Plugin
 
-| **name** | **version** |
-|----------|-------------|
-| pyenv    | v2.3.32     |
-| venv     | 3.9         |
+| **name**         | **version** |
+|------------------|-------------|
+| pyenv            | v2.3.32     |
+| venv             | 3.9         |
+| pyenv-virtualenv | v1.2.3      |
