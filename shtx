@@ -682,6 +682,39 @@ function __shtx_restore_context($ctx : _Context?) {
     $_CALL_COUNT--
 }
 
+function __shtx_compile_eval(input: String): (()-> Void)? {
+    __shtx_detect_bin
+
+    var opt : [String]
+    if $SHTX_CRASH_DUMP {
+        $opt.add("--crash-dump")
+    }
+    var output = "$(call $_SHTX_GO_BIN_PATH $opt - <<< $input)"
+    if $? != 0 {
+        return $none
+    }
+    try {
+        return $MODULE._func($output)
+    } catch e: Error {
+        $e.show()
+        $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)
+        $? = 255
+        return $none
+    }
+}
+
+function __shtx_run_eval(func: ()-> Void): Int {
+    try {
+        let ctx = $__shtx_setup_context()
+        defer { $__shtx_restore_context($ctx); }
+        $func()
+        return $?
+    } catch e : _SHError {
+        echo 1>&2 ${$e.message()}
+        return $e.status()
+    }
+}
+
 function __shtx_enter_func(arg0 : String, args : [String]) : _Context? {
     $_VARS.enterFunc("bash", $args)  # FIXME: set arg0 ?
     return $__shtx_setup_context()
@@ -801,59 +834,26 @@ function __shtx_escape_regex_meta(pattern: String): String {
     return $ret
 }
 
-
 let _EVAL_CODE_CACHE : [String : ()->Void]
 
-function __shtx_eval(input : String, caching: Bool) : Int {
-    var func : (() -> Void)?
-    if $caching {
-        $func = $_EVAL_CODE_CACHE.get($input)
-    }
-
+function __shtx_eval_with_cache(input : String) : Int {
+    var func = $_EVAL_CODE_CACHE.get($input)
     if !$func {  # translate and compile code
-        __shtx_detect_bin
-
-        var opt : [String]
-        if $SHTX_CRASH_DUMP {
-            $opt.add("--crash-dump")
+        $func = $__shtx_compile_eval($input)
+        if $_EVAL_CODE_CACHE.size() == 8 {
+            var k = for k,_ in $_EVAL_CODE_CACHE { break $k}!
+            $_EVAL_CODE_CACHE.remove($k)
         }
-        var output = "$(call $_SHTX_GO_BIN_PATH $opt - <<< $input)"
-        if $? != 0 {
-            return 1
-        }
-        try {
-            $func = $MODULE._func($output)
-            if $caching {
-                if $_EVAL_CODE_CACHE.size() == 8 {
-                    var k = for k,_ in $_EVAL_CODE_CACHE { break $k}!
-                    $_EVAL_CODE_CACHE.remove($k)
-                }
-                $_EVAL_CODE_CACHE.put($input, $func!)
-            }
-        } catch e: Error {
-            $e.show()
-            $SHTX_CRASH_DUMP && $__save_crash_dump($input, $output, $e)
-            return 255
-        }
+        $_EVAL_CODE_CACHE.put($input, $func!)
     }
-
-    # run compiled code
-    try {
-        let ctx = $__shtx_setup_context()
-        defer { $__shtx_restore_context($ctx); }
-        $func!()
-        return $?
-    } catch e : _SHError {
-        echo 1>&2 ${$e.message()}
-        return $e.status()
-    }
+    return $__shtx_run_eval($func!)
 }
 
 source $MODULE_DIR/repl as __repl
 $__repl.PRE_PROMPTS.add(function() => {
     var prompt_cmd = $_VARS.find('PROMPT_COMMAND') ?? return
     $prompt_cmd :- return
-    $__shtx_eval($prompt_cmd, $true)
+    $__shtx_eval_with_cache($prompt_cmd)
 })
 
 # +++++ public api functions (starts with fake_) +++++
@@ -861,7 +861,7 @@ $__repl.PRE_PROMPTS.add(function() => {
 # evaluate bash script (emulate bash eval command)
 fake_eval() {
     $@.empty() && return 0
-    return $__shtx_eval($@.join(" "), $false)
+    return $__shtx_run_eval($__shtx_compile_eval($@.join(' ')) ?? return $?)
 }
 
 source $MODULE_DIR/completion as __comp
