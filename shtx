@@ -313,6 +313,12 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
             }
             return "$$"
         }
+        'BASHPID' => {
+            if $op == ':+' || $op == '+' {
+                return $word
+            }
+            return "$PID"
+        }
         $/^[0-9]+$/ => {
             var n = $param.toInt(10)!
             assert $n > -1
