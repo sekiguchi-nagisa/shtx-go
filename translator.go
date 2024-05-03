@@ -594,8 +594,18 @@ func isVarName(name string) bool {
 	return ReIdentifier.MatchString(name)
 }
 
+func isSpecialParam(name string) bool {
+	params := []string{"#", "?", "*", "@", "$"}
+	for _, param := range params {
+		if name == param {
+			return true
+		}
+	}
+	return false
+}
+
 func isValidParamName(name string) bool {
-	return isVarName(name) || RePositional.MatchString(name) || name == "#" || name == "?" || name == "*" || name == "@"
+	return isVarName(name) || RePositional.MatchString(name) || isSpecialParam(name)
 }
 
 func (t *Translator) toExpansionOpStr(pos syntax.Pos, expansion *syntax.Expansion) string {
@@ -653,7 +663,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 			t.emit(")")
 		}
 	case *syntax.ParamExp:
-		if n.Param.Value != "?" && n.Param.Value != "#" && !option.dQuoted && !option.pattern && !option.regex && !option.singleWord {
+		if n.Param.Value != "?" && n.Param.Value != "#" && n.Param.Value != "$" && !option.dQuoted && !option.pattern && !option.regex && !option.singleWord {
 			t.todo(n.Pos(), "support unquoted parameter expansion")
 		}
 		_ = n.Excl && t.todo(n.Pos(), "not support ${!a}")
