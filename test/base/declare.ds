@@ -51,7 +51,9 @@ assert $out == 'CCC="2345"
 declare -- CCC="2345"
 declare -- IFS=""
 declare -- BASH="/bin/bash"
-declare -- AAA="34525"
+' + "declare -- PPID=\"$PPID\"
+" +
+'declare -- AAA="34525"
 declare -x BBB="2344"
 @3
 declare -- AAA="34525"' : $out
