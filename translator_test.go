@@ -174,6 +174,10 @@ false;
   __shtx_read ${$__shtx_get_var(@( '?' ))}
 }
 `},
+	"builtin-trap": {`trap -- "" INT`, `{
+  __shtx_trap -- "" INT
+}
+`},
 	"non-callable-command1": {`__shtx_printf`, `{
   __shtx_dyna_call __shtx_printf
 }

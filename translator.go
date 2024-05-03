@@ -524,6 +524,7 @@ var cmdNameReplacement = map[string]string{
 	"read":    "__shtx_read",
 	"printf":  "__shtx_printf",
 	"return":  "__shtx_return",
+	"trap":    "__shtx_trap",
 	"eval":    "fake_eval",
 	".":       "fake_source",
 	"source":  "fake_source",

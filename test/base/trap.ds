@@ -1,0 +1,65 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+assert_fake_eval 'trap' ''
+assert $? == 0
+
+assert_fake_eval 'trap -p' ''
+assert $? == 0
+
+assert_fake_eval "$(cat << 'EOF'
+[ "$(trap -l)" == "$(kill -l)" ] && echo same result
+EOF
+)" 'same result'
+assert $? == 0
+
+assert_fake_eval "$(cat << 'EOF'
+echo init && trap -p
+trap -- 'echo hello!!' INT
+kill -s INT "$BASHPID"
+echo after kill
+trap "" INT
+kill -s INT "$BASHPID"
+echo ignore INT
+trap - INT
+kill -s INT "$BASHPID"
+echo end
+EOF
+)" 'init
+hello!!
+after kill
+ignore INT'
+assert $? == 130
+
+var out = "$(fake_eval '
+echo @init && trap -p
+trap -- "" INT HUP
+trap -- "echo helllo" STOP
+echo @set && trap -p
+echo @each && trap 2>&1 -p INT HUP ss int cont
+trap - INT HUP
+echo @reset && trap -p
+')"
+assert diff <(cat << 'EOF'
+@init
+@set
+trap -- "" SIGHUP
+trap -- "" SIGINT
+trap -- "echo helllo" SIGSTOP
+@each
+trap -- "" SIGINT
+trap -- "" SIGHUP
+bash: trap: ss: invalid signal specification
+trap -- "" SIGINT
+@reset
+trap -- "echo helllo" SIGSTOP
+EOF
+) <(cat <<< $out)
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^Interrupt
+# CHECKERR_RE: ^Interrupt
+# STATUS: 0

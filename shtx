@@ -612,56 +612,6 @@ __shtx_return() {
     throw new _Return('', $status)
 }
 
-# dynamically resolve command name
-__shtx_dyna_call() {
-    $@.empty() && return 0
-
-    ## not call internal api (__shtx_ or fake_)
-    if $@[0].startsWith("__shtx_") || $@[0].startsWith("fake_") {
-        if let cmd = $DYNA_UDCS.get($@[0]) {
-            $cmd.call($@)
-        } else {
-            command $@
-        }
-        return $?
-    }
-
-    var cmd = $@.shift()
-    $cmd = case $cmd {
-        '[' => '__shtx_['
-        'declare' => '__shtx_declare'
-        'export' => '__shtx_export'
-        'local' => '__shtx_local'
-        'unset' => '__shtx_unset'
-        'shift' => '__shtx_shift'
-        'read' => '__shtx_read'
-        'printf' => '__shtx_printf'
-        'return' => '__shtx_return'
-        'eval' => 'fake_eval'
-        '.' | 'source' => 'fake_source'
-        else => $cmd
-    }
-    call $cmd $@
-}
-
-function __shtx_set_argv(argv : [String]) : [String] {
-    var old : [String]
-    $old.add($_VARS.arg0())
-    $old.addAll($_VARS.args())
-    ## FIXME: update arg0 ?
-    $_VARS.setArgs($argv.slice(1))
-    return $old
-}
-
-function __shtx_get_args() : [String] {
-    return $_VARS.args()
-}
-
-function __shtx_func(name : String, cmd : Command) : Bool {
-    $DYNA_UDCS[$name] = $cmd
-    return $true
-}
-
 typedef _Context() {
     let fallback = $CMD_FALLBACK
     $CMD_FALLBACK = $__shtx_cmd_fallback
@@ -726,6 +676,145 @@ function __shtx_run_eval(func: ()-> Void): Int {
         echo 1>&2 ${$e.message()}
         return $e.status()
     }
+}
+
+
+[<CLI>]
+typedef _TrapParam() {
+    [<Flag(short: 'l', help: 'list supported signals', stop: $true)>]
+    var list = $false
+
+    [<Flag(short: 'p', help: 'print signal handlers', stop: $true)>]
+    var print = $false
+
+    [<Arg>]
+    var args : [String]
+}
+
+let _TRAP : [Signal : (String, (() -> Void)?)]
+let _OLD_TRAP : [Signal : (Signal)-> Void]
+
+function __shtx_signal_handler(s: Signal) {
+    if let func = $_TRAP.get($s) {
+        $__shtx_run_eval($func._1 ?? return)
+    }
+}
+
+__shtx_trap(param : _TrapParam) {
+    if $param.list {
+        kill -l
+        return 0
+    }
+    if $param.print {
+        if $param.args.empty() {
+            var values : [(Signal, String)]
+            for k, v in $_TRAP {
+                $values.add(($k, $v._0))
+            }
+            $values.sortWith(function(x,y) => $x._0.value() < $y._0.value())
+            for value in $values {
+                printf "trap -- %s SIG%s\n" $__doubleQuote($value._1) ${$value._0.name()}
+            }
+            return 0
+        } else {  # print specifed signal setting
+            var errors = 0
+            for arg in $param.args {
+                var sig = $SIG.get($arg) ?? {
+                    $_error('trap', "${arg}: invalid signal specification")
+                    $errors++
+                    continue
+                }
+                if let v = $_TRAP.get($sig) {
+                    printf "trap -- %s SIG%s\n" $__doubleQuote($v._0) ${$sig.name()}
+                }
+            }
+            return $errors == 0 ? 0 : 1
+        }
+    }
+    $param.args.empty() && return 0
+    if $param.args.size() < 2 {
+        echo 1>&2 ${$param.usage()}
+        return 2
+    }
+    let action = $param.args.shift()
+    var func : (()->Void)?
+    if !$action.empty() && $action != '-' {
+        $func = $__shtx_compile_eval($action) ?? return $?
+    }
+    var errors = 0
+    for arg in $param.args {
+        var sig = $SIG.get($arg) ?? {
+            $_error('trap', "${arg}: invalid signal specification")
+            $errors++
+            continue
+        }
+        if $action == '' {  # ignore signal
+            $_TRAP[$sig] = ($action, $func)
+            var old = $sig.trap($SIG_IGN)
+            $_OLD_TRAP.putIfAbsent($sig, $old)
+        } elif $action == '-' { # reset signal
+            if let old = $_OLD_TRAP.remove($sig) {  # reset if has old hanlder
+                $_TRAP.remove($sig)
+                $sig.trap($old)
+            }
+        } else { # set handler
+            $_TRAP[$sig] = ($action, $func)
+            var old = $sig.trap($__shtx_signal_handler)
+            $_OLD_TRAP.putIfAbsent($sig, $old)
+        }
+    }
+    return $errors == 0 ? 0 : 1
+}
+
+# dynamically resolve command name
+__shtx_dyna_call() {
+    $@.empty() && return 0
+
+    ## not call internal api (__shtx_ or fake_)
+    if $@[0].startsWith("__shtx_") || $@[0].startsWith("fake_") {
+        if let cmd = $DYNA_UDCS.get($@[0]) {
+            $cmd.call($@)
+        } else {
+            command $@
+        }
+        return $?
+    }
+
+    var cmd = $@[0]
+    $@[0] = case $cmd {
+        '[' => '__shtx_['
+        'declare' => '__shtx_declare'
+        'export' => '__shtx_export'
+        'local' => '__shtx_local'
+        'unset' => '__shtx_unset'
+        'shift' => '__shtx_shift'
+        'read' => '__shtx_read'
+        'printf' => '__shtx_printf'
+        'return' => '__shtx_return'
+        'trap' => '__shtx_trap'
+        'eval' => 'fake_eval'
+        '.' | 'source' => 'fake_source'
+        else => $cmd
+    }
+    call $@
+}
+
+function __shtx_set_argv(argv : [String]) : [String] {
+    var old : [String]
+    $old.add($_VARS.arg0())
+    $old.addAll($_VARS.args())
+    ## FIXME: update arg0 ?
+    $_VARS.setArgs($argv.slice(1))
+    return $old
+}
+
+function __shtx_get_args() : [String] {
+    return $_VARS.args()
+}
+
+function __shtx_func(name : String, cmd : Command) : Bool {
+    $DYNA_UDCS[$name] = $cmd
+    return $true
 }
 
 function __shtx_enter_func(arg0 : String, args : [String]) : _Context? {

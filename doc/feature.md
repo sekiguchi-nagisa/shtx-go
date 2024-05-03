@@ -102,4 +102,4 @@
     * [x] return from sourced
 * [ ] break
 * [ ] continue
-* [ ] trap
+* [x] trap
