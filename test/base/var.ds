@@ -68,6 +68,10 @@ assert "$({
     fake_eval 'echo $$'; 
  })" == "$$"
 
+assert "$({ 
+    fake_eval 'echo "$PPID"'; 
+ })" == "$PPID"
+
 unsetenv BASH
 assert_fake_eval '
 printenv BASH
