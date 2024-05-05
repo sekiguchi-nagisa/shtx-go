@@ -700,7 +700,16 @@ function __shtx_signal_handler(s: Signal) {
     }
 }
 
-__shtx_trap(param : _TrapParam) {
+__shtx_trap() {
+    let param : _TrapParam
+    try {
+        $param.setName('trap')
+        $param.parse($@)
+    } catch e: CLIError {
+        echo 1>&2 ${$e.message()}
+        return $e.status()
+    }
+
     if $param.list {
         kill -l
         return 0

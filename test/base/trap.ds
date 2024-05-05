@@ -3,6 +3,10 @@
 source ../../shtx
 source ../common/assert.ds
 
+assert "$(fake_eval 'trap 2>&1 -w')" == "trap: invalid option: -w
+See \`trap --help' for more information."
+assert $? == 2
+
 assert_fake_eval 'trap' ''
 assert $? == 0
 
