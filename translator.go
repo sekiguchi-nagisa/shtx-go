@@ -535,6 +535,14 @@ func remapCmdName(name string) string {
 	if v, ok := cmdNameReplacement[unescaped]; ok {
 		return v
 	} else {
+		keywords := []string{
+			"alias", "assert", "defer", "else", "export-env", "exportenv", "import-env", "importenv",
+			"interface", "new", "try", "throw", "typedef", "var"}
+		for _, keyword := range keywords {
+			if name == keyword {
+				return "\\" + name
+			}
+		}
 		return name // if not found replacement, return original value
 	}
 }
@@ -570,7 +578,7 @@ func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 				if n < 0 || n > 255 {
 					t.emit(" and 255")
 				}
-			} else { //FIXME: perform expansion?
+			} else {
 				t.emit("{ var s='';s=")
 				t.visitWordPartsWith(expr.Args[1].Parts, WordPartOption{singleWord: true})
 				t.emit("; $__shtx_parse_status($s); }")
