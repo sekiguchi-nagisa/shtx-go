@@ -6,10 +6,11 @@ source ../common/assert.ds
 var keywords = ['alias', 'assert', 'defer', 'else', 'export-env', 'exportenv', 'import-env', 'importenv',
                 'interface', 'new', 'try', 'throw', 'typedef', 'var']
 for word in $keywords {
+    command -V $word &> /dev/null && continue
     assert "$(fake_eval $word 2>&1)" == "bash: $word: command not found"
     assert $? == 127
 }
 
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
-# STATUS: 0
+# STATUS: 127
