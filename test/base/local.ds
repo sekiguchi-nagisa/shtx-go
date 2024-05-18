@@ -57,6 +57,22 @@ in: undefined
 in: 8888
 after: @@@@'
 
+var out = "$(fake_eval '
+ff() { local ""=1234 2>&1; }
+ff
+')"
+assert $out == "bash: local: =1234: not a valid identifier"
+assert $? == 1
+
+$out = "$(fake_eval '
+ff() { local "@@@@"=1234 2>&1; }
+ff
+')"
+assert $out == "bash: local: @@@@=1234: not a valid identifier"
+assert $? == 1
+
+true
+
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
 # STATUS: 0

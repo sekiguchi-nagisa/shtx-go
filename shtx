@@ -443,6 +443,7 @@ function __shtx_define_vars(cmd: String, args: [String]) : Int {
             }
             continue
         }
+        $name =~ $/^[a-zA-Z_][0-9a-zA-Z_]*$/ || { $_error($cmd, "$arg: not a valid identifier"); return 1; }
         let value = $i != -1 ? $arg.slice($i + 1) : ""
         $local ? $_VARS.local($name, $value) : $_VARS.put($name, $value)
     }

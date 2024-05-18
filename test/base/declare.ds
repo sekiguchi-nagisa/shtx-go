@@ -67,6 +67,18 @@ assert $out == 'bash: declare: HOGE: not found
 declare -- AAA="1234"' : $out
 assert $? == 1
 
+$out = "$(fake_eval '
+declare ""=1234 2>&1
+')"
+assert $out == "bash: declare: =1234: not a valid identifier"
+assert $? == 1
+
+$out = "$(fake_eval '
+declare "&@"=1234 2>&1
+')"
+assert $out == "bash: declare: &@=1234: not a valid identifier"
+assert $? == 1
+
 true
 
 # CHECK_RE: ^$
