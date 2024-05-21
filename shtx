@@ -86,18 +86,23 @@ function __doubleQuote(v : String) : String {
 
 let __VAR_ATTR_EXPORT = 0x01
 let __VAR_ATTR_UNSET = 0x02
+let __VAR_ATTR_BASHPID = 0x04
 
 typedef _VarEntry(v: String?, a : Int?) {
     var _value = $v ?? ""  # if indicate env, value is env name
     var _attr = $a ?? 0
 }
 
+function has(attr: Int): Bool for _VarEntry {
+    return ($this._attr and $attr) == $attr
+}
+
 function exported() : Bool for _VarEntry {
-    return ($this._attr and $__VAR_ATTR_EXPORT) == $__VAR_ATTR_EXPORT
+    return $this.has($__VAR_ATTR_EXPORT)
 }
 
 function isUnset() : Bool for _VarEntry {
-    return ($this._attr and $__VAR_ATTR_UNSET) == $__VAR_ATTR_UNSET
+    return $this.has($__VAR_ATTR_UNSET)
 }
 
 # update value, if entry indicates env, update env value
@@ -134,6 +139,8 @@ function get() : String? for _VarEntry {
         var ret = (getenv -- ${this._value}) ? $REPLY : $none
         $? = $old
         return $ret
+    } elif $this.has($__VAR_ATTR_BASHPID) {
+        return "$PID"
     } else {
         return $this._value
     }
@@ -146,8 +153,12 @@ function print(name : String, verbose : Bool) for _VarEntry {
         if $this.exported() {
             $attr += 'x'
         }
-        printf "declare -%s %s=%s\n" ${$attr :- '-'} $name $value
-    } else {
+        if $this.has($__VAR_ATTR_BASHPID) {
+            printf "declare -%s %s\n" ${$attr :- '-'} $name
+        } else {
+            printf "declare -%s %s=%s\n" ${$attr :- '-'} $name $value
+        }
+    } elif !$this.has($__VAR_ATTR_BASHPID) {
         printf "%s=%s\n" $name $value
     }
 }
@@ -172,11 +183,11 @@ function get(name : String, set : Bool?) : _VarEntry? for _VarMap {
     }
 }
 
-function put(name : String, value : String) : String for _VarMap {
+function put(name : String, value : String, attr: Int?) : String for _VarMap {
     if let entry = $this.get($name) {
         $entry.set($value)
     } else {
-        $this.entries.put($name, new _VarEntry($value))
+        $this.entries.put($name, new _VarEntry($value, $attr))
     }
     return $value
 }
@@ -188,6 +199,7 @@ typedef _VarScope(_arg0 : String, _args : [String]) {
     $global.put("IFS", $IFS)
     $global.put("BASH", "$(command -v bash)")
     $global.put('PPID', "$PPID")
+    $global.put('BASHPID', "$PID", $__VAR_ATTR_BASHPID)
 }
 
 function arg0() : String for _VarScope {
@@ -312,12 +324,6 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
                 return $word
             }
             return "$$"
-        }
-        'BASHPID' => {
-            if $op == ':+' || $op == '+' {
-                return $word
-            }
-            return "$PID"
         }
         $/^[0-9]+$/ => {
             var n = $param.toInt(10)!

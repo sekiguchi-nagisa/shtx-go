@@ -75,6 +75,12 @@ assert "$({
 fake_eval 'AAA=$BASHPID'
 assert "$(fake_eval 'echo "$AAA"')" == "$PID"
 
+fake_eval 'export BASHPID'
+assert "$(fake_eval 'printenv BASHPID')" == "$PID"
+assert_fake_eval '
+[[ "$BASHPDI" != "$(echo "$BASHPID")" ]] && echo unmatch
+' 'unmatch'
+
 unsetenv BASH
 assert_fake_eval '
 printenv BASH

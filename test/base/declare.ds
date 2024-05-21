@@ -52,6 +52,7 @@ declare -- CCC="2345"
 declare -- IFS=""
 declare -- BASH="/bin/bash"
 ' + "declare -- PPID=\"$PPID\"
+declare -- BASHPID
 " +
 'declare -- AAA="34525"
 declare -x BBB="2344"
