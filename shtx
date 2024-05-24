@@ -88,8 +88,9 @@ let __VAR_ATTR_EXPORT = 0x01
 let __VAR_ATTR_UNSET = 0x02
 let __VAR_ATTR_BASHPID = 0x04
 
-typedef _VarEntry(v: String?, a : Int?) {
-    var _value = $v ?? ""  # if indicate env, value is env name
+typedef _VarEntry(n: String, v: String, a : Int?) {
+    let _name = $n  # always indicate variable name
+    var _value = $v
     var _attr = $a ?? 0
 }
 
@@ -109,10 +110,9 @@ function isUnset() : Bool for _VarEntry {
 function set(value : String) : String for _VarEntry {
     let old = $?
     if $this.exported() {
-        setenv -- ${this._value}=$value
-    } else {
-        $this._value = $value
+        setenv -- ${this._name}=$value
     }
+    $this._value = $value
     $this._attr = $this._attr and !$__VAR_ATTR_UNSET
     $? = $old
     return $value
@@ -124,10 +124,9 @@ function unset() for _VarEntry {
 }
 
 # export as environmental variable
-function export(name : String) : _VarEntry for _VarEntry {
+function export() : _VarEntry for _VarEntry {
     var v = $this._value
     $this._attr = $this._attr or $__VAR_ATTR_EXPORT
-    $this._value = $name
     $this.set($v)
     return $this
 }
@@ -136,7 +135,7 @@ function export(name : String) : _VarEntry for _VarEntry {
 function get() : String? for _VarEntry {
     if $this.exported() {
         var old = $?
-        var ret = (getenv -- ${this._value}) ? $REPLY : $none
+        var ret = (getenv -- ${this._name}) ? $REPLY : $none
         $? = $old
         return $ret
     } elif $this.has($__VAR_ATTR_BASHPID) {
@@ -146,7 +145,7 @@ function get() : String? for _VarEntry {
     }
 }
 
-function print(name : String, verbose : Bool) for _VarEntry {
+function print(verbose : Bool) for _VarEntry {
     var value = $__doubleQuote($this.get() ?? "")
     if $verbose {
         var attr = ''
@@ -154,12 +153,12 @@ function print(name : String, verbose : Bool) for _VarEntry {
             $attr += 'x'
         }
         if $this.has($__VAR_ATTR_BASHPID) {
-            printf "declare -%s %s\n" ${$attr :- '-'} $name
+            printf "declare -%s %s\n" ${$attr :- '-'} ${this._name}
         } else {
-            printf "declare -%s %s=%s\n" ${$attr :- '-'} $name $value
+            printf "declare -%s %s=%s\n" ${$attr :- '-'} ${this._name} $value
         }
     } elif !$this.has($__VAR_ATTR_BASHPID) {
-        printf "%s=%s\n" $name $value
+        printf "%s=%s\n" ${this._name} $value
     }
 }
 
@@ -175,7 +174,7 @@ function get(name : String, set : Bool?) : _VarEntry? for _VarMap {
     let s = $set ?? $true
     return $this.entries.get($name) ?? {
         if($s && { var old = $?; var r = checkenv -- $name; $? = $old; $r}) {
-            var e = new _VarEntry($name, $__VAR_ATTR_EXPORT)
+            var e = new _VarEntry($name, "", $__VAR_ATTR_EXPORT)
             $this.entries.put($name, $e)
             return $e
         }
@@ -187,7 +186,7 @@ function put(name : String, value : String, attr: Int?) : String for _VarMap {
     if let entry = $this.get($name) {
         $entry.set($value)
     } else {
-        $this.entries.put($name, new _VarEntry($value, $attr))
+        $this.entries.put($name, new _VarEntry($name, $value, $attr))
     }
     return $value
 }
@@ -250,7 +249,7 @@ function local(name : String, value : String) for _VarScope {
     if let e = $local.entries.get($name) {
         $e.set($value)
     } else {
-        $local.entries.put($name, new _VarEntry($value))
+        $local.entries.put($name, new _VarEntry($name, $value))
     }
 }
 
@@ -366,9 +365,9 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
 }
 
 function __printEntries(entries: [String: _VarEntry], verbose : Bool) {
-    for n, e in $entries {
+    for _, e in $entries {
         $e.isUnset() && continue
-        $e.print($n, $verbose)
+        $e.print($verbose)
     }
 }
 
@@ -381,7 +380,7 @@ function __show_vars(args: [String], local : Bool) : Int {
         for arg in $args {
             if let ret = $_VARS.get($arg, $false) {
                 if !$ret.isUnset() {
-                    $ret.print($arg, $true)
+                    $ret.print($true)
                     continue
                 }
             }
@@ -501,7 +500,7 @@ __shtx_export() {
             $_VARS.get($name)!
         }
         if !$entry.exported() {
-            $entry.export($name)
+            $entry.export()
         }
 
         ## update env
