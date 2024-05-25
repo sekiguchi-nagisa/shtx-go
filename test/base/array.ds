@@ -29,6 +29,23 @@ declare -a AAA=([0]="@@@")
 declare -a BBB=([0]="12345" [1]="\"123\"")
 declare -a CCC=([0]="fr")'
 
+## array expand
+assert_fake_eval '
+AAA=()
+printf "<%s>\n" "${AAA[@]}"
+AAA=(123 456 789)
+printf "[%s]\n" "@@${AAA[@]}**"
+BBB=erty
+printf "{%s}\n" "${BBB[@]}"
+printf "(%s)\n" "${CCCCCCCCCC[@]}"
+' '<>
+[@@123]
+[456]
+[789**]
+{erty}
+()'
+
+
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
 # STATUS: 0

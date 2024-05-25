@@ -217,13 +217,13 @@ false;
 }
 `},
 	"special-param6": {`echo "$@"`, `{
-  echo $__shtx_get_args()
+  echo $__shtx_get_array_var('@')
 }
 `},
 	"special-param7": {`echo 12"$@"`, `{
   echo $__shtx_concat(new [Any]()
     .add( @(12"")[0] )
-    .add($__shtx_get_args())
+    .add($__shtx_get_array_var('@'))
     .add( @("")[0] )
   )
 }
@@ -231,7 +231,7 @@ false;
 	"special-param8": {`echo 23"4${@}5$?"6`, `{
   echo $__shtx_concat(new [Any]()
     .add( @(23"4")[0] )
-    .add($__shtx_get_args())
+    .add($__shtx_get_array_var('@'))
     .add( @("5${$__shtx_get_var(@( '?' ))}"6)[0] )
   )
 }
@@ -514,6 +514,24 @@ esac
 `},
 	"array_assign2": {`de=()`, `{
   $__shtx_set_array_var(@( de )[0], @())
+}
+`},
+	"array_index1": {`de=(); echo "${de[0]}"`, `{
+  $__shtx_set_array_var(@( de )[0], @())
+  echo "${$__shtx_get_var_at(@( 'de' 0 ))}"
+}
+`},
+	"array_expand1": {`de=(); echo "${de[@]}"`, `{
+  $__shtx_set_array_var(@( de )[0], @())
+  echo $__shtx_get_array_var('de')
+}
+`},
+	"array_expand2": {`echo 23"4${array[@]}5$?"6`, `{
+  echo $__shtx_concat(new [Any]()
+    .add( @(23"4")[0] )
+    .add($__shtx_get_array_var('array'))
+    .add( @("5${$__shtx_get_var(@( '?' ))}"6)[0] )
+  )
 }
 `},
 }

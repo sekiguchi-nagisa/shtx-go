@@ -649,6 +649,17 @@ func (t *Translator) toExpansionOpStr(pos syntax.Pos, expansion *syntax.Expansio
 	return ""
 }
 
+func toNumericIndex(index syntax.ArithmExpr) string {
+	switch n := index.(type) {
+	case *syntax.Word:
+		num, e := strconv.Atoi(n.Lit())
+		if e == nil {
+			return strconv.Itoa(num)
+		}
+	}
+	return ""
+}
+
 func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) {
 	switch n := part.(type) {
 	case *syntax.Lit:
@@ -698,14 +709,23 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 		_ = n.Excl && t.todo(n.Pos(), "not support ${!a}")
 		_ = n.Length && t.todo(n.Pos(), "support ${#a}")
 		_ = n.Width && t.todo(n.Pos(), "not support ${%a}")
-		_ = n.Index != nil && t.todo(n.Index.Pos(), "support ${a[i]}")
 		_ = n.Slice != nil && t.todo(n.Pos(), "not support ${a:x:y}")
 		_ = n.Repl != nil && t.todo(n.Pos(), "not support ${a/x/y}")
 		_ = n.Names != 0 && t.todo(n.Pos(), "not support ${!prefix*}")
 		_ = !isValidParamName(n.Param.Value) && t.todo(n.Param.Pos(), "unsupported param name: "+n.Param.Value)
-		t.emit("${$__shtx_get_var(@( '")
+		t.emit("${$__shtx_get_var")
+		if n.Index != nil {
+			t.emit("_at")
+		}
+		t.emit("(@( '")
 		t.emit(n.Param.Value)
 		t.emit("'")
+		if n.Index != nil {
+			t.emit(" ")
+			v := toNumericIndex(n.Index)
+			_ = v == "" && t.todo(n.Index.Pos(), "support arithmetic expr in array index")
+			t.emit(v)
+		}
 		if n.Exp != nil {
 			t.emit(" '")
 			t.emit(t.toExpansionOpStr(n.Pos(), n.Exp))
@@ -761,19 +781,34 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 	}
 }
 
+func resolveArrayExpandParamName(part syntax.WordPart) string {
+	switch n := part.(type) {
+	case *syntax.ParamExp:
+		if n.Param.Value == "@" {
+			return "@"
+		}
+		if n.Index != nil {
+			switch e := n.Index.(type) {
+			case *syntax.Word:
+				if e.Lit() == "@" {
+					return n.Param.Value
+				}
+			}
+		}
+	}
+	return ""
+}
+
 func isArrayExpandDblQuoted(quoted *syntax.DblQuoted) bool {
 	for _, part := range quoted.Parts {
-		switch n := part.(type) {
-		case *syntax.ParamExp:
-			if n.Param.Value == "@" {
-				return true
-			}
+		if name := resolveArrayExpandParamName(part); name != "" {
+			return true
 		}
 	}
 	return false
 }
 
-func isArrayExpand(parts []syntax.WordPart) bool {
+func isArrayExpandWordParts(parts []syntax.WordPart) bool {
 	for _, part := range parts {
 		switch n := part.(type) {
 		case *syntax.DblQuoted:
@@ -785,37 +820,31 @@ func isArrayExpand(parts []syntax.WordPart) bool {
 	return false
 }
 
-func isSimpleArgsExpand(parts []syntax.WordPart) bool {
+func resolveSimpleArrayExpand(parts []syntax.WordPart) string {
 	if len(parts) == 1 {
 		switch n := parts[0].(type) {
 		case *syntax.DblQuoted:
 			if len(n.Parts) != 1 {
-				return false
+				return ""
 			}
-			switch nn := n.Parts[0].(type) {
-			case *syntax.ParamExp:
-				if nn.Param.Value == "@" {
-					return true
-				}
-			}
+			return resolveArrayExpandParamName(n.Parts[0])
 		}
 	}
-	return false
+	return ""
 }
 
 func (t *Translator) expandDblQuoted(quoted *syntax.DblQuoted) {
 	t.emit("\"")
 	for _, part := range quoted.Parts {
-		switch n := part.(type) {
-		case *syntax.ParamExp:
-			if n.Param.Value == "@" {
-				t.emitLine("\")[0] )")
-				t.indent()
-				t.emitLine(".add($__shtx_get_args())")
-				t.indent()
-				t.emit(".add( @(\"")
-				continue
-			}
+		if name := resolveArrayExpandParamName(part); name != "" {
+			t.emitLine("\")[0] )")
+			t.indent()
+			t.emit(".add($__shtx_get_array_var('")
+			t.emit(name)
+			t.emitLine("'))")
+			t.indent()
+			t.emit(".add( @(\"")
+			continue
 		}
 		option := WordPartOption{}
 		option.dQuoted = true
@@ -825,7 +854,7 @@ func (t *Translator) expandDblQuoted(quoted *syntax.DblQuoted) {
 }
 
 func (t *Translator) visitWordPartsWith(parts []syntax.WordPart, option WordPartOption) {
-	if !isArrayExpand(parts) || option.singleWord {
+	if !isArrayExpandWordParts(parts) || option.singleWord {
 		for _, part := range parts {
 			t.visitWordPart(part, option)
 		}
@@ -834,9 +863,11 @@ func (t *Translator) visitWordPartsWith(parts []syntax.WordPart, option WordPart
 
 	_ = (option.pattern || option.regex) && t.todo(parts[0].Pos(), "pattern with array expand is not supported")
 
-	// for `$@` or `$array[@]`
-	if isSimpleArgsExpand(parts) { // "$@"
-		t.emit("$__shtx_get_args()")
+	// for `$@` or `${array[@]}`
+	if name := resolveSimpleArrayExpand(parts); name != "" {
+		t.emit("$__shtx_get_array_var('")
+		t.emit(name)
+		t.emit("')")
 		return
 	}
 

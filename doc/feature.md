@@ -18,8 +18,8 @@
     * [x] local
 * [ ] `PS1`
 * [ ] `PROMPT_COMMAND`
-  * [x] string variable
-  * [ ] array variable
+    * [x] string variable
+    * [ ] array variable
 * [ ] `BASH_REMATCH`
 
 ## Word Expansion
@@ -53,6 +53,18 @@
 * [x] `?`
 * [x] `*`
 * [x] `[^a-z]`
+
+## Array variable
+
+* [ ] ``declare -a AAA=(a b c)``
+* [ ] ``declare -a AAA=([index]=a)``
+* [x] ``AAA=(a b c)``
+* [x] ``AAA=([index]=a)``
+* [x] ``${AAA[@]}``
+* [ ] ``${AAA[*]}``
+* [ ] ``${AAA[0]}``
+* [ ] ``${AAA[<arithmetic expr>]}``
+* [ ] sparse array
 
 ## Commands
 

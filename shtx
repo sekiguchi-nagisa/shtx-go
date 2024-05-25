@@ -517,10 +517,38 @@ function __shtx_set_var(args: [String]): Bool {
     return $true
 }
 
+function __shtx_get_array_var(name: String): [String] {
+    if $name == "@" {
+        return $_VARS.args()
+    }
+    if let entry = $_VARS.get($name) {
+        if let aa = $entry._value as? [String] {
+            return $aa
+        }
+        var ret : [String]
+        if let s = $entry.getAsStr() {
+            $ret.add($s)
+        }
+        return $ret
+    }
+    return new [String]()
+}
+
 function __shtx_set_array_var(name: String, value: [String]): Bool {
     $_VARS.put($name, $value)
     return $true
 }
+
+function __shtx_get_var_at(args: [String]): String {
+    let param = $args[0]
+    let index = $args[1]
+    let op = $args.get(2) ?? ''
+    let word = $args.get(3) ?? ''
+
+
+    throw new _SHError('unsupprted')
+}
+
 
 # for bash declare command
 __shtx_declare() {
@@ -870,10 +898,6 @@ function __shtx_set_argv(argv : [String]) : [String] {
     ## FIXME: update arg0 ?
     $_VARS.setArgs($argv.slice(1))
     return $old
-}
-
-function __shtx_get_args() : [String] {
-    return $_VARS.args()
 }
 
 function __shtx_func(name : String, cmd : Command) : Bool {
