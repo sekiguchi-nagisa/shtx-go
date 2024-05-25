@@ -109,17 +109,26 @@ function isUnset() : Bool for _VarEntry {
 }
 
 # update value, if entry indicates env, update env value
-function set(value : Any) : String for _VarEntry {
-    $this._value = $value
+function update(value : Any) : String for _VarEntry {
     $this._attr = $this._attr and !$__VAR_ATTR_UNSET
-    if let s = $this._value as? String {
-        if $this.exported() {
-            let old = $?
-            setenv -- ${this._name}=$s
-            $? = $old
+    if let s = $value as? String {
+        if let ss = $this._value as? [String] { # assign to first element
+            if $ss.empty() {
+                $ss.add($s)
+            } else {
+                $ss[0] = $s
+            }
+        } else {
+            $this._value = $value
+            if $this.exported() {
+                let old = $?
+                setenv -- ${this._name}=$s
+                $? = $old
+            }
         }
         return $s
     } else {
+        $this._value = $value
         var ss = $this._value as [String]
         return $ss.get(0) ?? ""
     }
@@ -134,7 +143,7 @@ function unset() for _VarEntry {
 function export() : _VarEntry for _VarEntry {
     var v = $this._value
     $this._attr = $this._attr or $__VAR_ATTR_EXPORT
-    $this.set($v)
+    $this.update($v)
     return $this
 }
 
@@ -157,17 +166,39 @@ function getAsStr() : String? for _VarEntry {
     }
 }
 
+function stringify(): String for _VarEntry {
+    if let ss = $this._value as? [String] {
+        var ret = "("
+        let size = $ss.size()
+        for(var i = 0; $i < $size; $i++) {
+            if $i > 0 {
+                $ret += " "
+            }
+            $ret += "[$i]="
+            $ret += $__doubleQuote($ss[$i])
+        }
+        $ret += ")"
+        return $ret
+    } else {
+        return $__doubleQuote($this.getAsStr() ?? "")
+    }
+}
+
 function print(verbose : Bool) for _VarEntry {
-    var value = $__doubleQuote($this.getAsStr() ?? "")
+    var value = $this.stringify()
     if $verbose {
         var attr = ''
+        if $this._value is [String] {
+            $attr += 'a'
+        }
         if $this.exported() {
             $attr += 'x'
         }
+        $attr := '-'
         if $this.has($__VAR_ATTR_BASHPID) {
-            printf "declare -%s %s\n" ${$attr :- '-'} ${this._name}
+            printf "declare -%s %s\n" $attr ${this._name}
         } else {
-            printf "declare -%s %s=%s\n" ${$attr :- '-'} ${this._name} $value
+            printf "declare -%s %s=%s\n" $attr ${this._name} $value
         }
     } elif !$this.has($__VAR_ATTR_BASHPID) {
         printf "%s=%s\n" ${this._name} $value
@@ -194,13 +225,14 @@ function get(name : String, set : Bool?) : _VarEntry? for _VarMap {
     }
 }
 
-function put(name : String, value : String, attr: Int?) : String for _VarMap {
+function put(name : String, value : Any, attr: Int?) : String for _VarMap {
     if let entry = $this.get($name) {
-        $entry.set($value)
+        return $entry.update($value)
     } else {
-        $this.entries.put($name, new _VarEntry($name, $value, $attr))
+        var e = new _VarEntry($name, $value, $attr)
+        $this.entries.put($name, $e)
+        return $e.getAsStr() ?? ""
     }
-    return $value
 }
 
 typedef _VarScope(_arg0 : String, _args : [String]) {
@@ -244,12 +276,12 @@ function find(name : String) : String? for _VarScope {
     return if let entry = $this.get($name, $false) { $entry.getAsStr(); } else { $none; }
 }
 
-function put(name : String, value : String) : String for _VarScope {
+function put(name : String, value : Any) : String for _VarScope {
     ## set to local if found
     if !$this.locals.empty() {
         var local = $this.locals.peek()
         if let e = $local.entries.get($name) {
-            return $e.set($value)
+            return $e.update($value)
         }
     }
     ## otherwise, set to global
@@ -259,7 +291,7 @@ function put(name : String, value : String) : String for _VarScope {
 function local(name : String, value : String) for _VarScope {
     var local = $this.locals.peek()
     if let e = $local.entries.get($name) {
-        $e.set($value)
+        $e.update($value)
     } else {
         $local.entries.put($name, new _VarEntry($name, $value))
     }
@@ -485,6 +517,11 @@ function __shtx_set_var(args: [String]): Bool {
     return $true
 }
 
+function __shtx_set_array_var(name: String, value: [String]): Bool {
+    $_VARS.put($name, $value)
+    return $true
+}
+
 # for bash declare command
 __shtx_declare() {
     return $__shtx_define_vars("declare", $@)
@@ -517,7 +554,7 @@ __shtx_export() {
 
         ## update env
         if $i != -1 {
-            $entry.set($arg.slice($i + 1))
+            $entry.update($arg.slice($i + 1))
         }
     }
     return 0

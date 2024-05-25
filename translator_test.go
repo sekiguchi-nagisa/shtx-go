@@ -508,6 +508,14 @@ esac
   })
 }
 `},
+	"array_assign1": {`AAA=(aaa '123' "$(ls)")`, `{
+  $__shtx_set_array_var(@( AAA )[0], @(aaa '123' "$(ls)"))
+}
+`},
+	"array_assign2": {`de=()`, `{
+  $__shtx_set_array_var(@( de )[0], @())
+}
+`},
 }
 
 func TestEval(t *testing.T) {

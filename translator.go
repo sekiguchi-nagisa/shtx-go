@@ -337,8 +337,8 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 		_ = assign.Append && t.todo(assign.Pos(), "support +=")
 		_ = (assign.Naked && !shellAssign) && t.todo(assign.Pos(), "support Naked")
 		_ = assign.Index != nil && t.todo(assign.Index.Pos(), "support indexed assign")
-		_ = assign.Array != nil && t.todo(assign.Array.Pos(), "support array literal assign")
 		if shellAssign {
+			_ = assign.Array != nil && t.todo(assign.Array.Pos(), "support array literal assign")
 			if i > 0 {
 				t.emit(" ")
 			}
@@ -359,15 +359,35 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 			if i > 0 {
 				t.emit("; ")
 			}
-			t.emit("$__shtx_set_var(@( ")
-			t.emit(assign.Name.Value)
-			t.emit(" ")
-			if assign.Value != nil {
-				t.visitWordPartsWith(assign.Value.Parts, WordPartOption{singleWord: true})
+			if assign.Array != nil { // aaa=(a b c)
+				t.emit("$__shtx_set_array_var(@( ")
+				t.emit(assign.Name.Value)
+				t.emit(" )[0], ")
+				t.visitArrayExpr(assign.Array)
+				t.emit(")")
+			} else {
+				t.emit("$__shtx_set_var(@( ")
+				t.emit(assign.Name.Value)
+				t.emit(" ")
+				if assign.Value != nil {
+					t.visitWordPartsWith(assign.Value.Parts, WordPartOption{singleWord: true})
+				}
+				t.emit(" ))")
 			}
-			t.emit(" ))")
 		}
 	}
+}
+
+func (t *Translator) visitArrayExpr(array *syntax.ArrayExpr) {
+	t.emit("@(")
+	for i, elem := range array.Elems {
+		if i > 0 {
+			t.emit(" ")
+		}
+		_ = (elem.Index != nil || elem.Value == nil) && t.todo(elem.Index.Pos(), "support ([index]=value) notation")
+		t.visitWordParts(elem.Value.Parts)
+	}
+	t.emit(")")
 }
 
 func (t *Translator) visitIfClause(clause *syntax.IfClause, elif bool) {

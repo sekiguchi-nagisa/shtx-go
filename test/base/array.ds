@@ -1,0 +1,34 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+## array assign
+assert_fake_eval '
+AAA=()
+BBB=(123)
+declare -p AAA BBB
+
+BBB=(ABC \"123\")
+declare -p BBB
+
+AAA=@@@
+BBB=12345   # assign to first element of array
+echo ===
+declare -p AAA BBB
+
+CCC=ssss
+CCC=(fr)  # overwrite
+declare -p CCC
+
+' 'declare -a AAA=()
+declare -a BBB=([0]="123")
+declare -a BBB=([0]="ABC" [1]="\"123\"")
+===
+declare -a AAA=([0]="@@@")
+declare -a BBB=([0]="12345" [1]="\"123\"")
+declare -a CCC=([0]="fr")'
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0
