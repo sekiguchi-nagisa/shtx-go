@@ -88,10 +88,12 @@ let __VAR_ATTR_EXPORT = 0x01
 let __VAR_ATTR_UNSET = 0x02
 let __VAR_ATTR_BASHPID = 0x04
 
-typedef _VarEntry(n: String, v: String, a : Int?) {
+typedef _VarEntry(n: String, v: Any, a : Int?) {
     let _name = $n  # always indicate variable name
     var _value = $v
     var _attr = $a ?? 0
+
+    assert $v is String || $v is [String]
 }
 
 function has(attr: Int): Bool for _VarEntry {
@@ -107,15 +109,20 @@ function isUnset() : Bool for _VarEntry {
 }
 
 # update value, if entry indicates env, update env value
-function set(value : String) : String for _VarEntry {
-    let old = $?
-    if $this.exported() {
-        setenv -- ${this._name}=$value
-    }
+function set(value : Any) : String for _VarEntry {
     $this._value = $value
     $this._attr = $this._attr and !$__VAR_ATTR_UNSET
-    $? = $old
-    return $value
+    if let s = $this._value as? String {
+        if $this.exported() {
+            let old = $?
+            setenv -- ${this._name}=$s
+            $? = $old
+        }
+        return $s
+    } else {
+        var ss = $this._value as [String]
+        return $ss.get(0) ?? ""
+    }
 }
 
 # for local variable unset
@@ -132,21 +139,26 @@ function export() : _VarEntry for _VarEntry {
 }
 
 # get value. if entry indicates env, get env value
-function get() : String? for _VarEntry {
-    if $this.exported() {
-        var old = $?
-        var ret = (getenv -- ${this._name}) ? $REPLY : $none
-        $? = $old
-        return $ret
-    } elif $this.has($__VAR_ATTR_BASHPID) {
-        return "$PID"
+function getAsStr() : String? for _VarEntry {
+    if let s = $this._value as? String {
+        if $this.exported() {
+            var old = $?
+            var ret = (getenv -- ${this._name}) ? $REPLY : $none
+            $? = $old
+            return $ret
+        } elif $this.has($__VAR_ATTR_BASHPID) {
+            return "$PID"
+        } else {
+            return $s
+        }
     } else {
-        return $this._value
+        var ss = $this._value as [String]
+        return $ss.get(0)
     }
 }
 
 function print(verbose : Bool) for _VarEntry {
-    var value = $__doubleQuote($this.get() ?? "")
+    var value = $__doubleQuote($this.getAsStr() ?? "")
     if $verbose {
         var attr = ''
         if $this.exported() {
@@ -229,7 +241,7 @@ function get(name : String, use_env : Bool?) : _VarEntry? for _VarScope {
 }
 
 function find(name : String) : String? for _VarScope {
-    return if let entry = $this.get($name, $false) { $entry.get(); } else { $none; }
+    return if let entry = $this.get($name, $false) { $entry.getAsStr(); } else { $none; }
 }
 
 function put(name : String, value : String) : String for _VarScope {
@@ -350,7 +362,7 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
         else => {}
     }
 
-    let v = if let entry = $_VARS.get($param) { $entry.get(); } else { $none; }
+    let v = if let entry = $_VARS.get($param) { $entry.getAsStr(); } else { $none; }
     case $op {
         ':-' => return ($v ?? "") :- $word
         '-' => return $v ?? $word
