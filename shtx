@@ -93,7 +93,7 @@ typedef _VarEntry(n: String, v: Any, a : Int?) {
     var _value = $v
     var _attr = $a ?? 0
 
-    assert $v is String || $v is [String]
+    assert $v is String || $v is [String?]
 }
 
 function has(attr: Int): Bool for _VarEntry {
@@ -112,7 +112,7 @@ function isUnset() : Bool for _VarEntry {
 function update(value : Any) : String for _VarEntry {
     $this._attr = $this._attr and !$__VAR_ATTR_UNSET
     if let s = $value as? String {
-        if let ss = $this._value as? [String] { # assign to first element
+        if let ss = $this._value as? [String?] { # assign to first element
             if $ss.empty() {
                 $ss.add($s)
             } else {
@@ -129,7 +129,7 @@ function update(value : Any) : String for _VarEntry {
         return $s
     } else {
         $this._value = $value
-        var ss = $this._value as [String]
+        var ss = $this._value as [String?]
         return $ss.get(0) ?? ""
     }
 }
@@ -161,13 +161,13 @@ function getAsStr() : String? for _VarEntry {
             return $s
         }
     } else {
-        var ss = $this._value as [String]
+        var ss = $this._value as [String?]
         return $ss.get(0)
     }
 }
 
 function stringify(): String for _VarEntry {
-    if let ss = $this._value as? [String] {
+    if let ss = $this._value as? [String?] {
         var ret = "("
         let size = $ss.size()
         for(var i = 0; $i < $size; $i++) {
@@ -175,7 +175,7 @@ function stringify(): String for _VarEntry {
                 $ret += " "
             }
             $ret += "[$i]="
-            $ret += $__doubleQuote($ss[$i])
+            $ret += $__doubleQuote($ss[$i] ?? "")
         }
         $ret += ")"
         return $ret
@@ -188,7 +188,7 @@ function print(verbose : Bool) for _VarEntry {
     var value = $this.stringify()
     if $verbose {
         var attr = ''
-        if $this._value is [String] {
+        if $this._value is [String?] {
             $attr += 'a'
         }
         if $this.exported() {
@@ -517,25 +517,29 @@ function __shtx_set_var(args: [String]): Bool {
     return $true
 }
 
-function __shtx_get_array_var(name: String): [String] {
+function __shtx_get_array_var(name: String): [String?] {
+    var ret : [String?]
     if $name == "@" {
-        return $_VARS.args()
-    }
-    if let entry = $_VARS.get($name) {
-        if let aa = $entry._value as? [String] {
+        for a in $_VARS.args() {
+            $ret.add($a)
+        }
+    } elif let entry = $_VARS.get($name) {
+        if let aa = $entry._value as? [String?] {
             return $aa
         }
-        var ret : [String]
         if let s = $entry.getAsStr() {
             $ret.add($s)
         }
-        return $ret
     }
-    return new [String]()
+    return $ret
 }
 
 function __shtx_set_array_var(name: String, value: [String]): Bool {
-    $_VARS.put($name, $value)
+    var actual: [String?]
+    for v in $value {
+        $actual.add($v)
+    }
+    $_VARS.put($name, $actual)
     return $true
 }
 
@@ -925,15 +929,16 @@ function __shtx_concat(values : [Any]) : [String] {
             var r = $ret.pop()
             $r += $s
             $ret.push($r)
-        } elif let aa = $value as? [String] {
+        } elif let aa = $value as? [String?] {
             let size = $aa.size()
             for(var i = 0; $i < $size; $i++) {
+                var a = $aa[$i]!
                 if $i == 0 {
                     var r = $ret.pop()
-                    $r += $aa[$i]
+                    $r += $a
                     $ret.push($r)
                 } else {
-                    $ret.push($aa[$i])
+                    $ret.push($a)
                 }
             }
         }
