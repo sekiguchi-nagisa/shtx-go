@@ -45,6 +45,42 @@ printf "(%s)\n" "${CCCCCCCCCC[@]}"
 {erty}
 ()'
 
+## array op
+assert_fake_eval '
+## non-empty array
+AAA=(1 2 3)
+printf "<%s>\n" "${AAA[0]}"
+printf "<%s>\n" "${AAA[1]}"
+printf "<%s>\n" "${AAA[2]}"
+printf "<%s>\n" "${AAA[3]}"
+printf "<%s>\n" "${AAA[4]}"
+# printf "<%s>\n" "${AAA[-1]}"
+# printf "<%s>\n" "${AAA[-2]}"
+# printf "<%s>\n" "${AAA[-3]}"
+
+## empty array
+BBB=()
+printf "[%s]\n" "${BBB[0]}"
+printf "[%s]\n" "${BBB[1]}"
+
+## not array (string)
+CCC=abcd
+printf "(%s)\n" "${CCC[0]}"
+printf "(%s)\n" "${CCC[1]}"
+printf "(%s)\n" "${CCC[2]}"
+
+' '<1>
+<2>
+<3>
+<>
+<>
+<3>
+[]
+[]
+(abcd)
+()
+()'
+
 
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$

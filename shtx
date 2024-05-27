@@ -546,10 +546,43 @@ function __shtx_set_array_var(name: String, value: [String]): Bool {
 function __shtx_get_var_at(args: [String]): String {
     let param = $args[0]
     let index = $args[1]
+    let i = $index.toInt()!
     let op = $args.get(2) ?? ''
     let word = $args.get(3) ?? ''
 
+    let entry = $_VARS.get($param)
+    var elem = $none as String?
+    if $entry {
+        if let e = $entry!._value as? [String?] {
+            $elem = $e.get($i)
+        } else {
+            var e = $entry!._value as String
+            if $i == 0 {
+                $elem = $e
+            }
+        }
+    }
 
+    if !$elem {  # unset
+        case $op {
+            ':-' | '-' => return $word
+            ':=' | '=' => {} # TODO
+            ':?' | '?' => {} # TODO
+            else => return ""
+        }
+    } elif $elem!.empty() { # set but null
+        case $op {
+            ':-' | '+' => return $word
+            ':=' => {} # TODO
+            ':?' => {} #TODO
+            else => return ""
+        }
+    } else {  # set and not null
+        case $op {
+            ':+' | '+' => return $word
+            else => return $elem!
+        }
+    }
     throw new _SHError('unsupprted')
 }
 
