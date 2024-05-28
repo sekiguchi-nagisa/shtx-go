@@ -1,0 +1,296 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+
+## array op
+assert_fake_eval '
+## non-empty array
+AAA=(1 2 3)
+printf "<%s>\n" "${AAA[0]}"
+printf "<%s>\n" "${AAA[1]}"
+printf "<%s>\n" "${AAA[2]}"
+printf "<%s>\n" "${AAA[3]}"
+printf "<%s>\n" "${AAA[4]}"
+# printf "<%s>\n" "${AAA[-1]}"
+# printf "<%s>\n" "${AAA[-2]}"
+# printf "<%s>\n" "${AAA[-3]}"
+
+## empty array
+BBB=()
+printf "[%s]\n" "${BBB[0]}"
+printf "[%s]\n" "${BBB[1]}"
+
+## not array (string)
+CCC=abcd
+printf "(%s)\n" "${CCC[0]}"
+printf "(%s)\n" "${CCC[1]}"
+printf "(%s)\n" "${CCC[2]}"
+
+' '<1>
+<2>
+<3>
+<>
+<>
+[]
+[]
+(abcd)
+()
+()'
+
+## ${array[index]:-word}
+assert_fake_eval '
+## non-empty array
+AAA=(aaa "")
+printf "<%s>\n" "${AAA[0]:-111}"
+printf "<%s>\n" "${AAA[1]:-222}"
+printf "<%s>\n" "${AAA[2]:-333}"
+declare -p AAA
+
+## not array
+BBB=abcd
+printf "[%s]\n" "${BBB[0]:-111}"
+printf "[%s]\n" "${BBB[1]:-222}"
+declare -p BBB
+
+CCC=""
+printf "[%s]\n" "${CCC[0]:-333}"
+declare -p CCC
+
+## not found
+printf "{%s}\n" "${DDD[0]:-111}"
+LANG=C declare -p DDD &>> /dev/null || echo not found
+
+' '<aaa>
+<222>
+<333>
+declare -a AAA=([0]="aaa" [1]="")
+[abcd]
+[222]
+declare -- BBB="abcd"
+[333]
+declare -- CCC=""
+{111}
+not found'
+
+## ${array[index]-word}
+assert_fake_eval '
+## non-empty array
+AAA=(aaa "")
+printf "<%s>\n" "${AAA[0]-111}"
+printf "<%s>\n" "${AAA[1]-222}"
+printf "<%s>\n" "${AAA[2]-333}"
+declare -p AAA
+
+## not array
+BBB=abcd
+printf "[%s]\n" "${BBB[0]-111}"
+printf "[%s]\n" "${BBB[1]-222}"
+declare -p BBB
+
+CCC=""
+printf "[%s]\n" "${CCC[0]-333}"
+declare -p CCC
+
+## not found
+printf "{%s}\n" "${DDD[0]-111}"
+LANG=C declare -p DDD &>> /dev/null || echo not found
+
+' '<aaa>
+<>
+<333>
+declare -a AAA=([0]="aaa" [1]="")
+[abcd]
+[222]
+declare -- BBB="abcd"
+[]
+declare -- CCC=""
+{111}
+not found'
+
+## ${array[index]:=word}
+assert_fake_eval '
+## non-empty array
+AAA=(aaa "")
+printf "<%s>\n" "${AAA[0]:=111}"
+printf "<%s>\n" "${AAA[1]:=222}"
+printf "<%s>\n" "${AAA[2]:=333}"
+declare -p AAA
+
+## not array
+BBB=abcd
+printf "[%s]\n" "${BBB[0]:=111}"
+printf "[%s]\n" "${BBB[3]:=222}"
+declare -p BBB
+
+CCC=""
+printf "[%s]\n" "${CCC[0]:=333}"
+declare -p CCC
+
+## not found
+printf "(%s)\n" "${DDD[2]:=111}"
+LANG=C declare -p DDD
+
+' '<aaa>
+<222>
+<333>
+declare -a AAA=([0]="aaa" [1]="222" [2]="333")
+[abcd]
+[222]
+declare -a BBB=([0]="abcd" [3]="222")
+[333]
+declare -a CCC=([0]="333")
+(111)
+declare -a DDD=([2]="111")'
+
+## ${array[index]=word}
+assert_fake_eval '
+## non-empty array
+AAA=(aaa "")
+printf "<%s>\n" "${AAA[0]=111}"
+printf "<%s>\n" "${AAA[1]=222}"
+printf "<%s>\n" "${AAA[2]=333}"
+declare -p AAA
+
+## not array
+BBB=abcd
+printf "[%s]\n" "${BBB[0]=111}"
+printf "[%s]\n" "${BBB[3]=222}"
+declare -p BBB
+
+CCC=""
+printf "[%s]\n" "${CCC[0]=333}"
+declare -p CCC
+
+## not found
+printf "(%s)\n" "${DDD[2]=111}"
+LANG=C declare -p DDD
+
+' '<aaa>
+<>
+<333>
+declare -a AAA=([0]="aaa" [1]="" [2]="333")
+[abcd]
+[222]
+declare -a BBB=([0]="abcd" [3]="222")
+[]
+declare -- CCC=""
+(111)
+declare -a DDD=([2]="111")'
+
+## ${array[index]:?word}
+assert "$(fake_eval '
+AAA=(aaa "")
+printf "<%s>\n" "${AAA[0]:?111}"
+printf "<%s>\n" "${AAA[1]:?222}"
+declare -p AAA
+' 2>&1)" == '<aaa>
+bash: AAA[1]: 222'
+assert $? == 127
+
+assert "$(fake_eval '
+AAA=(aaa "")
+printf "<%s>\n" "${AAA[0]:?111}"
+printf "<%s>\n" "${AAA[2]:?222}"
+declare -p AAA
+' 2>&1)" == '<aaa>
+bash: AAA[2]: 222'
+assert $? == 127
+
+## ${array[index]?word}
+assert "$(fake_eval '
+AAA=(aaa "")
+printf "<%s>\n" "${AAA[0]?111}"
+printf "<%s>\n" "${AAA[1]?222}"
+declare -p AAA
+' 2>&1)" == '<aaa>
+<>
+declare -a AAA=([0]="aaa" [1]="")'
+assert $? == 0
+
+assert "$(fake_eval '
+AAA=(aaa "")
+printf "<%s>\n" "${AAA[0]?111}"
+printf "<%s>\n" "${AAA[2]?222}"
+declare -p AAA
+' 2>&1)" == '<aaa>
+bash: AAA[2]: 222'
+assert $? == 127
+
+
+## ${array[index]:+word}
+assert_fake_eval '
+## non-empty array
+AAA=(aaa "")
+printf "<%s>\n" "${AAA[0]:+111}"
+printf "<%s>\n" "${AAA[1]:+222}"
+printf "<%s>\n" "${AAA[2]:+333}"
+declare -p AAA
+
+## not array
+BBB=abcd
+printf "[%s]\n" "${BBB[0]:+111}"
+printf "[%s]\n" "${BBB[1]:+222}"
+declare -p BBB
+
+CCC=""
+printf "[%s]\n" "${CCC[0]:+333}"
+declare -p CCC
+
+## not found
+printf "{%s}\n" "${DDD[0]:+111}"
+LANG=C declare -p DDD &>> /dev/null || echo not found
+
+' '<111>
+<>
+<>
+declare -a AAA=([0]="aaa" [1]="")
+[111]
+[]
+declare -- BBB="abcd"
+[]
+declare -- CCC=""
+{}
+not found'
+
+## ${array[index]+word}
+assert_fake_eval '
+## non-empty array
+AAA=(aaa "")
+printf "<%s>\n" "${AAA[0]+111}"
+printf "<%s>\n" "${AAA[1]+222}"
+printf "<%s>\n" "${AAA[2]+333}"
+declare -p AAA
+
+## not array
+BBB=abcd
+printf "[%s]\n" "${BBB[0]+111}"
+printf "[%s]\n" "${BBB[1]+222}"
+declare -p BBB
+
+CCC=""
+printf "[%s]\n" "${CCC[0]+333}"
+declare -p CCC
+
+## not found
+printf "{%s}\n" "${DDD[0]+111}"
+LANG=C declare -p DDD &>> /dev/null || echo not found
+
+' '<111>
+<222>
+<>
+declare -a AAA=([0]="aaa" [1]="")
+[111]
+[]
+declare -- BBB="abcd"
+[333]
+declare -- CCC=""
+{}
+not found'
+
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

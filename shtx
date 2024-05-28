@@ -170,12 +170,15 @@ function stringify(): String for _VarEntry {
     if let ss = $this._value as? [String?] {
         var ret = "("
         let size = $ss.size()
+        var count = 0
         for(var i = 0; $i < $size; $i++) {
-            if $i > 0 {
+            var s = $ss[$i] ?? continue
+            if $count > 0 {
                 $ret += " "
             }
             $ret += "[$i]="
-            $ret += $__doubleQuote($ss[$i] ?? "")
+            $ret += $__doubleQuote($s)
+            $count++
         }
         $ret += ")"
         return $ret
@@ -384,8 +387,8 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
             } else {    # unset (1~)
                 case $op {
                     ':-' | '-' => return $word
-                    ':=' | '=' => throw new _SHError("${$_VARS.arg0()}: \$${param}: cannot assign in this way")
-                    ':?' | '?' => throw new _SHError("${$_VARS.arg0()}: \$${param}: ${word}", 127)
+                    ':=' | '=' => throw new _SHError("${$_VARS.arg0()}: ${param}: cannot assign in this way")
+                    ':?' | '?' => throw new _SHError("${$_VARS.arg0()}: ${param}: ${word}", 127)
                     ':+' | '+' => return ""
                     else => return ""
                 }
@@ -400,8 +403,8 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
         '-' => return $v ?? $word
         ':=' => return ($v ?? "") :- $_VARS.put($param, $word)
         '=' => return $v ?? $_VARS.put($param, $word)
-        ':?' => return ($v ?? "") :- throw new _SHError("${$_VARS.arg0()}: \$${param}: ${word}", 127)
-        '?' => return $v ?? throw new _SHError("${$_VARS.arg0()}: \$${param}: ${word}", 127)
+        ':?' => return ($v ?? "") :- throw new _SHError("${$_VARS.arg0()}: ${param}: ${word}", 127)
+        '?' => return $v ?? throw new _SHError("${$_VARS.arg0()}: ${param}: ${word}", 127)
         ':+' => return $v && !$v!.empty() ? $word : ""
         '+' => return $v ? $word : ""
         else => return $v ?? ""
@@ -566,15 +569,15 @@ function __shtx_get_var_at(args: [String]): String {
     if !$elem {  # unset
         case $op {
             ':-' | '-' => return $word
-            ':=' | '=' => {} # TODO
-            ':?' | '?' => {} # TODO
+            ':=' | '=' => return $__update_as_sparse_array($entry, $param, $i, $word)
+            ':?' | '?' => throw new _SHError("${$_VARS.arg0()}: ${param}[${index}]: ${word}", 127)
             else => return ""
         }
     } elif $elem!.empty() { # set but null
         case $op {
             ':-' | '+' => return $word
-            ':=' => {} # TODO
-            ':?' => {} #TODO
+            ':=' => return $__update_as_sparse_array($entry, $param, $i, $word)
+            ':?' => throw new _SHError("${$_VARS.arg0()}: ${param}[${index}]: ${word}", 127)
             else => return ""
         }
     } else {  # set and not null
@@ -583,7 +586,32 @@ function __shtx_get_var_at(args: [String]): String {
             else => return $elem!
         }
     }
-    throw new _SHError('unsupprted')
+}
+
+function __update_as_sparse_array(entry: _VarEntry?, name: String, index: Int, value: String): String {
+    var array = if let e = $entry {
+        if let v = $e._value as? [String?] {
+            $v
+        } else {
+            var v = $e._value as String
+            var a = [$v as String?]
+            $e.update($a)
+            $a
+        }
+    } else {  # not found
+        var a = new [String?]()
+        $_VARS.put($name, $a)
+        $a
+    }
+    $__sparse_array_set($array, $index, $value)
+    return $value
+}
+
+function __sparse_array_set(array: [String?], index: Int, value: String) {
+    while $index >= $array.size() {
+        $array.add($none)
+    }
+    $array[$index] = $value
 }
 
 
@@ -963,16 +991,17 @@ function __shtx_concat(values : [Any]) : [String] {
             $r += $s
             $ret.push($r)
         } elif let aa = $value as? [String?] {
-            let size = $aa.size()
-            for(var i = 0; $i < $size; $i++) {
-                var a = $aa[$i]!
-                if $i == 0 {
+            var count = 0
+            for a in $aa {
+                var v = $a ?? continue
+                if $count == 0 {
                     var r = $ret.pop()
-                    $r += $a
+                    $r += $v
                     $ret.push($r)
                 } else {
-                    $ret.push($a)
+                    $ret.push($v)
                 }
+                $count++
             }
         }
     }

@@ -68,12 +68,14 @@ assert_fake_eval '  # ${parameter:?word}
     echo "${foo:?bar}"
 ' 'asdf' 2> /dev/null
 assert $? == 127
+assert "$(fake_eval 'echo "${foo:?bar}"' 2>&1)" == 'bash: foo: bar'
 
 assert_fake_eval '  # ${parameter:?word}
     echo "${foo:?bar}"
     echo hello
 ' '' 2> /dev/null
 assert $? == 127
+assert "$(fake_eval 'echo "${foo:?bar}"; echo hello' 2>&1)" == 'bash: foo: bar'
 
 assert_fake_eval '  # ${parameter?word}
     foo=asdf
@@ -86,6 +88,7 @@ assert_fake_eval '  # ${parameter?word}
 ' 'asdfxyz
 xyz' 2> /dev/null
 assert $? == 127
+assert "$(fake_eval 'echo "${foo:?bar}"; echo hello' 2>&1)" == 'bash: foo: bar'
 
 unsetenv foo
 assert_fake_eval '  # ${parameter:+word}
