@@ -17,9 +17,9 @@
     * [x] global
     * [x] local
 * [ ] `PS1`
-* [ ] `PROMPT_COMMAND`
+* [x] `PROMPT_COMMAND`
     * [x] string variable
-    * [ ] array variable
+    * [x] array variable
 * [ ] `BASH_REMATCH`
 
 ## Word Expansion

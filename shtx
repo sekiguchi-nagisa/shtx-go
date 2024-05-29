@@ -275,8 +275,12 @@ function get(name : String, use_env : Bool?) : _VarEntry? for _VarScope {
     return $this.global.get($name, $use_env)
 }
 
-function find(name : String) : String? for _VarScope {
-    return if let entry = $this.get($name, $false) { $entry.getAsStr(); } else { $none; }
+function find(name: String): _VarEntry? for _VarScope {
+    return $this.get($name, $false)
+}
+
+function findAsStr(name : String) : String? for _VarScope {
+    return if let entry = $this.find($name) { $entry.getAsStr(); } else { $none; }
 }
 
 function put(name : String, value : Any) : String for _VarScope {
@@ -357,7 +361,7 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
         }
         '*' => {
             # FIXME: support expansion op
-            var sep = $_VARS.find('IFS') ?? " "
+            var sep = $_VARS.findAsStr('IFS') ?? " "
             $sep = $sep.empty() ? "" : $sep[0]
             return $_VARS.args().join($sep)
         }
@@ -425,7 +429,7 @@ function __show_vars(args: [String], local : Bool) : Int {
         $__printEntries($_VARS.locals.peek().entries, $false)
     } elif !$args.empty() {
         for arg in $args {
-            if let ret = $_VARS.get($arg, $false) {
+            if let ret = $_VARS.find($arg) {
                 if !$ret.isUnset() {
                     $ret.print($true)
                     continue
@@ -719,7 +723,7 @@ __shtx_[() {
 
 __shtx_read() {
     $reply.clear()
-    let ifs = $_VARS.find('IFS') ?? $' \t\n'
+    let ifs = $_VARS.findAsStr('IFS') ?? $' \t\n'
     IFS=$ifs read $@
     for k, v in $reply {
         $_VARS.put($k, $v)
@@ -1108,9 +1112,18 @@ function __shtx_eval_with_cache(input : String) : Int {
 
 source $MODULE_DIR/repl as __repl
 $__repl.PRE_PROMPTS.add(function() => {
-    var prompt_cmd = $_VARS.find('PROMPT_COMMAND') ?? return
-    $prompt_cmd :- return
-    $__shtx_eval_with_cache($prompt_cmd)
+    let entry = $_VARS.find('PROMPT_COMMAND') ?? return
+    if let array = $entry._value as? [String?] {
+        for a in $array {
+            var cmd = $a ?? continue
+            $cmd :- continue
+            $__shtx_eval_with_cache($cmd)
+        }
+    } else {
+        var prompt_cmd = $entry.getAsStr() ?? ""
+        $prompt_cmd :- return
+        $__shtx_eval_with_cache($prompt_cmd)
+    }
 })
 
 # +++++ public api functions (starts with fake_) +++++

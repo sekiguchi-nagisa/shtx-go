@@ -21,6 +21,27 @@ assert { getenv AABZ; $REPLY; } == "@@"
 
 assert "$(fake_eval 'echo "$AABZ"')" == '@@'
 
+## array PROMPT_COMMAND
+fake_eval '
+aaa="export XYZ=\"%\$XYZ\";"
+: "${PROMPT_COMMAND[3]:="$aaa"}"
+'
+
+$p.PRE_PROMPTS.peek()()
+assert checkenv AABZ
+assert { getenv AABZ; $REPLY; } == "@@@"
+assert checkenv XYZ
+assert { getenv XYZ; $REPLY; } == '%'
+
+$p.PRE_PROMPTS.peek()()
+assert checkenv AABZ
+assert { getenv AABZ; $REPLY; } == "@@@@"
+assert checkenv XYZ
+assert { getenv XYZ; $REPLY; } == '%%'
+
+assert "$(fake_eval 'declare -p PROMPT_COMMAND')" == 
+  'declare -a PROMPT_COMMAND=([0]="export AABZ=\"@\$AABZ\";" [3]="export XYZ=\"%\$XYZ\";")'
+
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
 # STATUS: 0
