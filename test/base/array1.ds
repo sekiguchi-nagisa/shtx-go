@@ -29,6 +29,12 @@ declare -a AAA=([0]="@@@")
 declare -a BBB=([0]="12345" [1]="\"123\"")
 declare -a CCC=([0]="fr")'
 
+## array assign (sparse array)
+assert_fake_eval '
+AAA=([2]=222 333 [6]=666 777 [0]=000 [4]=444)
+declare -p AAA
+' 'declare -a AAA=([0]="000" [2]="222" [3]="333" [4]="444" [6]="666" [7]="777")'
+
 ## array expand
 assert_fake_eval '
 AAA=()

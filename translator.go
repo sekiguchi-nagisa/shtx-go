@@ -384,7 +384,14 @@ func (t *Translator) visitArrayExpr(array *syntax.ArrayExpr) {
 		if i > 0 {
 			t.emit(" ")
 		}
-		_ = (elem.Index != nil || elem.Value == nil) && t.todo(elem.Index.Pos(), "support ([index]=value) notation")
+		if elem.Index != nil {
+			v := toNumericIndex(elem.Index)
+			_ = v == "" && t.todo(elem.Index.Pos(), "support arithmetic expr in array index")
+			t.emit(v)
+		} else {
+			t.emit("''")
+		}
+		t.emit(" ")
 		t.visitWordParts(elem.Value.Parts)
 	}
 	t.emit(")")

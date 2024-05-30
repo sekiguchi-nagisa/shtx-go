@@ -541,12 +541,18 @@ function __shtx_get_array_var(name: String): [String?] {
     return $ret
 }
 
-function __shtx_set_array_var(name: String, value: [String]): Bool {
-    var actual: [String?]
-    for v in $value {
-        $actual.add($v)
+function __shtx_set_array_var(name: String, args: [String]): Bool {
+    var array: [String?]
+    let size = $args.size()
+    assert $size % 2 == 0
+    var last_index = 0
+    for(var i = 0; $i < $size; $i+=2) {
+        var index = $args[$i].toInt() ?? $last_index
+        var value = $args[$i + 1]
+        $__sparse_array_set($array, $index, $value)
+        $last_index = $index + 1
     }
-    $_VARS.put($name, $actual)
+    $_VARS.put($name, $array)
     return $true
 }
 

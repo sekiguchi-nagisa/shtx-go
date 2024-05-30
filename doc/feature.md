@@ -59,7 +59,7 @@
 * [ ] ``declare -a AAA=(a b c)``
 * [ ] ``declare -a AAA=([index]=a)``
 * [x] ``AAA=(a b c)``
-* [ ] ``AAA=([index]=a)``
+* [x] ``AAA=([index]=a)``
 * [x] ``${AAA[@]}``
 * [ ] ``${AAA[*]}``
 * [x] ``${AAA[0]}``
