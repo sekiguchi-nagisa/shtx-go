@@ -385,9 +385,7 @@ func (t *Translator) visitArrayExpr(array *syntax.ArrayExpr) {
 			t.emit(" ")
 		}
 		if elem.Index != nil {
-			v := toNumericIndex(elem.Index)
-			_ = v == "" && t.todo(elem.Index.Pos(), "support arithmetic expr in array index")
-			t.emit(v)
+			t.visitArithmExpr(elem.Index)
 		} else {
 			t.emit("''")
 		}
@@ -395,6 +393,12 @@ func (t *Translator) visitArrayExpr(array *syntax.ArrayExpr) {
 		t.visitWordParts(elem.Value.Parts)
 	}
 	t.emit(")")
+}
+
+func (t *Translator) visitArithmExpr(expr syntax.ArithmExpr) {
+	v := toNumericConstant(expr)
+	_ = v == "" && t.todo(expr.Pos(), "support non-const arithmetic expr")
+	t.emit(v)
 }
 
 func (t *Translator) visitIfClause(clause *syntax.IfClause, elif bool) {
@@ -656,8 +660,8 @@ func (t *Translator) toExpansionOpStr(pos syntax.Pos, expansion *syntax.Expansio
 	return ""
 }
 
-func toNumericIndex(index syntax.ArithmExpr) string {
-	switch n := index.(type) {
+func toNumericConstant(expr syntax.ArithmExpr) string {
+	switch n := expr.(type) {
 	case *syntax.Word:
 		num, e := strconv.Atoi(n.Lit())
 		if e == nil {
@@ -729,9 +733,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 		t.emit("'")
 		if n.Index != nil {
 			t.emit(" ")
-			v := toNumericIndex(n.Index)
-			_ = v == "" && t.todo(n.Index.Pos(), "support arithmetic expr in array index")
-			t.emit(v)
+			t.visitArithmExpr(n.Index)
 		}
 		if n.Exp != nil {
 			t.emit(" '")
