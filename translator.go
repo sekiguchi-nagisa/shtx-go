@@ -145,24 +145,6 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 	t.caseExprCount = 0
 	t.staticReturnMap = make(map[*syntax.CallExpr]struct{})
 
-	// parse
-	var f *syntax.File
-	switch t.tranType {
-	case TranslateEval, TranslateSource, TranslateNone:
-		f, err = t.parse(buf)
-		if err != nil {
-			return
-		}
-
-		// dump
-		if t.dump != nil {
-			_, _ = fmt.Fprintln(t.dump, "+++++  dump parsed ast  +++++")
-			_ = syntax.DebugPrint(t.dump, f)
-			_, _ = fmt.Fprintln(t.dump)
-		}
-	case TranslatePattern: // do nothing
-	}
-
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("+++++  error message  +++++\n%s\n\n"+
@@ -171,30 +153,47 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 		}
 	}()
 
-	// translate
 	switch t.tranType {
-	case TranslateNone:
-		_ = syntax.NewPrinter().Print(t.out, f)
-	case TranslateEval:
-		t.emitLine("{")
-		t.visitStmts(f.Stmts)
-		t.emitLine("}")
-	case TranslateSource:
-		t.emitLine("function(argv: [String]): Int => {")
-		t.indentLevel++
-		t.indent()
-		t.emitLine("let old_argv = $__shtx_set_argv($argv)")
-		t.indent()
-		t.emitLine("defer { $__shtx_set_argv($old_argv); }")
-		t.indent()
-		t.emitLine("try {")
-		t.visitStmts(f.Stmts)
-		t.indent()
-		t.emitLine("} catch e: _Return { return $e.status(); }")
-		t.indent()
-		t.emitLine("return $?")
-		t.indentLevel--
-		t.emitLine("}")
+	case TranslateEval, TranslateSource, TranslateNone:
+		// parse
+		f, err := t.parse(buf)
+		if err != nil {
+			return err
+		}
+
+		// dump
+		if t.dump != nil {
+			_, _ = fmt.Fprintln(t.dump, "+++++  dump parsed ast  +++++")
+			_ = syntax.DebugPrint(t.dump, f)
+			_, _ = fmt.Fprintln(t.dump)
+		}
+
+		// translate
+		switch t.tranType {
+		case TranslateNone:
+			_ = syntax.NewPrinter().Print(t.out, f)
+		case TranslateEval:
+			t.emitLine("{")
+			t.visitStmts(f.Stmts)
+			t.emitLine("}")
+		case TranslateSource:
+			t.emitLine("function(argv: [String]): Int => {")
+			t.indentLevel++
+			t.indent()
+			t.emitLine("let old_argv = $__shtx_set_argv($argv)")
+			t.indent()
+			t.emitLine("defer { $__shtx_set_argv($old_argv); }")
+			t.indent()
+			t.emitLine("try {")
+			t.visitStmts(f.Stmts)
+			t.indent()
+			t.emitLine("} catch e: _Return { return $e.status(); }")
+			t.indent()
+			t.emitLine("return $?")
+			t.indentLevel--
+			t.emitLine("}")
+		case TranslatePattern:
+		}
 	case TranslatePattern:
 		re := GlobToRegex(string(buf))
 		t.emitLine(re)
