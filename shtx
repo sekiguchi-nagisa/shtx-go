@@ -559,7 +559,7 @@ function __shtx_set_array_var(name: String, args: [String]): Bool {
 function __shtx_get_var_at(args: [String]): String {
     let param = $args[0]
     let index = $args[1]
-    let i = $index.toInt()!
+    let i = $index == '*' ? 0 : $index.toInt()!
     let op = $args.get(2) ?? ''
     let word = $args.get(3) ?? ''
 
@@ -567,7 +567,17 @@ function __shtx_get_var_at(args: [String]): String {
     var elem = $none as String?
     if $entry {
         if let e = $entry!._value as? [String?] {
-            $elem = $e.get($i)
+            if $index == '*' {  # concat all array elememts
+                var sep = $_VARS.findAsStr('IFS') ?? " "
+                $sep = $sep.empty() ? "" : $sep[0]
+                var tmp : [String]
+                for a in $e {
+                    $tmp.add($a ?? continue)
+                }
+                $elem = $tmp.join($sep)
+            } else {
+                $elem = $e.get($i)
+            }
         } else {
             var e = $entry!._value as String
             if $i == 0 {
@@ -579,14 +589,26 @@ function __shtx_get_var_at(args: [String]): String {
     if !$elem {  # unset
         case $op {
             ':-' | '-' => return $word
-            ':=' | '=' => return $__update_as_sparse_array($entry, $param, $i, $word)
+            ':=' | '=' => {
+                if $index == '*' {
+                    echo 1>&2 "${$_VARS.arg0()}: ${param}[${index}]: bad array subscript"
+                    return $word
+                }
+                return $__update_as_sparse_array($entry, $param, $i, $word)
+            }
             ':?' | '?' => throw new _SHError("${$_VARS.arg0()}: ${param}[${index}]: ${word}", 127)
             else => return ""
         }
     } elif $elem!.empty() { # set but null
         case $op {
             ':-' | '+' => return $word
-            ':=' => return $__update_as_sparse_array($entry, $param, $i, $word)
+            ':=' => {
+                if $index == '*' {
+                    echo 1>&2 "${$_VARS.arg0()}: ${param}[${index}]: bad array subscript"
+                    return $word
+                }
+                return $__update_as_sparse_array($entry, $param, $i, $word)
+            }
             ':?' => throw new _SHError("${$_VARS.arg0()}: ${param}[${index}]: ${word}", 127)
             else => return ""
         }

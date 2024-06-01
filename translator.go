@@ -659,10 +659,18 @@ func (t *Translator) toExpansionOpStr(pos syntax.Pos, expansion *syntax.Expansio
 	return ""
 }
 
-func toNumericConstant(expr syntax.ArithmExpr) string {
+func toConstant(expr syntax.ArithmExpr) string {
 	switch n := expr.(type) {
 	case *syntax.Word:
-		num, e := strconv.Atoi(n.Lit())
+		return n.Lit()
+	}
+	return ""
+}
+
+func toNumericConstant(expr syntax.ArithmExpr) string {
+	v := toConstant(expr)
+	if v != "" {
+		num, e := strconv.Atoi(v)
 		if e == nil {
 			return strconv.Itoa(num)
 		}
@@ -732,7 +740,11 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 		t.emit("'")
 		if n.Index != nil {
 			t.emit(" ")
-			t.visitArithmExpr(n.Index)
+			if v := toConstant(n.Index); v == "*" {
+				t.emit("'*'")
+			} else {
+				t.visitArithmExpr(n.Index)
+			}
 		}
 		if n.Exp != nil {
 			t.emit(" '")

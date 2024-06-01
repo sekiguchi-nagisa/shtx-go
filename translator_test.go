@@ -525,6 +525,10 @@ esac
   echo "${$__shtx_get_var_at(@( 'de' 0 ))}"
 }
 `},
+	"array_index2": {`echo "${de[*]:-35243}"`, `{
+  echo "${$__shtx_get_var_at(@( 'de' '*' ':-' 35243 ))}"
+}
+`},
 	"array_expand1": {`de=(); echo "${de[@]}"`, `{
   $__shtx_set_array_var(@( de )[0], @())
   echo $__shtx_get_array_var('de')

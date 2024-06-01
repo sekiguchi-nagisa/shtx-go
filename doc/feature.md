@@ -37,16 +37,16 @@
 
 ### Parameter Expansion Op
 
-|                      | global | local | positional | `array[index]` |
-|----------------------|--------|-------|------------|----------------|
-| `${parameter:-word}` | ✔️     | ✔️    | ✔️         | ✔️             |
-| `${parameter-word}`  | ✔️     | ✔️    | ✔️         | ✔️             |
-| `${parameter:=word}` | ✔️     | ✔️    | ✔️         | ✔️             |
-| `${parameter=word}`  | ✔️     | ✔️    | ✔️         | ✔️             |
-| `${parameter:?word}` | ✔️     | ✔️    | ✔️         | ✔️             |
-| `${parameter?word}`  | ✔️     | ✔️    | ✔️         | ✔️             |
-| `${parameter:+word}` | ✔️     | ✔️    | ✔️         | ✔️             |
-| `${parameter+word}`  | ✔️     | ✔️    | ✔️         | ✔️             |
+|                      | global | local | positional | `array[index]` | `array[*]` | `array[@]` |
+|----------------------|--------|-------|------------|----------------|------------|------------|
+| `${parameter:-word}` | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
+| `${parameter-word}`  | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
+| `${parameter:=word}` | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
+| `${parameter=word}`  | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
+| `${parameter:?word}` | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
+| `${parameter?word}`  | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
+| `${parameter:+word}` | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
+| `${parameter+word}`  | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
 
 ### Glob Expansion Op
 
@@ -61,7 +61,7 @@
 * [x] ``AAA=(a b c)``
 * [x] ``AAA=([index]=a)``
 * [x] ``${AAA[@]}``
-* [ ] ``${AAA[*]}``
+* [x] ``${AAA[*]}``
 * [x] ``${AAA[0]}``
 * [ ] ``${AAA[<arithmetic expr>]}``
 * [x] sparse array
