@@ -37,16 +37,16 @@
 
 ### Parameter Expansion Op
 
-|                      | global | local | positional | `array[index]` | `array[*]` | `array[@]` |
-|----------------------|--------|-------|------------|----------------|------------|------------|
-| `${parameter:-word}` | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
-| `${parameter-word}`  | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
-| `${parameter:=word}` | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
-| `${parameter=word}`  | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
-| `${parameter:?word}` | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
-| `${parameter?word}`  | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
-| `${parameter:+word}` | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
-| `${parameter+word}`  | ✔️     | ✔️    | ✔️         | ✔️             | ✔️         | ❌          |
+|                      | global | local | positional | `*` | `@` | `array[index]` | `array[*]` | `array[@]` |
+|----------------------|--------|-------|------------|-----|-----|----------------|------------|------------|
+| `${parameter:-word}` | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${parameter-word}`  | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${parameter:=word}` | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${parameter=word}`  | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${parameter:?word}` | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${parameter?word}`  | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${parameter:+word}` | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${parameter+word}`  | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
 
 ### Glob Expansion Op
 
