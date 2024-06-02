@@ -88,7 +88,7 @@ declare -- CCC=""
 {{111}}
 not found'
 
-assert "$(fake_eval 'AAA=""; printf "<%s>\n" "${AAA[*]:-hello}"')" == '<hello>'
+assert "$(fake_eval 'AAA=""; printf "<%s>\n" "${AAA[*]:-hello world !!}"')" == '<hello world !!>'
 
 ## ${array[index]-word}
 assert_fake_eval '

@@ -331,15 +331,15 @@ fi
 }
 `},
 	"param-expand-op1": {`echo "${hoge:-45}"`, `{
-  echo "${$__shtx_get_var(@( 'hoge' ':-' 45 ))}"
+  echo "${$__shtx_get_var(@( 'hoge' ':-' "45" ))}"
 }
 `},
 	"param-expand-op2": {`echo "${45-hoge}"`, `{
-  echo "${$__shtx_get_var(@( '45' '-' hoge ))}"
+  echo "${$__shtx_get_var(@( '45' '-' "hoge" ))}"
 }
 `},
-	"param-expand-op3": {`echo "${?:?hoge}"`, `{
-  echo "${$__shtx_get_var(@( '?' ':?' hoge ))}"
+	"param-expand-op3": {`echo "${?:?hello world}"`, `{
+  echo "${$__shtx_get_var(@( '?' ':?' "hello world" ))}"
 }
 `},
 	"param-expand-op4": {`echo "${var=}"`, `{
@@ -525,8 +525,8 @@ esac
   echo "${$__shtx_get_var_at(@( 'de' 0 ))}"
 }
 `},
-	"array_index2": {`echo "${de[*]:-35243}"`, `{
-  echo "${$__shtx_get_var_at(@( 'de' '*' ':-' 35243 ))}"
+	"array_index2": {`echo "${de[*]:-35243$OSTYPE}"`, `{
+  echo "${$__shtx_get_var_at(@( 'de' '*' ':-' "35243"${$__shtx_get_var(@( 'OSTYPE' ))} ))}"
 }
 `},
 	"array_expand1": {`de=(); echo "${de[@]}"`, `{

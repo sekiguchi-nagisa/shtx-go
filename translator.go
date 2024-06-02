@@ -751,7 +751,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 			t.emit(t.toExpansionOpStr(n.Pos(), n.Exp))
 			t.emit("' ")
 			if n.Exp.Word != nil {
-				t.visitWordParts(n.Exp.Word.Parts)
+				t.visitWordPartsWith(n.Exp.Word.Parts, WordPartOption{singleWord: true})
 			}
 		}
 		t.emit(" ))}")
