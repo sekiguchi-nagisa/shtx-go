@@ -543,14 +543,8 @@ function __shtx_get_array_var(name: String): [String?] {
 
 function __shtx_set_array_var(name: String, args: [String]): Bool {
     var array: [String?]
-    let size = $args.size()
-    assert $size % 2 == 0
-    var last_index = 0
-    for(var i = 0; $i < $size; $i+=2) {
-        var index = $args[$i].toInt() ?? $last_index
-        var value = $args[$i + 1]
-        $__sparse_array_set($array, $index, $value)
-        $last_index = $index + 1
+    for arg in $args {
+        $array.add($arg)
     }
     $_VARS.put($name, $array)
     return $true
@@ -644,6 +638,33 @@ function __sparse_array_set(array: [String?], index: Int, value: String) {
         $array.add($none)
     }
     $array[$index] = $value
+}
+
+typedef _SparseArrayBuilder(n: String) {
+    var last_index = 0;
+    let name = $n
+    let values: [String?]
+}
+
+function add(args: [String]): _SparseArrayBuilder for _SparseArrayBuilder {
+    for arg in $args {
+        $__sparse_array_set($this.values, $this.last_index, $arg)
+        $this.last_index++
+    }
+    return $this
+}
+
+function at(args: [String]): _SparseArrayBuilder for _SparseArrayBuilder {
+    var index = $args[0].toInt()!
+    var value = $args[1]
+    $__sparse_array_set($this.values, $index, $value)
+    $this.last_index = $index + 1
+    return $this
+}
+
+function build(): Bool for _SparseArrayBuilder {
+    $_VARS.put($this.name, $this.values)
+    return $true
 }
 
 

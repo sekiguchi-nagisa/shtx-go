@@ -359,11 +359,34 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 				t.emit("; ")
 			}
 			if assign.Array != nil { // aaa=(a b c)
-				t.emit("$__shtx_set_array_var(@( ")
-				t.emit(assign.Name.Value)
-				t.emit(" )[0], ")
-				t.visitArrayExpr(assign.Array)
-				t.emit(")")
+				if isSparseArray(assign.Array) {
+					t.emit("(new _SparseArrayBuilder(@( ")
+					t.emit(assign.Name.Value)
+					t.emit(" )[0]))")
+					for _, elem := range assign.Array.Elems {
+						if elem.Index != nil {
+							t.emit(".at(@( ")
+							t.visitArithmExpr(elem.Index)
+							t.emit(" ")
+						} else {
+							t.emit(".add(@( ")
+						}
+						t.visitWordParts(elem.Value.Parts)
+						t.emit(" ))")
+					}
+					t.emit(".build()")
+				} else {
+					t.emit("$__shtx_set_array_var(@( ")
+					t.emit(assign.Name.Value)
+					t.emit(" )[0], @(")
+					for i, elem := range assign.Array.Elems {
+						if i > 0 {
+							t.emit(" ")
+						}
+						t.visitWordParts(elem.Value.Parts)
+					}
+					t.emit("))")
+				}
 			} else {
 				t.emit("$__shtx_set_var(@( ")
 				t.emit(assign.Name.Value)
@@ -377,21 +400,13 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 	}
 }
 
-func (t *Translator) visitArrayExpr(array *syntax.ArrayExpr) {
-	t.emit("@(")
-	for i, elem := range array.Elems {
-		if i > 0 {
-			t.emit(" ")
-		}
+func isSparseArray(array *syntax.ArrayExpr) bool {
+	for _, elem := range array.Elems {
 		if elem.Index != nil {
-			t.visitArithmExpr(elem.Index)
-		} else {
-			t.emit("''")
+			return true
 		}
-		t.emit(" ")
-		t.visitWordParts(elem.Value.Parts)
 	}
-	t.emit(")")
+	return false
 }
 
 func (t *Translator) visitArithmExpr(expr syntax.ArithmExpr) {

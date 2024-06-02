@@ -509,7 +509,7 @@ esac
 }
 `},
 	"array_assign1": {`AAA=(aaa '123' "$(ls)")`, `{
-  $__shtx_set_array_var(@( AAA )[0], @('' aaa '' '123' '' "$(ls)"))
+  $__shtx_set_array_var(@( AAA )[0], @(aaa '123' "$(ls)"))
 }
 `},
 	"array_assign2": {`de=()`, `{
@@ -517,7 +517,7 @@ esac
 }
 `},
 	"array_assign3": {`de=([1]=111 222 [4]=444)`, `{
-  $__shtx_set_array_var(@( de )[0], @(1 111 '' 222 4 444))
+  (new _SparseArrayBuilder(@( de )[0])).at(@( 1 111 )).add(@( 222 )).at(@( 4 444 )).build()
 }
 `},
 	"array_index1": {`de=(); echo "${de[0]}"`, `{
