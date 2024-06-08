@@ -13,6 +13,7 @@ curl -fL https://raw.githubusercontent.com/sekiguchi-nagisa/shtx-go/main/scripts
 
 | **name**         | **version** |
 |------------------|-------------|
+| direnv           | v2.32.2     |
 | pyenv            | v2.3.32     |
-| venv             | 3.9         |
 | pyenv-virtualenv | v1.2.3      |
+| venv             | 3.9         |

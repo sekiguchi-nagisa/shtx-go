@@ -1,0 +1,64 @@
+
+source $SCRIPT_DIR/../../../shtx as shtx
+
+assert checkenv RUN_IN_CONTAINER  # guard
+
+source $MODULE_DIR/repl.arsh as repl
+preprompt() {
+    for a in $repl.PRE_PROMPTS {
+        $a()
+    }
+}
+
+shctl set errraise
+
+# generate .envrc
+mkdir env_dir1
+mkdir env_dir2
+
+echo 'export THIS_IS_ENV1="this is a env1"' > ./env_dir1/.envrc
+echo 'export THIS_IS_ENV2="this is a env2"' > ./env_dir2/.envrc
+
+# setup direnv hook
+shtx fake_source /dev/stdin << 'EOF'
+eval "$(direnv hook bash)"
+EOF
+
+# test hook
+assert ! printenv THIS_IS_ENV1
+assert ! printenv THIS_IS_ENV2
+
+## enter env1
+pushd ./env_dir1
+direnv allow .
+preprompt
+assert "$(printenv THIS_IS_ENV1)" == 'this is a env1'
+assert ! printenv THIS_IS_ENV2
+
+## leave env1
+popd
+preprompt
+assert ! printenv THIS_IS_ENV1
+assert ! printenv THIS_IS_ENV2
+
+## enter env2
+pushd ./env_dir2
+direnv allow .
+preprompt
+assert ! printenv THIS_IS_ENV1
+assert "$(printenv THIS_IS_ENV2)" == 'this is a env2'
+
+## leave env2 and re-enter env1
+cd ../env_dir1
+preprompt
+assert "$(printenv THIS_IS_ENV1)" == 'this is a env1'
+assert ! printenv THIS_IS_ENV2
+
+
+## leave env1
+popd
+preprompt
+assert ! printenv THIS_IS_ENV1
+assert ! printenv THIS_IS_ENV2
+
+true
