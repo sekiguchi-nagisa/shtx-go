@@ -27,6 +27,11 @@ if $OSTYPE == "darwin" && (ls -l@ $MODULE_HOME/$bin | grep 'com.apple.quarantine
     xattr -d com.apple.quarantine $MODULE_HOME/$bin
 }
 
+# create symlink
+mv $MODULE_HOME/shtx $MODULE_HOME/shtx-$SHTX_VERSION
+cd $MODULE_HOME
+ln -s ./shtx-$SHTX_VERSION ./shtx
+
 true
 
 } # guard for broken download
