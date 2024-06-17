@@ -1,0 +1,10 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+assert "$(fake_eval 'declare -p')" == "$(fake_call declare -p)"
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

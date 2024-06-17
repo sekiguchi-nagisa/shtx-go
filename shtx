@@ -1230,6 +1230,7 @@ fake_source() {
     }
 }
 
+fake_call() { __shtx_dyna_call $@; }
 
 # +++++ entry point for cli +++++
 
