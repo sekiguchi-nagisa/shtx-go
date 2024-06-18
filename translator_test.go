@@ -39,15 +39,15 @@ false;
 }
 `},
 	"non-literal-command1": {`e'ch''o' hello`, `{
-  __shtx_dyna_call e'ch''o' hello
+  fake_call e'ch''o' hello
 }
 `},
 	"non-literal-command2": {`"echo" $"hello"\ \ 'world'`, `{
-  __shtx_dyna_call "echo" "hello"\ \ 'world'
+  fake_call "echo" "hello"\ \ 'world'
 }
 `},
 	"non-literal-command3": {`2to3`, `{
-  __shtx_dyna_call 2to3
+  fake_call 2to3
 }
 `},
 	"redirection1": {"echo 1>& 3", `{
@@ -95,7 +95,7 @@ false;
 }
 `},
 	"cmd-sub": {`"$(echo "$(echo AAA; echo BBB)")"`, `{
-  __shtx_dyna_call "$(echo "$({
+  fake_call "$(echo "$({
     echo AAA
     echo BBB
   })")"
@@ -135,7 +135,7 @@ false;
 }
 `},
 	"builtin-declare": {`"declare"; declare -f hoge; declare AAA=12`, `{
-  __shtx_dyna_call "declare"
+  fake_call "declare"
   __shtx_declare "-f" hoge
   __shtx_declare AAA="12"
 }
@@ -167,7 +167,7 @@ false;
 `},
 
 	"builtin-test3": {`\\[ -n hoge ]`, `{
-  __shtx_dyna_call \\[ -n hoge ]
+  fake_call \\[ -n hoge ]
 }
 `},
 	"builtin-read": {`read $?`, `{
@@ -179,19 +179,19 @@ false;
 }
 `},
 	"non-callable-command1": {`__shtx_printf`, `{
-  __shtx_dyna_call __shtx_printf
+  fake_call __shtx_printf
 }
 `},
 	"non-callable-command2": {`\__shtx_printf`, `{
-  __shtx_dyna_call \__shtx_printf
+  fake_call \__shtx_printf
 }
 `},
 	"non-callable-command3": {`fake_eval`, `{
-  __shtx_dyna_call fake_eval
+  fake_call fake_eval
 }
 `},
 	"non-callable-command4": {`fake_\source`, `{
-  __shtx_dyna_call fake_\source
+  fake_call fake_\source
 }
 `},
 	"special-param1": {`echo "$#: $0: $1 ${002}"`, `{

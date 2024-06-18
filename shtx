@@ -976,39 +976,6 @@ __shtx_trap() {
     return $errors == 0 ? 0 : 1
 }
 
-# dynamically resolve command name
-__shtx_dyna_call() {
-    $@.empty() && return 0
-
-    ## not call internal api (__shtx_ or fake_)
-    if $@[0].startsWith("__shtx_") || $@[0].startsWith("fake_") {
-        if let cmd = $DYNA_UDCS.get($@[0]) {
-            $cmd.call($@)
-        } else {
-            command $@
-        }
-        return $?
-    }
-
-    var cmd = $@[0]
-    $@[0] = case $cmd {
-        '[' => '__shtx_['
-        'declare' => '__shtx_declare'
-        'export' => '__shtx_export'
-        'local' => '__shtx_local'
-        'unset' => '__shtx_unset'
-        'shift' => '__shtx_shift'
-        'read' => '__shtx_read'
-        'printf' => '__shtx_printf'
-        'return' => '__shtx_return'
-        'trap' => '__shtx_trap'
-        'eval' => 'fake_eval'
-        '.' | 'source' => 'fake_source'
-        else => $cmd
-    }
-    call $@
-}
-
 function __shtx_set_argv(argv : [String]) : [String] {
     var old : [String]
     $old.add($_VARS.arg0())
@@ -1230,7 +1197,37 @@ fake_source() {
     }
 }
 
-fake_call() { __shtx_dyna_call $@; }
+fake_call() {
+    $@.empty() && return 0
+
+    ## not call internal api (__shtx_ or fake_)
+    if $@[0].startsWith("__shtx_") || $@[0].startsWith("fake_") {
+        if let cmd = $DYNA_UDCS.get($@[0]) {
+            $cmd.call($@)
+        } else {
+            command $@
+        }
+        return $?
+    }
+
+    var cmd = $@[0]
+    $@[0] = case $cmd {
+        '[' => '__shtx_['
+        'declare' => '__shtx_declare'
+        'export' => '__shtx_export'
+        'local' => '__shtx_local'
+        'unset' => '__shtx_unset'
+        'shift' => '__shtx_shift'
+        'read' => '__shtx_read'
+        'printf' => '__shtx_printf'
+        'return' => '__shtx_return'
+        'trap' => '__shtx_trap'
+        'eval' => 'fake_eval'
+        '.' | 'source' => 'fake_source'
+        else => $cmd
+    }
+    call $@
+ }
 
 # +++++ entry point for cli +++++
 

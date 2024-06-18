@@ -597,7 +597,7 @@ func (t *Translator) visitCmdName(word *syntax.Word) {
 		name := remapCmdName(literal)
 		t.emit(name)
 	} else {
-		t.emit("__shtx_dyna_call ")
+		t.emit("fake_call ")
 		t.visitWordParts(word.Parts)
 	}
 }
