@@ -1126,8 +1126,8 @@ function __shtx_eval_with_cache(input : String) : Int {
     return $__shtx_run_eval($func!)
 }
 
-source $MODULE_DIR/repl as __repl
-$__repl.PRE_PROMPTS.add(function() => {
+source $MODULE_DIR/repl_impl/prompt as __prompt
+$__prompt.PRE_PROMPTS.add(function() => {
     let entry = $_VARS.find('PROMPT_COMMAND') ?? return
     if let array = $entry._value as? [String?] {
         for a in $array {
