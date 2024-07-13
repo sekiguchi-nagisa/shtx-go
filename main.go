@@ -17,6 +17,7 @@ type Options struct {
 	String        string `short:"c" description:"Use string as input"`
 	DumpAST       string `short:"d" long:"dump" description:"Dump internal ast to specified file (default to stderr)" optional:"true" optional-value:"/dev/stderr"`
 	SaveCrashDump bool   `long:"crash-dump" description:"Save crash dump to file"`
+	PatternType   string `short:"p" long:"pattern-type" description:"Set type of pattern" choice:"whole" choice:"partial" choice:"start" choice:"end" default:"whole"`
 	Args          struct {
 		SCRIPT string
 	} `positional-args:"yes"`
@@ -68,6 +69,13 @@ var transTypes = map[string]TranslationType{
 	"eval":    TranslateEval,
 	"source":  TranslateSource,
 	"pattern": TranslatePattern,
+}
+
+var glob2RegexOptions = map[string]Glob2RegexOption{
+	"whole":   {startsWith: true, endsWith: true},
+	"partial": {startsWith: false, endsWith: false},
+	"start":   {startsWith: true, endsWith: false},
+	"end":     {startsWith: false, endsWith: true},
 }
 
 func main() {
@@ -122,6 +130,7 @@ func main() {
 		}
 		tx.SetDump(d)
 	}
+	tx.glob2RegexOption = glob2RegexOptions[options.PatternType]
 
 	var txError error
 	tx.errorCallback = func(e error) {

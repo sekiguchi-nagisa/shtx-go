@@ -61,16 +61,17 @@ type Offset struct {
 }
 
 type Translator struct {
-	in              []byte    // original input buffer
-	out             io.Writer // for output
-	dump            io.Writer // for parsed ast dump
-	tranType        TranslationType
-	offset          Offset
-	indentLevel     int
-	funcLevel       int
-	caseExprCount   int
-	errorCallback   ErrorCallback
-	staticReturnMap map[*syntax.CallExpr]struct{}
+	in               []byte    // original input buffer
+	out              io.Writer // for output
+	dump             io.Writer // for parsed ast dump
+	tranType         TranslationType
+	offset           Offset
+	indentLevel      int
+	funcLevel        int
+	caseExprCount    int
+	errorCallback    ErrorCallback
+	staticReturnMap  map[*syntax.CallExpr]struct{}
+	glob2RegexOption Glob2RegexOption
 }
 
 func NewTranslator(tt TranslationType) *Translator {
@@ -195,7 +196,7 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 		case TranslatePattern:
 		}
 	case TranslatePattern:
-		re := GlobToRegex(string(buf))
+		re := GlobToRegexWith(string(buf), t.glob2RegexOption)
 		t.emitLine(re)
 	}
 	return nil

@@ -2,10 +2,16 @@ package main
 
 import "strings"
 
+type Glob2RegexOption struct {
+	startsWith bool // starts with pattern
+	endsWith   bool // ends with pattern
+}
+
 type glob2RegexTranslator struct {
 	runes  []rune
 	length int
 	index  int
+	option Glob2RegexOption
 }
 
 func (g *glob2RegexTranslator) translateCharSet() string {
@@ -74,7 +80,9 @@ func (g *glob2RegexTranslator) translate(glob string) string {
 	sb := strings.Builder{}
 	sb.Grow(g.length)
 
-	sb.WriteString("^")
+	if g.option.startsWith {
+		sb.WriteString("^")
+	}
 	for ; g.index < g.length; g.index++ {
 		ch := g.runes[g.index]
 		switch ch {
@@ -109,14 +117,20 @@ func (g *glob2RegexTranslator) translate(glob string) string {
 			sb.WriteRune(ch)
 		}
 	}
-	sb.WriteString("$")
+	if g.option.endsWith {
+		sb.WriteString("$")
+	}
 	return sb.String()
+}
+
+func GlobToRegexWith(value string, option Glob2RegexOption) string {
+	glob2regex := glob2RegexTranslator{option: option}
+	return glob2regex.translate(value)
 }
 
 // GlobToRegex translate value (glob pattern) to regex
 func GlobToRegex(value string) string {
-	glob2regex := glob2RegexTranslator{}
-	return glob2regex.translate(value)
+	return GlobToRegexWith(value, Glob2RegexOption{startsWith: true, endsWith: true})
 }
 
 // LiteralGlobToRegex translate escaped command argument part to regex literal

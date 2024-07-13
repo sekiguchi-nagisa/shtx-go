@@ -1,0 +1,26 @@
+# RUN: call $cmd $self
+
+# test cli of shtx-go binary
+
+source ../../shtx as shtx
+
+assert $shtx.SHTX_GO_BIN_PATH.empty()
+shtx fake_eval 'true'  # detect binary path
+assert ! $shtx.SHTX_GO_BIN_PATH.empty()
+assert $shtx.SHTX_GO_BIN_PATH.startsWith($shtx._scriptDir())
+
+shtx-go() {
+    call ${shtx.SHTX_GO_BIN_PATH} $@
+}
+
+## test glob to regex translation
+assert "$(shtx-go -t pattern -c '1234*')" == "^1234.*$"
+assert "$(shtx-go --type=pattern -p whole -c '1234*')" == "^1234.*$"
+assert "$(shtx-go --type=pattern -p partial -c '1234*')" == "1234.*"
+assert "$(shtx-go --type=pattern --pattern-type=start -c '1234*')" == "^1234.*"
+assert "$(shtx-go --type=pattern --pattern-type=end -c '1234*')" == "1234.*$"
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

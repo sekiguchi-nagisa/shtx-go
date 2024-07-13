@@ -155,3 +155,21 @@ func TestGlobToRegex(t *testing.T) {
 		assert.Equal(t, testCase.after, actual, fmt.Sprintf("index=%d, before=%s", i, testCase.before))
 	}
 }
+
+var globTestCases2 = []struct {
+	before string
+	after  string
+	option Glob2RegexOption
+}{
+	{"123", "^123$", Glob2RegexOption{startsWith: true, endsWith: true}},
+	{"123", "^123", Glob2RegexOption{startsWith: true, endsWith: false}},
+	{"123", "123$", Glob2RegexOption{startsWith: false, endsWith: true}},
+	{"123", "123", Glob2RegexOption{startsWith: false, endsWith: false}},
+}
+
+func TestGlobToRegexWith(t *testing.T) {
+	for i, testCase := range globTestCases2 {
+		actual := GlobToRegexWith(testCase.before, testCase.option)
+		assert.Equal(t, testCase.after, actual, fmt.Sprintf("index=%d, before=%s", i, testCase.before))
+	}
+}
