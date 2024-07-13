@@ -8,6 +8,7 @@ source ../common/assert.ds
 assert_fake_eval '
   f() {
     case "$1" in
+    -11) echo match -11;;
     -1) echo match -1;;
     -2) echo match -2;;
     do) echo match do;;
@@ -23,6 +24,7 @@ assert_fake_eval '
   }
   f " " " "
   f -1
+  f hgoeh-1
   f -2
   f do
   f hgoe
@@ -30,6 +32,7 @@ assert_fake_eval '
   f a --verbose
 ' 'default: default
 match -1
+default: default
 match -2
 match do
 default: default
