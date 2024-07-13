@@ -2,25 +2,22 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"github.com/jessevdk/go-flags"
+	"github.com/alecthomas/kong"
 	"os"
 	"path/filepath"
 	"runtime/debug"
 	"time"
 )
 
-type Options struct {
-	Version       bool   `short:"v" long:"version" description:"Show version info"`
-	Type          string `short:"t" long:"type" description:"Set type of translation" choice:"eval" choice:"source" choice:"pattern" choice:"none" default:"eval"`
-	String        string `short:"c" description:"Use string as input"`
-	DumpAST       string `short:"d" long:"dump" description:"Dump internal ast to specified file (default to stderr)" optional:"true" optional-value:"/dev/stderr"`
-	SaveCrashDump bool   `long:"crash-dump" description:"Save crash dump to file"`
-	PatternType   string `short:"p" long:"pattern-type" description:"Set type of pattern" choice:"whole" choice:"partial" choice:"start" choice:"end" default:"whole"`
-	Args          struct {
-		SCRIPT string
-	} `positional-args:"yes"`
+var CLI struct {
+	Version       bool    `short:"v" help:"Show version info"`
+	Type          string  `short:"t" help:"Set type of translation (eval, source, pattern, none)" enum:"eval,source,pattern,none" default:"eval"`
+	String        *string `short:"c" placeholder:"string" help:"Use string as input"`
+	DumpAST       *string `name:"dump" short:"d" placeholder:"file" help:"Dump internal ast to specified file (default to stderr)" optional:""`
+	SaveCrashDump bool    `name:"crash-dump" help:"Save crash dump to file"`
+	PatternType   string  `name:"pattern-type" short:"p" help:"Set type of pattern (whole, partial, start, end)" enum:"whole,partial,start,end" default:"whole"`
+	Script        string  `arg:"" optional:""`
 }
 
 var version = "" // for version embedding (specified like "-X main.version=v0.1.0")
@@ -79,32 +76,19 @@ var glob2RegexOptions = map[string]Glob2RegexOption{
 }
 
 func main() {
-	options := Options{}
-	p := flags.NewParser(&options, flags.Default)
-	if _, e := p.Parse(); e != nil {
-		var flagsErr *flags.Error
-		if errors.As(e, &flagsErr) && errors.Is(flagsErr.Type, flags.ErrHelp) {
-			os.Exit(0)
-		} else {
-			p.WriteHelp(os.Stderr)
-			os.Exit(1)
-		}
-	}
-
-	if options.Version {
+	ctx := kong.Parse(&CLI, kong.UsageOnError())
+	if CLI.Version {
 		fmt.Println(getVersion())
 		os.Exit(0)
 	}
 
 	var buf []byte = nil
-	if len(options.String) > 0 {
-		buf = []byte(options.String)
+	if CLI.String != nil {
+		buf = []byte(*CLI.String)
 	} else {
-		script := options.Args.SCRIPT
+		script := CLI.Script
 		if script == "" {
-			_, _ = fmt.Fprintln(os.Stderr, "the argument `SCRIPT` was not provided")
-			p.WriteHelp(os.Stderr)
-			os.Exit(1)
+			ctx.Fatalf("the argument `SCRIPT` was not provided")
 		}
 		if script == "-" {
 			script = "/dev/stdin"
@@ -118,9 +102,13 @@ func main() {
 		buf = b
 	}
 
-	tx := NewTranslator(transTypes[options.Type])
-	if len(options.DumpAST) != 0 {
-		d, e := os.Create(options.DumpAST)
+	tx := NewTranslator(transTypes[CLI.Type])
+	if CLI.DumpAST != nil {
+		dump := *CLI.DumpAST
+		if dump == "" {
+			dump = "/dev/stderr"
+		}
+		d, e := os.Create(dump)
 		defer func(d *os.File) {
 			_ = d.Close()
 		}(d)
@@ -130,7 +118,7 @@ func main() {
 		}
 		tx.SetDump(d)
 	}
-	tx.glob2RegexOption = glob2RegexOptions[options.PatternType]
+	tx.glob2RegexOption = glob2RegexOptions[CLI.PatternType]
 
 	var txError error
 	tx.errorCallback = func(e error) {
@@ -143,7 +131,7 @@ func main() {
 		} else {
 			_, _ = fmt.Fprintln(os.Stderr, e.Error())
 		}
-		if options.SaveCrashDump {
+		if CLI.SaveCrashDump {
 			saveCrashDump(e)
 		}
 		os.Exit(1)
