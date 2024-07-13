@@ -26,7 +26,7 @@ let SHTX_VERSION = "0.4.0"
 
 # +++++ helper functions +++++
 
-var _SHTX_GO_BIN_PATH = ""
+var SHTX_GO_BIN_PATH = ""
 
 __shtx_error() : Nothing {
     echo 2>&1 $@
@@ -37,18 +37,19 @@ __shtx_detect_bin() {
     let suffix = ($OSTYPE == 'cygwin' || $OSTYPE == 'msys') ? ".exe" : ""
     let ostype = $suffix.empty() ? $OSTYPE : "windows"
     if $SHTX_DEV_MODE {
-        command -v go &>> /dev/null || __shtx_error "require go binary"
-        if !(test -x $SCRIPT_DIR/shtx-go$suffix) {
+        let bin_path = "$SCRIPT_DIR/shtx-go$suffix"
+        if !(test -x $bin_path) {
             # rebuild
+            command -v go &>> /dev/null || __shtx_error "require go binary"
             (cd $SCRIPT_DIR && command go build &>> /dev/null) | true
-            test -x $SCRIPT_DIR/shtx-go$suffix || __shtx_error cannot build shtx-go
+            test -x $bin_path || __shtx_error cannot build shtx-go
         }
-        $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go"
+        $SHTX_GO_BIN_PATH = $bin_path
     } else {
-        $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go-$SHTX_VERSION-$ostype-$MACHTYPE$suffix"
-        test -x $_SHTX_GO_BIN_PATH && return 0
-        $_SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go$suffix"
-        test -x $_SHTX_GO_BIN_PATH && return 0
+        $SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go-$SHTX_VERSION-$ostype-$MACHTYPE$suffix"
+        test -x $SHTX_GO_BIN_PATH && return 0
+        $SHTX_GO_BIN_PATH = "$SCRIPT_DIR/shtx-go$suffix"
+        test -x $SHTX_GO_BIN_PATH && return 0
         __shtx_error not found \`shtx-go\` executable in $SCRIPT_DIR
     }
 }
@@ -853,7 +854,7 @@ function __shtx_compile_eval(input: String): (()-> Void)? {
     if $SHTX_CRASH_DUMP {
         $opt.add("--crash-dump")
     }
-    var output = "$(call $_SHTX_GO_BIN_PATH $opt - <<< $input)"
+    var output = "$(call $SHTX_GO_BIN_PATH $opt - <<< $input)"
     if $? != 0 {
         return $none
     }
@@ -1042,7 +1043,7 @@ function __shtx_glob_match(values : [String]): Bool {
     var re = $_GLOB2RE_CACHE.get($pattern) ?? { # translate glob to regex
         __shtx_detect_bin
         var re = try {
-            var s = "$(call $_SHTX_GO_BIN_PATH --type=pattern -c $pattern)"
+            var s = "$(call $SHTX_GO_BIN_PATH --type=pattern -c $pattern)"
             new Regex($s)
         } catch e : RegexSyntaxError {
             $e.show()
@@ -1172,7 +1173,7 @@ fake_source() {
     if $SHTX_CRASH_DUMP {
         $opt.add("--crash-dump")
     }
-    var output = "$(call $_SHTX_GO_BIN_PATH $opt -- $input)"
+    var output = "$(call $SHTX_GO_BIN_PATH $opt -- $input)"
     if $? != 0 {
         return 1
     }
