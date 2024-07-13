@@ -342,6 +342,94 @@ function __shtx_cmd_fallback(m : Module, argv : [String]) : Bool {
     return $false
 }
 
+
+# +++++ for glob/regex +++++
+
+let _GLOB2RE_CACHE : [String: Regex]
+let _GLOB_META = $/[?*\[]/
+
+function __shtx_glob_match(values : [String]): Bool {
+    let value = $values[0]
+    let pattern = $values[1]
+    if $_GLOB_META !~ $pattern {  # fast path (no glob meta)
+        return $value == $pattern
+    }
+    let old = $?
+    defer { $? = $old; }
+    var re = $_GLOB2RE_CACHE.get($pattern) ?? { # translate glob to regex
+        __shtx_detect_bin
+        var re = try {
+            var s = "$(call $SHTX_GO_BIN_PATH --type=pattern -c $pattern)"
+            new Regex($s)
+        } catch e : RegexSyntaxError {
+            $e.show()
+            return $false
+        }
+
+        if $_GLOB2RE_CACHE.size() == 32 { # remove old entry
+            var key = for k,_ in $_GLOB2RE_CACHE { break $k }
+            $_GLOB2RE_CACHE.remove($key!)
+        }
+        $_GLOB2RE_CACHE.put($pattern, $re)
+        $re
+    }
+    return $re =~ $value
+}
+
+function __shtx_escape_glob_meta(pattern : String) : String {
+    if $_GLOB_META !~ $pattern {
+        return $pattern
+    }
+    var ret = ""
+    let size = $pattern.size()
+    for(var i = 0; $i < $size; $i++) {
+        var ch = $pattern[$i]
+        case $ch {
+            '*' | '?' | '[' | ']' | '\' => { $ret += '\'; }
+        }
+        $ret += $ch
+    }
+    return $ret
+}
+
+let _REGEX_CACHE : [String: Regex]
+
+function __shtx_regex_match(values: [String]): Bool {
+    let value = $values[0]
+    let pattern = $values[1]
+    var re = $_REGEX_CACHE.get($pattern) ?? {
+        var re = try { 
+            new Regex($pattern)
+        } catch e: RegexSyntaxError {
+            $e.show()
+            return $false
+        }
+
+        if $_REGEX_CACHE.size() == 32 { # remove old entry
+            var key = for k,_ in $_REGEX_CACHE { break $k; }
+            $_REGEX_CACHE.remove($key!)
+        }
+        $_REGEX_CACHE.put($pattern, $re)
+        $re
+    }
+    return $re =~ $value  # FIXME: store match results as string array
+}
+
+function __shtx_escape_regex_meta(pattern: String): String {
+    var ret = ""
+    let size = $pattern.size()
+    for(var i = 0; $i < $size; $i++) {
+        var ch = $pattern[$i]
+        case $ch {
+            '^' | '$' | '.' | '*' | '?' | '[' | ']' | '\' => { $ret += '\'; }
+        }
+        $ret += $ch
+    }
+    return $ret
+}
+
+# +++++ for parameter expansion +++++
+
 typedef _SHError : Error
 
 function __shtx_var_get_impl(param : String, op : String, word : String) : String {
@@ -415,6 +503,124 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
         else => return $v ?? ""
     }
 }
+
+function __shtx_get_var_at_impl(param: String, index: String, op: String, word: String): String {
+    let i = $index == '*' ? 0 : $index.toInt()!
+    let entry = $_VARS.get($param)
+    var elem = $none as String?
+    if $entry {
+        if let e = $entry!._value as? [String?] {
+            if $index == '*' {  # concat all array elememts
+                var sep = $_VARS.findAsStr('IFS') ?? " "
+                $sep = $sep.empty() ? "" : $sep[0]
+                var tmp : [String]
+                for a in $e {
+                    $tmp.add($a ?? continue)
+                }
+                $elem = $tmp.join($sep)
+            } else {
+                $elem = $e.get($i)
+            }
+        } else {
+            var e = $entry!._value as String
+            if $i == 0 {
+                $elem = $e
+            }
+        }
+    }
+
+    if !$elem {  # unset
+        case $op {
+            ':-' | '-' => return $word
+            ':=' | '=' => {
+                if $index == '*' {
+                    echo 1>&2 "${$_VARS.arg0()}: ${param}[${index}]: bad array subscript"
+                    return $word
+                }
+                return $__update_as_sparse_array($entry, $param, $i, $word)
+            }
+            ':?' | '?' => throw new _SHError("${$_VARS.arg0()}: ${param}[${index}]: ${word}", 127)
+            else => return ""
+        }
+    } elif $elem!.empty() { # set but null
+        case $op {
+            ':-' | '+' => return $word
+            ':=' => {
+                if $index == '*' {
+                    echo 1>&2 "${$_VARS.arg0()}: ${param}[${index}]: bad array subscript"
+                    return $word
+                }
+                return $__update_as_sparse_array($entry, $param, $i, $word)
+            }
+            ':?' => throw new _SHError("${$_VARS.arg0()}: ${param}[${index}]: ${word}", 127)
+            else => return ""
+        }
+    } else {  # set and not null
+        case $op {
+            ':+' | '+' => return $word
+            else => return $elem!
+        }
+    }
+}
+
+
+# +++++ for (sparse) array construction +++++
+
+function __update_as_sparse_array(entry: _VarEntry?, name: String, index: Int, value: String): String {
+    var array = if let e = $entry {
+        if let v = $e._value as? [String?] {
+            $v
+        } else {
+            var v = $e._value as String
+            var a = [$v as String?]
+            $e.update($a)
+            $a
+        }
+    } else {  # not found
+        var a = new [String?]()
+        $_VARS.put($name, $a)
+        $a
+    }
+    $__sparse_array_set($array, $index, $value)
+    return $value
+}
+
+function __sparse_array_set(array: [String?], index: Int, value: String) {
+    while $index >= $array.size() {
+        $array.add($none)
+    }
+    $array[$index] = $value
+}
+
+typedef _SparseArrayBuilder(n: String) {
+    var last_index = 0;
+    let name = $n
+    let values: [String?]
+}
+
+function add(args: [String]): _SparseArrayBuilder for _SparseArrayBuilder {
+    for arg in $args {
+        $__sparse_array_set($this.values, $this.last_index, $arg)
+        $this.last_index++
+    }
+    return $this
+}
+
+function at(args: [String]): _SparseArrayBuilder for _SparseArrayBuilder {
+    var index = $args[0].toInt()!
+    var value = $args[1]
+    $__sparse_array_set($this.values, $index, $value)
+    $this.last_index = $index + 1
+    return $this
+}
+
+function build(): Bool for _SparseArrayBuilder {
+    $_VARS.put($this.name, $this.values)
+    return $true
+}
+
+
+# +++++ for declare/local commands +++++
 
 function __printEntries(entries: [String: _VarEntry], verbose : Bool) {
     for _, e in $entries {
@@ -554,118 +760,9 @@ function __shtx_set_array_var(name: String, args: [String]): Bool {
 function __shtx_get_var_at(args: [String]): String {
     let param = $args[0]
     let index = $args[1]
-    let i = $index == '*' ? 0 : $index.toInt()!
     let op = $args.get(2) ?? ''
     let word = $args.get(3) ?? ''
-
-    let entry = $_VARS.get($param)
-    var elem = $none as String?
-    if $entry {
-        if let e = $entry!._value as? [String?] {
-            if $index == '*' {  # concat all array elememts
-                var sep = $_VARS.findAsStr('IFS') ?? " "
-                $sep = $sep.empty() ? "" : $sep[0]
-                var tmp : [String]
-                for a in $e {
-                    $tmp.add($a ?? continue)
-                }
-                $elem = $tmp.join($sep)
-            } else {
-                $elem = $e.get($i)
-            }
-        } else {
-            var e = $entry!._value as String
-            if $i == 0 {
-                $elem = $e
-            }
-        }
-    }
-
-    if !$elem {  # unset
-        case $op {
-            ':-' | '-' => return $word
-            ':=' | '=' => {
-                if $index == '*' {
-                    echo 1>&2 "${$_VARS.arg0()}: ${param}[${index}]: bad array subscript"
-                    return $word
-                }
-                return $__update_as_sparse_array($entry, $param, $i, $word)
-            }
-            ':?' | '?' => throw new _SHError("${$_VARS.arg0()}: ${param}[${index}]: ${word}", 127)
-            else => return ""
-        }
-    } elif $elem!.empty() { # set but null
-        case $op {
-            ':-' | '+' => return $word
-            ':=' => {
-                if $index == '*' {
-                    echo 1>&2 "${$_VARS.arg0()}: ${param}[${index}]: bad array subscript"
-                    return $word
-                }
-                return $__update_as_sparse_array($entry, $param, $i, $word)
-            }
-            ':?' => throw new _SHError("${$_VARS.arg0()}: ${param}[${index}]: ${word}", 127)
-            else => return ""
-        }
-    } else {  # set and not null
-        case $op {
-            ':+' | '+' => return $word
-            else => return $elem!
-        }
-    }
-}
-
-function __update_as_sparse_array(entry: _VarEntry?, name: String, index: Int, value: String): String {
-    var array = if let e = $entry {
-        if let v = $e._value as? [String?] {
-            $v
-        } else {
-            var v = $e._value as String
-            var a = [$v as String?]
-            $e.update($a)
-            $a
-        }
-    } else {  # not found
-        var a = new [String?]()
-        $_VARS.put($name, $a)
-        $a
-    }
-    $__sparse_array_set($array, $index, $value)
-    return $value
-}
-
-function __sparse_array_set(array: [String?], index: Int, value: String) {
-    while $index >= $array.size() {
-        $array.add($none)
-    }
-    $array[$index] = $value
-}
-
-typedef _SparseArrayBuilder(n: String) {
-    var last_index = 0;
-    let name = $n
-    let values: [String?]
-}
-
-function add(args: [String]): _SparseArrayBuilder for _SparseArrayBuilder {
-    for arg in $args {
-        $__sparse_array_set($this.values, $this.last_index, $arg)
-        $this.last_index++
-    }
-    return $this
-}
-
-function at(args: [String]): _SparseArrayBuilder for _SparseArrayBuilder {
-    var index = $args[0].toInt()!
-    var value = $args[1]
-    $__sparse_array_set($this.values, $index, $value)
-    $this.last_index = $index + 1
-    return $this
-}
-
-function build(): Bool for _SparseArrayBuilder {
-    $_VARS.put($this.name, $this.values)
-    return $true
+    return $__shtx_get_var_at_impl($param, $index, $op, $word)
 }
 
 
@@ -1025,89 +1122,6 @@ function __shtx_concat(values : [Any]) : [String] {
                 $count++
             }
         }
-    }
-    return $ret
-}
-
-let _GLOB2RE_CACHE : [String: Regex]
-let _GLOB_META = $/[?*\[]/
-
-function __shtx_glob_match(values : [String]): Bool {
-    let value = $values[0]
-    let pattern = $values[1]
-    if $_GLOB_META !~ $pattern {  # fast path (no glob meta)
-        return $value == $pattern
-    }
-    let old = $?
-    defer { $? = $old; }
-    var re = $_GLOB2RE_CACHE.get($pattern) ?? { # translate glob to regex
-        __shtx_detect_bin
-        var re = try {
-            var s = "$(call $SHTX_GO_BIN_PATH --type=pattern -c $pattern)"
-            new Regex($s)
-        } catch e : RegexSyntaxError {
-            $e.show()
-            return $false
-        }
-
-        if $_GLOB2RE_CACHE.size() == 32 { # remove old entry
-            var key = for k,_ in $_GLOB2RE_CACHE { break $k }
-            $_GLOB2RE_CACHE.remove($key!)
-        }
-        $_GLOB2RE_CACHE.put($pattern, $re)
-        $re
-    }
-    return $re =~ $value
-}
-
-function __shtx_escape_glob_meta(pattern : String) : String {
-    if $_GLOB_META !~ $pattern {
-        return $pattern
-    }
-    var ret = ""
-    let size = $pattern.size()
-    for(var i = 0; $i < $size; $i++) {
-        var ch = $pattern[$i]
-        case $ch {
-            '*' | '?' | '[' | ']' | '\' => { $ret += '\'; }
-        }
-        $ret += $ch
-    }
-    return $ret
-}
-
-let _REGEX_CACHE : [String: Regex]
-
-function __shtx_regex_match(values: [String]): Bool {
-    let value = $values[0]
-    let pattern = $values[1]
-    var re = $_REGEX_CACHE.get($pattern) ?? {
-        var re = try { 
-            new Regex($pattern)
-        } catch e: RegexSyntaxError {
-            $e.show()
-            return $false
-        }
-
-        if $_REGEX_CACHE.size() == 32 { # remove old entry
-            var key = for k,_ in $_REGEX_CACHE { break $k; }
-            $_REGEX_CACHE.remove($key!)
-        }
-        $_REGEX_CACHE.put($pattern, $re)
-        $re
-    }
-    return $re =~ $value  # FIXME: store match results as string array
-}
-
-function __shtx_escape_regex_meta(pattern: String): String {
-    var ret = ""
-    let size = $pattern.size()
-    for(var i = 0; $i < $size; $i++) {
-        var ch = $pattern[$i]
-        case $ch {
-            '^' | '$' | '.' | '*' | '?' | '[' | ']' | '\' => { $ret += '\'; }
-        }
-        $ret += $ch
     }
     return $ret
 }
