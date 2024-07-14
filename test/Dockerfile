@@ -1,12 +1,13 @@
 FROM opensuse/tumbleweed
 
-RUN zypper in -y pcre2-devel git go1.21 diffutils
+RUN zypper in -y pcre2-devel git go1.21 diffutils gcc-c++ clang cmake ninja re2c
 
 COPY . /home/tux/dev
-RUN zypper addrepo --no-gpgcheck -f https://download.opensuse.org/repositories/home:nsekiguchi/openSUSE_Tumbleweed/home:nsekiguchi.repo && \
-    zypper refresh && \
-    zypper install -y arsh
+
+RUN git clone https://github.com/sekiguchi-nagisa/arsh.git
+RUN mkdir -p ./arsh/build
+RUN cd arsh && cd build && cmake .. -G Ninja && cmake --build . && cmake --build . -- install
 
 WORKDIR /home/tux/dev/
 CMD ls ./ && go build -buildvcs=false -v ./... && \
-    arsh ./test/run_all_tests.ds /usr/share/arsh/tools/litecheck
+    arsh ./test/run_all_tests.ds /usr/local/share/arsh/tools/litecheck
