@@ -346,6 +346,18 @@ fi
   echo "${$__shtx_get_var(@( 'var' '='  ))}"
 }
 `},
+	"param-expand-replace1": {`echo "${a/hello/world}"`, `{
+  echo "${$__shtx_get_var(@( 'a' '/' "hello" "world" ))}"
+}
+`},
+	"param-expand-replace2": {`echo "${a//~"root"/}"`, `{
+  echo "${$__shtx_get_var(@( 'a' '//' ~""$__shtx_escape_glob_meta("root")  ))}"
+}
+`},
+	"param-expand-replace3": {`echo "${a/#~"root"/$HOME}"`, `{
+  echo "${$__shtx_get_var(@( 'a' '/' "#~"$__shtx_escape_glob_meta("root") ${$__shtx_get_var(@( 'HOME' ))} ))}"
+}
+`},
 	"function1": {`function hoge() true`, `{
   $__shtx_func('hoge', (){
     let ctx = $__shtx_enter_func($0, $@)

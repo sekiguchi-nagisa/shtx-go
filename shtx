@@ -346,7 +346,38 @@ function __shtx_cmd_fallback(m : Module, argv : [String]) : Bool {
 # +++++ for glob/regex +++++
 
 let _GLOB2RE_CACHE : [String: Regex]
+
+let _GLOB2RE_TYPE_WHOLE = "whole"
+let _GLOB2RE_TYPE_PARTIAL = "partial"
+let _GLOB2RE_TYPE_START = "start"
+let _GLOB2RE_TYPE_END = "end"
+
 let _GLOB_META = $/[?*\[]/
+
+function __glob_to_regex(pattern: String, type: String): Regex? {
+    let old = $?
+    defer { $? = $old; }
+    let key = $type + "@" + $pattern
+    var re = $_GLOB2RE_CACHE.get($key) ?? { # translate glob to regex
+        __shtx_detect_bin
+        var re = try {
+            var s = "$(call $SHTX_GO_BIN_PATH --type=pattern --pattern-type=$type -c $pattern)"
+            assert $? == 0
+            new Regex($s)
+        } catch e : RegexSyntaxError {
+            $e.show()
+            return $none
+        }
+
+        if $_GLOB2RE_CACHE.size() == 32 { # remove old entry
+            var target = for k,_ in $_GLOB2RE_CACHE { break $k }
+            $_GLOB2RE_CACHE.remove($target!)
+        }
+        $_GLOB2RE_CACHE.put($key, $re)
+        $re
+    }
+    return $re
+}
 
 function __shtx_glob_match(values : [String]): Bool {
     let value = $values[0]
@@ -354,25 +385,7 @@ function __shtx_glob_match(values : [String]): Bool {
     if $_GLOB_META !~ $pattern {  # fast path (no glob meta)
         return $value == $pattern
     }
-    let old = $?
-    defer { $? = $old; }
-    var re = $_GLOB2RE_CACHE.get($pattern) ?? { # translate glob to regex
-        __shtx_detect_bin
-        var re = try {
-            var s = "$(call $SHTX_GO_BIN_PATH --type=pattern -c $pattern)"
-            new Regex($s)
-        } catch e : RegexSyntaxError {
-            $e.show()
-            return $false
-        }
-
-        if $_GLOB2RE_CACHE.size() == 32 { # remove old entry
-            var key = for k,_ in $_GLOB2RE_CACHE { break $k }
-            $_GLOB2RE_CACHE.remove($key!)
-        }
-        $_GLOB2RE_CACHE.put($pattern, $re)
-        $re
-    }
+    var re = $__glob_to_regex($pattern, $_GLOB2RE_TYPE_WHOLE) ?? return $false
     return $re =~ $value
 }
 
@@ -385,11 +398,28 @@ function __shtx_escape_glob_meta(pattern : String) : String {
     for(var i = 0; $i < $size; $i++) {
         var ch = $pattern[$i]
         case $ch {
-            '*' | '?' | '[' | ']' | '\' => { $ret += '\'; }
+            '*' | '?' | '[' | ']' | '\' |
+            '#' | '%'  # for '${a/#b/c}' '${a/%b/c}' expansion op
+             => { $ret += '\'; }
         }
         $ret += $ch
     }
     return $ret
+}
+
+function __glob_replace(value: String, pattern: String, repl: String, once: Bool): String {
+    var type = $_GLOB2RE_TYPE_PARTIAL
+    if $once {
+        if $pattern.startsWith('#') {
+            $type = $_GLOB2RE_TYPE_START
+            $pattern = $pattern.slice(1)
+        } elif $pattern.startsWith('%') {
+            $type = $_GLOB2RE_TYPE_END
+            $pattern = $pattern.slice(1)
+        }
+    }
+    var re = $__glob_to_regex($pattern, $type) ?? return ""
+    return $re.replace($value, $repl, $once: $once)
 }
 
 let _REGEX_CACHE : [String: Regex]
@@ -432,7 +462,7 @@ function __shtx_escape_regex_meta(pattern: String): String {
 
 typedef _SHError : Error
 
-function __shtx_var_get_impl(param : String, op : String, word : String) : String {
+function __shtx_var_get_impl(param : String, op : String, word : String) : String? {
     assert !$param.empty()
 
     case $param {
@@ -483,7 +513,7 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
                     ':=' | '=' => throw new _SHError("${$_VARS.arg0()}: ${param}: cannot assign in this way")
                     ':?' | '?' => throw new _SHError("${$_VARS.arg0()}: ${param}: ${word}", 127)
                     ':+' | '+' => return ""
-                    else => return ""
+                    else => return $none
                 }
             }
         }
@@ -500,7 +530,7 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
         '?' => return $v ?? throw new _SHError("${$_VARS.arg0()}: ${param}: ${word}", 127)
         ':+' => return $v && !$v!.empty() ? $word : ""
         '+' => return $v ? $word : ""
-        else => return $v ?? ""
+        else => return $v
     }
 }
 
@@ -718,10 +748,17 @@ function __shtx_define_vars(cmd: String, args: [String]) : Int {
 
 # for global varibale access
 function __shtx_get_var(args: [String]): String {
-    var param = $args[0]
-    var op = $args.get(1) ?? ''
-    var word = $args.get(2) ?? ''
-    return $__shtx_var_get_impl($param, $op, $word)
+    let param = $args[0]
+    let op = $args.get(1) ?? ''
+    let word = $args.get(2) ?? ''
+    let replace = $op == '/' || $op == '//'
+    var ret = $__shtx_var_get_impl($param, $replace ? "" : $op, $word)
+    if $replace && $ret {
+        var pattern = $word
+        var repl = $args.get(3) ?? ''
+        $ret = $__glob_replace($value:$ret!, $pattern:$pattern, $repl:$repl, $once:$op == '/')
+    }
+    return $ret ?? ""
 }
 
 function __shtx_set_var(args: [String]): Bool {
@@ -762,7 +799,14 @@ function __shtx_get_var_at(args: [String]): String {
     let index = $args[1]
     let op = $args.get(2) ?? ''
     let word = $args.get(3) ?? ''
-    return $__shtx_get_var_at_impl($param, $index, $op, $word)
+    let replace = $op == '/' || $op == '//'
+    var ret = $__shtx_get_var_at_impl($param, $index, $replace ? "" : $op, $word)
+    if $replace {
+        var pattern = $word
+        var repl = $args.get(4) ?? ''
+        $ret = $__glob_replace($value:$ret, $pattern:$pattern, $repl:$repl, $once:$op == '/')
+    }
+    return $ret
 }
 
 

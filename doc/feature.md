@@ -37,16 +37,20 @@
 
 ### Parameter Expansion Op
 
-|                      | global | local | positional | `*` | `@` | `array[index]` | `array[*]` | `array[@]` |
-|----------------------|--------|-------|------------|-----|-----|----------------|------------|------------|
-| `${parameter:-word}` | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
-| `${parameter-word}`  | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
-| `${parameter:=word}` | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
-| `${parameter=word}`  | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
-| `${parameter:?word}` | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
-| `${parameter?word}`  | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
-| `${parameter:+word}` | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
-| `${parameter+word}`  | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+|                              | global | local | positional | `*` | `@` | `array[index]` | `array[*]` | `array[@]` |
+|------------------------------|--------|-------|------------|-----|-----|----------------|------------|------------|
+| `${parameter:-word}`         | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${parameter-word}`          | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${parameter:=word}`         | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${parameter=word}`          | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${parameter:?word}`         | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${parameter?word}`          | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${parameter:+word}`         | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${parameter+word}`          | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${parameter/pattern/word}`  | ✔️     | ✔️    | ❌          | ❌   | ❌   | ❌              | ❌          | ❌          |
+| `${parameter//pattern/word}` | ✔️     | ✔️    | ❌          | ❌   | ❌   | ❌              | ❌          | ❌          |
+| `${parameter/#pattern/word}` | ✔️     | ✔️    | ❌          | ❌   | ❌   | ❌              | ❌          | ❌          |
+| `${parameter/%pattern/word}` | ✔️     | ✔️    | ❌          | ❌   | ❌   | ❌              | ❌          | ❌          |
 
 ### Glob Expansion Op
 

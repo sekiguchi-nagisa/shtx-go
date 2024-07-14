@@ -744,7 +744,6 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 		_ = n.Length && t.todo(n.Pos(), "support ${#a}")
 		_ = n.Width && t.todo(n.Pos(), "not support ${%a}")
 		_ = n.Slice != nil && t.todo(n.Pos(), "not support ${a:x:y}")
-		_ = n.Repl != nil && t.todo(n.Pos(), "not support ${a/x/y}")
 		_ = n.Names != 0 && t.todo(n.Pos(), "not support ${!prefix*}")
 		_ = !isValidParamName(n.Param.Value) && t.todo(n.Param.Pos(), "unsupported param name: "+n.Param.Value)
 		t.emit("${$__shtx_get_var")
@@ -768,6 +767,19 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 			t.emit("' ")
 			if n.Exp.Word != nil {
 				t.visitWordPartsWith(n.Exp.Word.Parts, WordPartOption{singleWord: true})
+			}
+		}
+		if n.Repl != nil {
+			t.emit(" '")
+			t.emit("/")
+			if n.Repl.All {
+				t.emit("/")
+			}
+			t.emit("' ")
+			t.visitWordPartsWith(n.Repl.Orig.Parts, WordPartOption{pattern: true})
+			t.emit(" ")
+			if n.Repl.With != nil {
+				t.visitWordPartsWith(n.Repl.With.Parts, WordPartOption{singleWord: true})
 			}
 		}
 		t.emit(" ))}")

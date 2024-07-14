@@ -16,7 +16,7 @@ hoge
 ()
 <bar>' ''
 
-assert_fake_source '  # ${parapemter-word}
+assert_fake_source '  # ${parameter-word}
     echo "(${#-huga})"
     echo "${34-hoge}"
     echo "(${34})"
@@ -26,14 +26,14 @@ hoge
 ()
 <>' ''
 
-assert_fake_source '  # ${parapemter:=word}
+assert_fake_source '  # ${parameter:=word}
     echo "(${#:=huga})" &&
     echo "${34:=hoge}" &&
     echo "(${34})"
 ' '(1)' '' 2> /dev/null
 assert $? == 1
 
-assert_fake_source '  # ${parapemter=word}
+assert_fake_source '  # ${parameter=word}
     echo "(${#=huga})" &&
     echo "<${1=hoge}>" &&
     echo "${34=hoge}" &&
@@ -42,21 +42,21 @@ assert_fake_source '  # ${parapemter=word}
 <>' '' 2> /dev/null
 assert $? == 1
 
-assert_fake_eval '  # ${parapemter:?word}
+assert_fake_eval '  # ${parameter:?word}
     echo "(${#:?huga})" &&
     echo "<${1:?hoge}>" &&
     echo "(${34})"
 ' '(0)' '' 2> /dev/null
 assert $? == 127
 
-# assert_fake_source '  # ${parapemter:?word}
+# assert_fake_source '  # ${parameter:?word}
 #     echo "(${#:?huga})" &&
 #     echo "${34:?hoge}" &&
 #     echo "(${34})"
 # ' '(1)' '' 2> /dev/null
 # assert $? == 127
 
-assert_fake_source '  # ${parapemter:+word}
+assert_fake_source '  # ${parameter:+word}
     echo "(${#:+huga})"
     echo "<${1:+hoge}>"
     echo "(${34:+bar})"
@@ -64,7 +64,7 @@ assert_fake_source '  # ${parapemter:+word}
 <>
 ()' ''
 
-assert_fake_source '  # ${parapemter+word}
+assert_fake_source '  # ${parameter+word}
     echo "(${#+huga})"
     echo "<${1+hoge}>"
     echo "(${34+bar})"

@@ -114,6 +114,57 @@ assert_fake_eval '  # ${parameter+word}
 (hoge)
 huga'
 
+assert_fake_eval '  # ${parameter/pattern/word}
+    echo "<${aaaa//world}>"
+    echo "<${aaaa/*/world}>"
+    AAA=
+    echo "<${AAA//12}>"
+    echo "<${AAA/*/12}>"
+    AAA=~/hoge
+    echo "<${AAA/~/@@}>"
+    AAA=123456
+    echo "<${AAA/~ss/@@}>"
+    echo "<${AAA/3*5/@@}>"
+    echo "<${AAA/3*?/@@}>"
+' '<>
+<>
+<>
+<12>
+<@@/hoge>
+<123456>
+<12@@6>
+<12@@>'
+
+assert_fake_eval '  # ${parameter//pattern/word}
+    AAA="this is a pen"
+    echo "<${AAA// /#}>"
+    echo "<${AAA//i? /@}>"
+    echo "<${AAA/bbb/@}>"
+' '<this#is#a#pen>
+<th@@a pen>
+<this is a pen>'
+
+assert_fake_eval '  # ${parameter/#pattern/word}
+    AAA="that that that that"
+    echo "<${AAA/#that/this}>"
+    echo "<${AAA/#t?that/this}>"
+    echo "<${AAA/#/@@}>"
+    AAA=" # this "
+    echo "<${AAA/# \#/@@}>"
+' '<this that that that>
+<that that that that>
+<@@that that that that>
+<@@ this >'
+
+assert_fake_eval '  # ${parameter/%pattern/word}
+    AAA="that that that that"
+    echo "<${AAA/%that/this}>"
+    AAA="%that %that"
+    echo "<${AAA/%\%that/this}>"
+' '<that that that this>
+<%that this>'
+
+
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
 # STATUS: 0
