@@ -106,8 +106,6 @@ in cmd: 12345
 after: 9876
 9876'
 
-$CMD_FALLBACK = function(m,s) => echo 1>&2 bash: $s[0]: command not found && false
-
 # unset function
 assert "$(fake_eval '
   fff() { echo fff; }
