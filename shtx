@@ -336,12 +336,6 @@ function _error(cmd : String, v : String) {
     echo 1>&2 ${$_VARS.arg0()}: $cmd: $v
 }
 
-function __shtx_cmd_fallback(m : Module, argv : [String]) : Bool {
-    $_error($argv[0], "command not found")
-    $? = 127
-    return $false
-}
-
 
 # +++++ for glob/regex +++++
 
@@ -956,9 +950,6 @@ __shtx_return() {
 }
 
 typedef _Context() {
-    let fallback = $CMD_FALLBACK
-    $CMD_FALLBACK = $__shtx_cmd_fallback
-
     ## set runtime options
     let option = { shctl set -d; $REPLY; }
     shctl unset errraise &>> /dev/null
@@ -982,7 +973,6 @@ function __shtx_restore_context($ctx : _Context?) {
     let old = $?
     defer { $? = $old; }
     if let c = $ctx {
-        $CMD_FALLBACK = $c.fallback
         shctl set -r ${c.option}
     }
     $_CALL_COUNT--

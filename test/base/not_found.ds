@@ -3,14 +3,14 @@
 source ../../shtx
 source ../common/assert.ds
 
+$CMD_FALLBACK = function(m,s) => echo 1>&2 bash: $s[0]: command not found && false
+
 assert "$(fake_eval 'hogehoge' 2>&1)" == 'bash: hogehoge: command not found'
-assert $? == 127
 
 assert "$({
     fake_eval 'ff() { hoge; }'
     ff
 } with 2>&1)" == "bash: hoge: command not found"
-assert $? == 127
 
 assert "$(fake_source <(cat << EOF
     ff() { hugahuga; }
@@ -26,19 +26,12 @@ assert $? == 0
 source ../../shtx as ss
 assert $ss._fullname('__shtx_printf')
 assert "$(fake_eval '__shtx_printf' 2>&1)" == 'bash: __shtx_printf: command not found'
-assert $? == 127
 assert "$(fake_eval '"__shtx_printf"' 2>&1)" == 'bash: __shtx_printf: command not found'
-assert $? == 127
 assert "$(fake_eval 'eval __shtx_printf' 2>&1)" == 'bash: __shtx_printf: command not found'
-assert $? == 127
 assert "$(fake_eval '__\s\htx_printf' 2>&1)" == 'bash: __shtx_printf: command not found'
-assert $? == 127
 assert "$(fake_eval 'fake_eval 23' 2>&1)" == 'bash: fake_eval: command not found'
-assert $? == 127
 assert "$(fake_eval 'fake_source' 2>&1)" == 'bash: fake_source: command not found'
-assert $? == 127
 assert "$(fake_eval 'fake_sour\ce' 2>&1)" == 'bash: fake_source: command not found'
-assert $? == 127
 
 true
 
