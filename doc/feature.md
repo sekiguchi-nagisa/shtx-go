@@ -11,7 +11,7 @@
 * [ ] `!`
 * [x] `0`
 
-## Shell Variables (affect shell behavior)
+## Shell Variables and functions (affect shell behavior)
 
 * [x] `IFS`
     * [x] global
@@ -21,6 +21,7 @@
     * [x] string variable
     * [x] array variable
 * [ ] `BASH_REMATCH`
+* [x] `command_not_found_handle`
 
 ## Word Expansion
 

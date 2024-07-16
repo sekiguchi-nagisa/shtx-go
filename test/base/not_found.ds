@@ -40,6 +40,21 @@ assert $? == 127
 assert "$(fake_eval 'fake_sour\ce' 2>&1)" == 'bash: fake_source: command not found'
 assert $? == 127
 
+## command_not_found_handle
+assert_fake_eval '
+command_not_found_handle() {
+  echo not found
+  printf "<%s>\n" "$@"
+  return 99
+}
+
+hgurhfearufa 1 2 3
+' 'not found
+<hgurhfearufa>
+<1>
+<2>
+<3>'
+
 true
 
 # CHECK_RE: ^$
