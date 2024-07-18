@@ -51,6 +51,22 @@ func unescapeDoubleQuoted(value string, removeAround bool) string {
 	return sb.String()
 }
 
+func escapeAsDoubleQuoted(value string) string {
+	sb := strings.Builder{}
+	runes := []rune(value)
+	sb.Grow(len(runes))
+	sb.WriteRune('"')
+	for _, ch := range runes {
+		switch ch {
+		case '$', '`', '"', '\\':
+			sb.WriteRune('\\')
+		}
+		sb.WriteRune(ch)
+	}
+	sb.WriteRune('"')
+	return sb.String()
+}
+
 func quoteCmdArgAsGlobStr(value string) string {
 	sb := strings.Builder{}
 	runes := []rune(value)

@@ -521,9 +521,13 @@ func (t *Translator) resolveStaticReturn(funcBody *syntax.Stmt) {
 
 func (t *Translator) visitFuncDecl(clause *syntax.FuncDecl) {
 	t.funcLevel++
+	funcSrc := string(t.in[clause.Pos().Offset():clause.End().Offset()])
+	funcSrc = escapeAsDoubleQuoted(funcSrc)
+	t.emitLine(fmt.Sprintf("let src_%d = %s", clause.Pos().Offset(), funcSrc))
+	t.indent()
 	t.emit("$__shtx_func('")
 	t.emit(clause.Name.Value) // FIXME: escape command name
-	t.emitLine("', (){")
+	t.emitLine(fmt.Sprintf("', $src_%d, (){", clause.Pos().Offset()))
 	t.indentLevel++
 	t.indent()
 	t.emitLine("let ctx = $__shtx_enter_func($0, $@)")

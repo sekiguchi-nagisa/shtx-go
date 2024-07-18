@@ -646,6 +646,8 @@ function build(): Bool for _SparseArrayBuilder {
 
 # +++++ for declare/local commands +++++
 
+let _FUNC_MAP : [String: (String, Command)]
+
 function __printEntries(entries: [String: _VarEntry], verbose : Bool) {
     for _, e in $entries {
         $e.isUnset() && continue
@@ -705,8 +707,19 @@ function __shtx_define_vars(cmd: String, args: [String]) : Int {
     }
     if ($opt.funcDecl||$opt.funcBody) && $opt.args.empty() && !$local {
         var prefix = $opt.funcDecl ? "declare -f " : ""
-        for f, _ in $DYNA_UDCS {
-            printf "%s%s\n" $prefix $f
+        var dels : [String:Bool]?
+        for name, e in $_FUNC_MAP {
+            if let f = $DYNA_UDCS.get($name) {
+                if $f == $e._1 {
+                    printf "%s%s\n" $prefix ${$opt.funcBody ? $e._0 : $name}
+                    continue
+                }
+            }
+            ($dels ?? ({ $dels = new [String:Bool](); $dels!; })).put($name, $true)
+        }
+        ## remove inconsistent entry
+        for k,_ in $dels {
+            $_FUNC_MAP.remove($k)
         }
         return 0
     }
@@ -718,16 +731,18 @@ function __shtx_define_vars(cmd: String, args: [String]) : Int {
         $arg.empty() && continue
         let i = $arg.indexOf('=')
         let name = $i != -1 ? $arg.slice(0, $i) : $arg
-        if $opt.funcDecl {
+        if $opt.funcDecl || $opt.funcBody {
             if $i != -1 { 
                 $_error($cmd, "cannot use \`-f' option with assignment")
                 return 1
             }
-            if $DYNA_UDCS.get($name) {
-                printf "%s\n" $name
-            } else {
-                $fail = $true
+            if let e = $_FUNC_MAP.get($name) {
+                if let f = $DYNA_UDCS.get($name) {
+                    $e._1 == $f && printf "%s\n" ${$opt.funcBody ? $e._0 : $name} && continue
+                }
+                $_FUNC_MAP.remove($name)
             }
+            $fail = $true
             continue
         }
         $name =~ $/^[a-zA-Z_][0-9a-zA-Z_]*$/ || { $_error($cmd, "$arg: not a valid identifier"); return 1; }
@@ -878,7 +893,13 @@ __shtx_unset() {
         }
         ## if variable is not found, try remove function (only remove user-defined functions)
         if $func {
-            $DYNA_UDCS.remove($arg)
+            if let e = $_FUNC_MAP.remove($arg) {
+                if let f = $DYNA_UDCS.get($arg) {
+                    if $e._1 == $f {
+                        $DYNA_UDCS.remove($arg)
+                    }
+                }
+            }
         }
     }
     return 0
@@ -1133,11 +1154,12 @@ function __shtx_cnf(cmd: String, argv: [String]): Bool {
 source $MODULE_DIR/cnf.arsh as _cnf
 $_cnf.CNF_HOOK = $__shtx_cnf
 
-function __shtx_func(name : String, cmd : Command) : Bool {
+function __shtx_func(name : String, src: String, cmd : Command) : Bool {
     $DYNA_UDCS[$name] = $cmd
     if $name == 'command_not_found_handle' {
         $_cnf.CNF_HOOK = $__shtx_cnf
     }
+    $_FUNC_MAP[$name] = ($src, $cmd)
     return $true
 }
 

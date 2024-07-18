@@ -26,7 +26,22 @@ declare -f ggg
 ---'
 assert $? == 0
 
-var out = "$(fake_source /dev/stdin << 'EOF'
+var out = "$(fake_eval '
+fff() { true; }
+ggg() {
+ echo "hello";
+}
+declare -f fff
+declare -f
+')"
+assert $out == 'fff() { true; }
+fff() { true; }
+ggg() {
+ echo "hello";
+}'
+
+
+$out = "$(fake_source /dev/stdin << 'EOF'
 AAA=34525
 IFS=
 BASH=/bin/bash

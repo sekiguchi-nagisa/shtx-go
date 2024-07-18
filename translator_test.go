@@ -359,7 +359,8 @@ fi
 }
 `},
 	"function1": {`function hoge() true`, `{
-  $__shtx_func('hoge', (){
+  let src_0 = "function hoge() true"
+  $__shtx_func('hoge', $src_0, (){
     let ctx = $__shtx_enter_func($0, $@)
     defer { $__shtx_exit_func($ctx); }
     try {
@@ -369,7 +370,8 @@ fi
 }
 `},
 	"function2": {`hoge() { echo hello; } > /dev/null`, `{
-  $__shtx_func('hoge', (){
+  let src_0 = "hoge() { echo hello; } > /dev/null"
+  $__shtx_func('hoge', $src_0, (){
     let ctx = $__shtx_enter_func($0, $@)
     defer { $__shtx_exit_func($ctx); }
     try {
@@ -381,7 +383,8 @@ fi
 }
 `},
 	"function3": {`ff() { local AAA BBB=12; local CCC=12 && echo "$CCC"; }`, `{
-  $__shtx_func('ff', (){
+  let src_0 = "ff() { local AAA BBB=12; local CCC=12 && echo \"\$CCC\"; }"
+  $__shtx_func('ff', $src_0, (){
     let ctx = $__shtx_enter_func($0, $@)
     defer { $__shtx_exit_func($ctx); }
     try {
@@ -508,7 +511,8 @@ esac
 }
 `},
 	"return2": {`fff() { return 12; return 34; }`, `{
-  $__shtx_func('fff', (){
+  let src_0 = "fff() { return 12; return 34; }"
+  $__shtx_func('fff', $src_0, (){
     let ctx = $__shtx_enter_func($0, $@)
     defer { $__shtx_exit_func($ctx); }
     try {
