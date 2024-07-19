@@ -34,6 +34,15 @@ ZZZ=1000 assert_fake_eval $cmd 'else=1000'
 ZZZ=1001 assert_fake_eval $cmd 'else=1001'
 ZZZ=-500 assert_fake_eval $cmd 'then2=-500'
 
+
+## exit status after if-cond
+assert_fake_eval '
+if [ -z jfirfjaor ]; then
+  echo OK;
+fi
+echo status: $?
+' 'status: 0'
+
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
 # STATUS: 0

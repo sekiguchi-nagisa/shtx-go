@@ -425,14 +425,14 @@ func (t *Translator) visitIfClause(clause *syntax.IfClause, elif bool) {
 
 	// cond
 	if len(clause.Cond) == 1 {
-		t.emit("(")
+		t.emit("$__shtx_cond(")
 		t.visitStmt(clause.Cond[0])
 		t.emit(")")
 	} else {
-		t.emitLine("{")
+		t.emitLine("$__shtx_cond({")
 		t.visitStmts(clause.Cond)
 		t.indent()
-		t.emit("}")
+		t.emit("})")
 	}
 
 	// then

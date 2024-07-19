@@ -273,7 +273,7 @@ false;
 	"if1": {`if true 1; then
 echo true 1
 fi`, `{
-  if (true 1) {
+  if $__shtx_cond(true 1) {
     echo true 1
   }
 }
@@ -284,9 +284,9 @@ elif true 2; then
   echo true 2; echo true 22
 fi
 `, `{
-  if (true 1) {
+  if $__shtx_cond(true 1) {
     echo true 1
-  } elif (true 2) {
+  } elif $__shtx_cond(true 2) {
     echo true 2
     echo true 22
   }
@@ -298,7 +298,7 @@ else
   echo false
 fi
 `, `{
-  if (true 1) {
+  if $__shtx_cond(true 1) {
     echo true 1
   } else {
     echo false
@@ -316,13 +316,13 @@ else
   echo false
 fi
 `, `{
-  if {
+  if $__shtx_cond({
     echo false
     true 1
-  } {
-    if (true 11) {
+  }) {
+    if $__shtx_cond(true 11) {
       echo true 11
-    } elif (true 2) {
+    } elif $__shtx_cond(true 2) {
       :
     }
   } else {

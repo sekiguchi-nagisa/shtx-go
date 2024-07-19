@@ -818,6 +818,11 @@ function __shtx_get_var_at(args: [String]): String {
     return $ret
 }
 
+function __shtx_cond(v: Bool): Bool {
+    $? = 0 # always clear exit status
+    return $v
+}
+
 
 # for bash declare command
 __shtx_declare() {
