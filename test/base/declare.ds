@@ -40,6 +40,18 @@ ggg() {
  echo "hello";
 }'
 
+$out = "$(fake_eval '
+fff() { true; }
+ggg() {
+ echo "hello";
+}
+declare -F -f fff
+declare -F -f
+')"
+assert $out == 'fff
+declare -f fff
+declare -f ggg'
+
 
 $out = "$(fake_source /dev/stdin << 'EOF'
 AAA=34525

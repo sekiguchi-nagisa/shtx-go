@@ -711,7 +711,7 @@ function __shtx_define_vars(cmd: String, args: [String]) : Int {
         for name, e in $_FUNC_MAP {
             if let f = $DYNA_UDCS.get($name) {
                 if $f == $e._1 {
-                    printf "%s%s\n" $prefix ${$opt.funcBody ? $e._0 : $name}
+                    printf "%s%s\n" $prefix ${$opt.funcDecl ? $name : $e._0}
                     continue
                 }
             }
@@ -738,7 +738,7 @@ function __shtx_define_vars(cmd: String, args: [String]) : Int {
             }
             if let e = $_FUNC_MAP.get($name) {
                 if let f = $DYNA_UDCS.get($name) {
-                    $e._1 == $f && printf "%s\n" ${$opt.funcBody ? $e._0 : $name} && continue
+                    $e._1 == $f && printf "%s\n" ${$opt.funcDecl ? $name : $e._0} && continue
                 }
                 $_FUNC_MAP.remove($name)
             }
