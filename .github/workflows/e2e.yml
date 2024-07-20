@@ -3,35 +3,42 @@ name: "End-to-End test"
 on: [ push ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
       - name: End-to-end test target
         uses: ./test/
 
-  build-e2e-pyenv:
+#  test-latest-package:
+#    runs-on: ubuntu-20.04
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: End-to-end test target
+#        uses: ./test/dockerfiles/arsh-latest-package/
+
+  test-e2e-pyenv:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
       - name: pyenv test
         uses: ./test/e2e/pyenv
 
-  build-e2e-venv:
+  test-e2e-venv:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
       - name: venv test
         uses: ./test/e2e/venv
 
-  build-e2e-pyenv-virtualenv:
+  test-e2e-pyenv-virtualenv:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
       - name: pyenv test
         uses: ./test/e2e/pyenv-virtualenv
 
-  build-e2e-direnv:
+  test-e2e-direnv:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
