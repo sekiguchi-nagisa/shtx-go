@@ -35,12 +35,19 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
-      - name: pyenv test
+      - name: pyenv-virtualenv test
         uses: ./test/e2e/pyenv-virtualenv
 
   test-e2e-direnv:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
-      - name: pyenv test
+      - name: direnv test
         uses: ./test/e2e/direnv
+
+  test-e2e-mise:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: mise test
+        uses: ./test/e2e/mise
