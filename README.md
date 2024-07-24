@@ -4,6 +4,9 @@
 # shtx
 experimental bash subset to arsh transpiler
 
+## Requirement
+- arsh v0.35.0 or later
+
 ## Install
 ```sh
 curl -fL https://raw.githubusercontent.com/sekiguchi-nagisa/shtx-go/main/scripts/install.ds | arsh
