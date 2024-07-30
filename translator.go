@@ -517,8 +517,8 @@ func (t *Translator) resolveStaticReturn(funcBody *syntax.Stmt) {
 			t.staticReturnMap[n] = struct{}{}
 		}
 	case *syntax.Block:
-		for _, stmt := range n.Stmts {
-			t.resolveStaticReturn(stmt)
+		if len(n.Stmts) > 0 {
+			t.resolveStaticReturn(n.Stmts[len(n.Stmts)-1]) // only check last statement due to unreachable code
 		}
 	case *syntax.IfClause:
 		t.resolveStaticReturnWithinIf(n)
@@ -526,8 +526,8 @@ func (t *Translator) resolveStaticReturn(funcBody *syntax.Stmt) {
 }
 
 func (t *Translator) resolveStaticReturnWithinIf(clause *syntax.IfClause) {
-	for _, stmt := range clause.Then {
-		t.resolveStaticReturn(stmt)
+	if len(clause.Then) > 0 {
+		t.resolveStaticReturn(clause.Then[len(clause.Then)-1]) // only check last statement due to unreachable code
 	}
 	if clause.Else != nil {
 		t.resolveStaticReturnWithinIf(clause.Else)
