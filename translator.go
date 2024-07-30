@@ -506,6 +506,10 @@ func (t *Translator) visitCaseClause(clause *syntax.CaseClause) {
 	t.emit("}")
 }
 
+func (t *Translator) isStaticReturn(args []*syntax.Word) bool {
+	return (len(args) == 1 || len(args) == 2) && args[0].Lit() == "return" && !t.isToplevel()
+}
+
 func (t *Translator) resolveStaticReturn(funcBody *syntax.Stmt) {
 	switch n := funcBody.Cmd.(type) {
 	case *syntax.CallExpr:
@@ -513,9 +517,20 @@ func (t *Translator) resolveStaticReturn(funcBody *syntax.Stmt) {
 			t.staticReturnMap[n] = struct{}{}
 		}
 	case *syntax.Block:
-		if size := len(n.Stmts); size > 0 {
-			t.resolveStaticReturn(n.Stmts[size-1])
+		for _, stmt := range n.Stmts {
+			t.resolveStaticReturn(stmt)
 		}
+	case *syntax.IfClause:
+		t.resolveStaticReturnWithinIf(n)
+	}
+}
+
+func (t *Translator) resolveStaticReturnWithinIf(clause *syntax.IfClause) {
+	for _, stmt := range clause.Then {
+		t.resolveStaticReturn(stmt)
+	}
+	if clause.Else != nil {
+		t.resolveStaticReturnWithinIf(clause.Else)
 	}
 }
 
@@ -607,10 +622,6 @@ func (t *Translator) visitCmdName(word *syntax.Word) {
 	}
 }
 
-func (t *Translator) isStaticReturn(args []*syntax.Word) bool {
-	return len(args) == 2 && args[0].Lit() == "return" && !t.isToplevel()
-}
-
 func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 	envAssign := len(expr.Args) > 0
 	t.visitAssigns(expr.Assigns, envAssign)
@@ -633,6 +644,8 @@ func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 				t.visitWordPartsWith(expr.Args[1].Parts, WordPartOption{singleWord: true})
 				t.emit("; $__shtx_parse_status($s); }")
 			}
+		} else if len(expr.Args) == 1 {
+			t.emit(" $?")
 		}
 		return
 	}
