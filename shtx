@@ -1258,7 +1258,7 @@ fake_source() {
 
     var input = $@[0]
     if $input.contains("completion") {  # may be completion script
-        if let target = $__comp.extractCompTarget($input) {
+        if let target = try { $__comp.extractCompTarget($input); } catch e: SystemError{ $none; } {
             __comp compdef --cmd ${target._1} --comp-path $input --comp-target ${target._0} && return 0
         }
     }
