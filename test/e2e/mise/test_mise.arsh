@@ -62,4 +62,8 @@ preprompt
 assert node -v | grep 'v22.5.1'
 assert command -v npm
 
+## completion
+shtx fake_source <(npm completion)
+assert "$(complete 'npm up')" == 'update'
+
 true
