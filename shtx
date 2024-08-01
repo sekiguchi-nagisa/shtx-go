@@ -1237,6 +1237,20 @@ $__prompt.PRE_PROMPTS.add(function() => {
     }
 })
 
+function __save_to_temp(path: String): String? {
+    (test -f $path || test -d $path) && return $none
+    var tmp = "$(mktemp 2>>/dev/null)"
+    test -f $tmp || return $none
+    try {
+        for line in $STDIN {
+            printf "%s\n" $line
+        } with < $path > $tmp
+        return $tmp
+    } catch e {
+        return $none
+    }
+}
+
 # +++++ public api functions (starts with fake_) +++++
 
 # evaluate bash script (emulate bash eval command)
@@ -1257,7 +1271,8 @@ fake_source() {
     __shtx_detect_bin
 
     var input = $@[0]
-    if $input.contains("completion") {  # may be completion script
+    $input = $__save_to_temp($input) ?? $input
+    if $input.contains("completion") || $@[0] != $input {  # may be completion script
         if let target = try { $__comp.extractCompTarget($input); } catch e: SystemError{ $none; } {
             __comp compdef --cmd ${target._1} --comp-path $input --comp-target ${target._0} && return 0
         }

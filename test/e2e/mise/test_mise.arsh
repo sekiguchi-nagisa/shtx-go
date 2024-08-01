@@ -60,5 +60,6 @@ assert ! command -V node
 shtx fake_eval "$(~/.local/bin/mise activate bash)"
 preprompt
 assert node -v | grep 'v22.5.1'
+assert command -v npm
 
 true
