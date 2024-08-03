@@ -1237,10 +1237,21 @@ $__prompt.PRE_PROMPTS.add(function() => {
     }
 })
 
+source $MODULE_DIR/atexit.arsh
+
+let TEMP_FILES : [String]
+$atexit(function(s,a) => {
+    for e in $TEMP_FILES {
+        rm -f $e || true
+    }
+    $TEMP_FILES.clear()
+})
+
 function __save_to_temp(path: String): String? {
     (test -f $path || test -d $path) && return $none
     var tmp = "$(mktemp 2>>/dev/null)"
     test -f $tmp || return $none
+    $TEMP_FILES.add($tmp)
     try {
         for line in $STDIN {
             printf "%s\n" $line
