@@ -327,7 +327,7 @@ func (t *Translator) visitRedirects(redirs []*syntax.Redirect, cmd bool) {
 		}
 		t.emit(t.toRedirOpStr(redir))
 		t.emit(" ")
-		t.visitWordParts(redir.Word.Parts)
+		t.visitWord(redir.Word)
 		_ = redir.Hdoc != nil && t.todo(redir.OpPos, "support heredoc")
 	}
 }
@@ -346,13 +346,13 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 				if assign.Name != nil {
 					t.emit(assign.Name.Value)
 				} else if assign.Value != nil {
-					t.visitWordPartsWith(assign.Value.Parts, WordPartOption{singleWord: true})
+					t.visitWordWith(assign.Value, WordPartOption{singleWord: true})
 				}
 			} else {
 				t.emit(assign.Name.Value)
 				t.emit("=")
 				if assign.Value != nil {
-					t.visitWordPartsWith(assign.Value.Parts, WordPartOption{singleWord: true})
+					t.visitWordWith(assign.Value, WordPartOption{singleWord: true})
 				}
 			}
 		} else {
@@ -372,7 +372,7 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 						} else {
 							t.emit(".add(@( ")
 						}
-						t.visitWordParts(elem.Value.Parts)
+						t.visitWord(elem.Value)
 						t.emit(" ))")
 					}
 					t.emit(".build()")
@@ -384,7 +384,7 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 						if i > 0 {
 							t.emit(" ")
 						}
-						t.visitWordParts(elem.Value.Parts)
+						t.visitWord(elem.Value)
 					}
 					t.emit("))")
 				}
@@ -393,7 +393,7 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 				t.emit(assign.Name.Value)
 				t.emit(" ")
 				if assign.Value != nil {
-					t.visitWordPartsWith(assign.Value.Parts, WordPartOption{singleWord: true})
+					t.visitWordWith(assign.Value, WordPartOption{singleWord: true})
 				}
 				t.emit(" ))")
 			}
@@ -459,7 +459,7 @@ func (t *Translator) visitCasePattern(pattern *syntax.Word, caseVarName string) 
 	if literal == "" || strings.HasPrefix(literal, "~") {
 		t.emit("$__shtx_glob_match(@( $" + caseVarName)
 		t.emit(" ")
-		t.visitWordPartsWith(pattern.Parts, WordPartOption{pattern: true})
+		t.visitWordWith(pattern, WordPartOption{pattern: true})
 		t.emit(" ))")
 	} else {
 		t.emit("$" + caseVarName)
@@ -476,7 +476,7 @@ func (t *Translator) visitCaseClause(clause *syntax.CaseClause) {
 	t.indentLevel++
 	t.indent()
 	t.emit("var " + caseVarName + "=''; " + caseVarName + "=")
-	t.visitWordPartsWith(clause.Word.Parts, WordPartOption{singleWord: true})
+	t.visitWordWith(clause.Word, WordPartOption{singleWord: true})
 	t.emitLine("")
 
 	// case items
@@ -618,7 +618,7 @@ func (t *Translator) visitCmdName(word *syntax.Word) {
 		t.emit(name)
 	} else {
 		t.emit("fake_call ")
-		t.visitWordParts(word.Parts)
+		t.visitWord(word)
 	}
 }
 
@@ -641,7 +641,7 @@ func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 				}
 			} else {
 				t.emit("{ var s='';s=")
-				t.visitWordPartsWith(expr.Args[1].Parts, WordPartOption{singleWord: true})
+				t.visitWordWith(expr.Args[1], WordPartOption{singleWord: true})
 				t.emit("; $__shtx_parse_status($s); }")
 			}
 		} else if len(expr.Args) == 1 {
@@ -654,7 +654,7 @@ func (t *Translator) visitCallExpr(expr *syntax.CallExpr) {
 			t.visitCmdName(arg)
 		} else {
 			t.emit(" ")
-			t.visitWordParts(arg.Parts)
+			t.visitWord(arg)
 		}
 	}
 }
@@ -783,7 +783,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 			t.emit(t.toExpansionOpStr(n.Pos(), n.Exp))
 			t.emit("' ")
 			if n.Exp.Word != nil {
-				t.visitWordPartsWith(n.Exp.Word.Parts, WordPartOption{singleWord: true})
+				t.visitWordWith(n.Exp.Word, WordPartOption{singleWord: true})
 			}
 		}
 		if n.Repl != nil {
@@ -793,10 +793,10 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 				t.emit("/")
 			}
 			t.emit("' ")
-			t.visitWordPartsWith(n.Repl.Orig.Parts, WordPartOption{pattern: true})
+			t.visitWordWith(n.Repl.Orig, WordPartOption{pattern: true})
 			t.emit(" ")
 			if n.Repl.With != nil {
-				t.visitWordPartsWith(n.Repl.With.Parts, WordPartOption{singleWord: true})
+				t.visitWordWith(n.Repl.With, WordPartOption{singleWord: true})
 			}
 		}
 		t.emit(" ))}")
@@ -873,8 +873,8 @@ func isArrayExpandDblQuoted(quoted *syntax.DblQuoted) bool {
 	return false
 }
 
-func isArrayExpandWordParts(parts []syntax.WordPart) bool {
-	for _, part := range parts {
+func isArrayExpandWord(word *syntax.Word) bool {
+	for _, part := range word.Parts {
 		switch n := part.(type) {
 		case *syntax.DblQuoted:
 			if isArrayExpandDblQuoted(n) {
@@ -885,9 +885,9 @@ func isArrayExpandWordParts(parts []syntax.WordPart) bool {
 	return false
 }
 
-func resolveSimpleArrayExpand(parts []syntax.WordPart) string {
-	if len(parts) == 1 {
-		switch n := parts[0].(type) {
+func resolveSimpleArrayExpand(word *syntax.Word) string {
+	if len(word.Parts) == 1 {
+		switch n := word.Parts[0].(type) {
 		case *syntax.DblQuoted:
 			if len(n.Parts) != 1 {
 				return ""
@@ -918,18 +918,18 @@ func (t *Translator) expandDblQuoted(quoted *syntax.DblQuoted) {
 	t.emit("\"")
 }
 
-func (t *Translator) visitWordPartsWith(parts []syntax.WordPart, option WordPartOption) {
-	if !isArrayExpandWordParts(parts) || option.singleWord {
-		for _, part := range parts {
+func (t *Translator) visitWordWith(word *syntax.Word, option WordPartOption) {
+	if !isArrayExpandWord(word) || option.singleWord {
+		for _, part := range word.Parts {
 			t.visitWordPart(part, option)
 		}
 		return
 	}
 
-	_ = (option.pattern || option.regex) && t.todo(parts[0].Pos(), "pattern with array expand is not supported")
+	_ = (option.pattern || option.regex) && t.todo(word.Pos(), "pattern with array expand is not supported")
 
 	// for `$@` or `${array[@]}`
-	if name := resolveSimpleArrayExpand(parts); name != "" {
+	if name := resolveSimpleArrayExpand(word); name != "" {
 		t.emit("$__shtx_get_array_var('")
 		t.emit(name)
 		t.emit("')")
@@ -940,7 +940,7 @@ func (t *Translator) visitWordPartsWith(parts []syntax.WordPart, option WordPart
 	t.indentLevel++
 	t.indent()
 	t.emit(".add( @(")
-	for _, part := range parts {
+	for _, part := range word.Parts {
 		switch n := part.(type) {
 		case *syntax.DblQuoted:
 			if isArrayExpandDblQuoted(n) {
@@ -956,8 +956,8 @@ func (t *Translator) visitWordPartsWith(parts []syntax.WordPart, option WordPart
 	t.emit(")")
 }
 
-func (t *Translator) visitWordParts(parts []syntax.WordPart) {
-	t.visitWordPartsWith(parts, WordPartOption{})
+func (t *Translator) visitWord(word *syntax.Word) {
+	t.visitWordWith(word, WordPartOption{})
 }
 
 func (t *Translator) visitTestExpr(expr syntax.TestExpr) {
@@ -977,14 +977,14 @@ func (t *Translator) visitTestExpr(expr syntax.TestExpr) {
 			t.emit("$__shtx_regex_match(@( ")
 			switch left := n.X.(type) {
 			case *syntax.Word:
-				t.visitWordPartsWith(left.Parts, WordPartOption{singleWord: true})
+				t.visitWordWith(left, WordPartOption{singleWord: true})
 			default:
 				t.fixmeCase(left.Pos(), left)
 			}
 			t.emit(" ")
 			switch right := n.Y.(type) {
 			case *syntax.Word:
-				t.visitWordPartsWith(right.Parts, WordPartOption{regex: true})
+				t.visitWordWith(right, WordPartOption{regex: true})
 			default:
 				t.fixmeCase(right.Pos(), right)
 			}
@@ -996,14 +996,14 @@ func (t *Translator) visitTestExpr(expr syntax.TestExpr) {
 			t.emit("$__shtx_glob_match(@( ")
 			switch left := n.X.(type) {
 			case *syntax.Word:
-				t.visitWordPartsWith(left.Parts, WordPartOption{singleWord: true})
+				t.visitWordWith(left, WordPartOption{singleWord: true})
 			default:
 				t.fixmeCase(left.Pos(), left)
 			}
 			t.emit(" ")
 			switch right := n.Y.(type) {
 			case *syntax.Word:
-				t.visitWordPartsWith(right.Parts, WordPartOption{pattern: true})
+				t.visitWordWith(right, WordPartOption{pattern: true})
 			default:
 				t.fixmeCase(right.Pos(), right)
 			}
@@ -1012,7 +1012,7 @@ func (t *Translator) visitTestExpr(expr syntax.TestExpr) {
 			t.emit("test ")
 			switch left := n.X.(type) {
 			case *syntax.Word:
-				t.visitWordPartsWith(left.Parts, WordPartOption{singleWord: true})
+				t.visitWordWith(left, WordPartOption{singleWord: true})
 			default:
 				t.fixmeCase(left.Pos(), left)
 			}
@@ -1021,7 +1021,7 @@ func (t *Translator) visitTestExpr(expr syntax.TestExpr) {
 			t.emit("\" ")
 			switch right := n.Y.(type) {
 			case *syntax.Word:
-				t.visitWordPartsWith(right.Parts, WordPartOption{singleWord: true})
+				t.visitWordWith(right, WordPartOption{singleWord: true})
 			default:
 				t.fixmeCase(right.Pos(), right)
 			}
@@ -1036,7 +1036,7 @@ func (t *Translator) visitTestExpr(expr syntax.TestExpr) {
 			t.emit(" ")
 			switch n2 := n.X.(type) {
 			case *syntax.Word:
-				t.visitWordPartsWith(n2.Parts, WordPartOption{singleWord: true})
+				t.visitWordWith(n2, WordPartOption{singleWord: true})
 			default:
 				t.fixmeCase(n2.Pos(), n2)
 			}
@@ -1045,7 +1045,7 @@ func (t *Translator) visitTestExpr(expr syntax.TestExpr) {
 		t.visitTestExpr(n.X)
 	case *syntax.Word:
 		t.emit("test ")
-		t.visitWordPartsWith(n.Parts, WordPartOption{singleWord: true})
+		t.visitWordWith(n, WordPartOption{singleWord: true})
 	}
 	t.emit(")")
 }
