@@ -101,6 +101,17 @@ false;
   })")"
 }
 `},
+	"proc-sub1": {`diff <(ls;echo) <(ps)`, `{
+  diff <({
+    ls
+    echo
+  }) <(ps)
+}
+`},
+	"proc-sub2": {`curl -L >(cat -n)`, `{
+  curl -L >(cat -n)
+}
+`},
 	"env-assign1": {`AAA=12 BBB="$(false)" CCC=`, `{
   $__shtx_set_var(@( AAA "12" )); $__shtx_set_var(@( BBB "$(false)" )); $__shtx_set_var(@( CCC  ))
 }

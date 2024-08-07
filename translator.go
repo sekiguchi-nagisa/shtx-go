@@ -830,7 +830,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 		}
 		if len(stmts) == 1 {
 			t.emit("$(")
-			t.visitCommand(stmts[0].Cmd, stmts[0].Redirs)
+			t.visitStmt(stmts[0])
 			t.emit(")")
 		} else {
 			t.emitLine("$({")
@@ -841,6 +841,21 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 		if option.pattern || option.regex || option.singleWord {
 			t.emit("\"")
 		}
+	case *syntax.ProcSubst:
+		if n.Op == syntax.CmdIn {
+			t.emit("<(")
+		} else if n.Op == syntax.CmdOut {
+			t.emit(">(")
+		}
+		if len(n.Stmts) == 1 {
+			t.visitStmt(n.Stmts[0])
+		} else {
+			t.emitLine("{")
+			t.visitStmts(n.Stmts)
+			t.indent()
+			t.emit("}")
+		}
+		t.emit(")")
 	default:
 		t.fixmeCase(n.Pos(), n)
 	}

@@ -1,0 +1,20 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+assert_fake_eval '
+echo hello
+printf "%s\n" AAA BBB CCC >& >(cat -n)
+' $'hello
+     1\tAAA
+     2\tBBB
+     3\tCCC'
+
+assert_fake_eval '
+diff <(echo hello;echo world) <(printf "%s\n" hello world)
+' ''
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0
