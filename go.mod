@@ -7,7 +7,7 @@ toolchain go1.22.5
 require (
 	github.com/alecthomas/kong v0.9.0
 	github.com/stretchr/testify v1.9.0
-	mvdan.cc/sh/v3 v3.8.0
+	mvdan.cc/sh/v3 v3.9.0
 )
 
 require (
