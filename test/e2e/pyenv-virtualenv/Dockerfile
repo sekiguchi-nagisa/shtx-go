@@ -3,7 +3,7 @@ FROM opensuse/leap:15.5
 RUN useradd -m tux
 RUN groupadd -g 2001 admin && usermod -G admin tux  && echo '%admin ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
-RUN zypper in -y pcre2-devel gcc-c++ clang cmake git ninja tar curl gzip python39 go1.21 bash-completion \
+RUN zypper in -y pcre2-devel gcc-c++ clang cmake git ninja tar curl gzip python39 go1.22 bash-completion \
                 gcc automake bzip2 libbz2-devel xz xz-devel openssl-devel ncurses-devel \
                 readline-devel zlib-devel tk-devel libffi-devel sqlite3-devel gdbm-devel make findutils patch
 COPY . /home/tux/dev

@@ -1,6 +1,6 @@
 FROM opensuse/tumbleweed
 
-RUN zypper in -y pcre2-devel git go1.21 diffutils gcc-c++ clang cmake ninja re2c
+RUN zypper in -y pcre2-devel git go1.22 diffutils gcc-c++ clang cmake ninja re2c
 
 COPY . /home/tux/dev
 
