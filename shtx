@@ -198,7 +198,7 @@ function print(verbose : Bool) for _VarEntry {
         if $this.exported() {
             $attr += 'x'
         }
-        $attr := '-'
+        $attr = $attr.ifEmpty() ?? '-'
         if $this.has($__VAR_ATTR_BASHPID) {
             printf "declare -%s %s\n" $attr ${this._name}
         } else {
@@ -494,12 +494,12 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
             if $n == 0 || $n - 1 < $_VARS.args().size() { # set 0, 1~
                 var v = $n == 0 ? $_VARS.arg0() : $_VARS.args()[$n - 1]
                 case $op {
-                    ':-' => return $v :- $word
-                    ':=' => return $v :- throw new _SHError("${$_VARS.arg0()}: \$${param}: cannot assign in this way")
-                    ':?' => return $v :- throw new _SHError("${$_VARS.arg0()}: \$${param}: ${word}", 127)
+                    ':-' => return $v.ifEmpty() ?? $word
+                    ':=' => return $v.ifEmpty() ?? throw new _SHError("${$_VARS.arg0()}: \$${param}: cannot assign in this way")
+                    ':?' => return $v.ifEmpty() ?? throw new _SHError("${$_VARS.arg0()}: \$${param}: ${word}", 127)
                     ':+' => return !$v.empty() ? $word : ""
                     '+' => return $word
-                    else => return $v :- ""
+                    else => return $v
                 }
             } else {    # unset (1~)
                 case $op {
@@ -516,11 +516,11 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
 
     let v = if let entry = $_VARS.get($param) { $entry.getAsStr(); } else { $none; }
     case $op {
-        ':-' => return ($v ?? "") :- $word
+        ':-' => return ($v ?? "").ifEmpty() ?? $word
         '-' => return $v ?? $word
-        ':=' => return ($v ?? "") :- $_VARS.put($param, $word)
+        ':=' => return ($v ?? "").ifEmpty() ?? $_VARS.put($param, $word)
         '=' => return $v ?? $_VARS.put($param, $word)
-        ':?' => return ($v ?? "") :- throw new _SHError("${$_VARS.arg0()}: ${param}: ${word}", 127)
+        ':?' => return ($v ?? "").ifEmpty() ?? throw new _SHError("${$_VARS.arg0()}: ${param}: ${word}", 127)
         '?' => return $v ?? throw new _SHError("${$_VARS.arg0()}: ${param}: ${word}", 127)
         ':+' => return $v && !$v!.empty() ? $word : ""
         '+' => return $v ? $word : ""
@@ -771,7 +771,7 @@ function __shtx_get_var(args: [String]): String {
 }
 
 function __shtx_set_var(args: [String]): Bool {
-    var param = $args[0] :- return $true
+    var param = $args[0].ifEmpty() ?? return $true
     var word = $args.get(1) ?? ''
     $_VARS.put($param, $word)
     return $true
@@ -1227,12 +1227,12 @@ $__prompt.PRE_PROMPTS.add(function() => {
     if let array = $entry._value as? [String?] {
         for a in $array {
             var cmd = $a ?? continue
-            $cmd :- continue
+            $cmd.ifEmpty() ?? continue
             $__shtx_eval_with_cache($cmd)
         }
     } else {
         var prompt_cmd = $entry.getAsStr() ?? ""
-        $prompt_cmd :- return
+        $prompt_cmd.ifEmpty() ?? return
         $__shtx_eval_with_cache($prompt_cmd)
     }
 })
