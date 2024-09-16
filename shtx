@@ -89,7 +89,7 @@ let __VAR_ATTR_EXPORT = 0x01
 let __VAR_ATTR_UNSET = 0x02
 let __VAR_ATTR_BASHPID = 0x04
 
-typedef _VarEntry(n: String, v: Any, a : Int?) {
+type _VarEntry(n: String, v: Any, a : Int?) {
     let _name = $n  # always indicate variable name
     var _value = $v
     var _attr = $a ?? 0
@@ -209,7 +209,7 @@ function print(verbose : Bool) for _VarEntry {
     }
 }
 
-typedef _VarMap(_arg0 : String, _args : [String]) {
+type _VarMap(_arg0 : String, _args : [String]) {
     var arg0 = $_arg0
     var args = $_args
     let entries : [String : _VarEntry]
@@ -239,7 +239,7 @@ function put(name : String, value : Any, attr: Int?) : String for _VarMap {
     }
 }
 
-typedef _VarScope(_arg0 : String, _args : [String]) {
+type _VarScope(_arg0 : String, _args : [String]) {
     let global = new _VarMap($_arg0, $_args)
     let locals : [_VarMap]
 
@@ -454,7 +454,7 @@ function __shtx_escape_regex_meta(pattern: String): String {
 
 # +++++ for parameter expansion +++++
 
-typedef _SHError : Error
+type _SHError : Error
 
 function __shtx_var_get_impl(param : String, op : String, word : String) : String? {
     assert !$param.empty()
@@ -616,7 +616,7 @@ function __sparse_array_set(array: [String?], index: Int, value: String) {
     $array[$index] = $value
 }
 
-typedef _SparseArrayBuilder(n: String) {
+type _SparseArrayBuilder(n: String) {
     var last_index = 0;
     let name = $n
     let values: [String?]
@@ -681,7 +681,7 @@ function __show_vars(args: [String], local : Bool) : Int {
 }
 
 [<CLI>]
-typedef _DeclareOpt() {
+type _DeclareOpt() {
     [<Flag(short: 'F', help: "display function names")>]
     var funcDecl = $false
 
@@ -960,7 +960,7 @@ function __shtx_parse_status(s : String) : Int {
 
 var _SOURCE_PIDS : [Int]
 
-typedef _Return : Error
+type _Return : Error
 
 __shtx_return() {
     if !$_VARS.inFunc() && $_SOURCE_PIDS.empty() {
@@ -975,7 +975,7 @@ __shtx_return() {
     throw new _Return('', $status)
 }
 
-typedef _Context() {
+type _Context() {
     ## set runtime options
     let option = { shctl set -d; $REPLY; }
     shctl unset errraise &>> /dev/null
@@ -1039,7 +1039,7 @@ function __shtx_run_eval(func: ()-> Void): Int {
 
 
 [<CLI>]
-typedef _TrapParam() {
+type _TrapParam() {
     [<Flag(short: 'l', help: 'list supported signals', stop: $true)>]
     var list = $false
 
@@ -1353,7 +1353,7 @@ fake_call() {
 # +++++ entry point for cli +++++
 
 [<CLI(toplevel: $true)>]
-typedef _Param() {
+type _Param() {
     [<Option(short: "c", stop: $true, help: "execute command")>]
     var cmd : String?
 
