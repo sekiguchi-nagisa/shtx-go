@@ -1240,12 +1240,20 @@ $__prompt.PRE_PROMPTS.add(function() => {
 source $MODULE_DIR/atexit.arsh
 
 let TEMP_FILES : [String]
-$atexit(function(s,a) => {
-    for e in $TEMP_FILES {
-        rm -f $e || true
+{
+    let hd = function() => {
+        for e in $TEMP_FILES {
+            rm -f $e || true
+        }
+        $TEMP_FILES.clear()
     }
-    $TEMP_FILES.clear()
-})
+    let f = $atexit as Any
+    if let _atexit = $f as? ((Int, Any) -> Void, Int?) -> Void {
+        $_atexit(function(s,a) => $hd())  ## for old api
+    } elif let _atexit = $f as? (() -> Void) -> Void {
+        $_atexit($hd)  ## for new api
+    }
+}
 
 function __save_to_temp(path: String): String? {
     (test -f $path || test -d $path) && return $none
