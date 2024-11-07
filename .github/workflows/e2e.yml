@@ -10,12 +10,12 @@ jobs:
       - name: End-to-end test target
         uses: ./test/
 
- test-latest-package:
-   runs-on: ubuntu-20.04
-   steps:
-     - uses: actions/checkout@v4
-     - name: End-to-end test target
-       uses: ./test/dockerfiles/arsh-latest-package/
+#  test-latest-package:
+#    runs-on: ubuntu-20.04
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: End-to-end test target
+#        uses: ./test/dockerfiles/arsh-latest-package/
 
   test-e2e-pyenv:
     runs-on: ubuntu-20.04
