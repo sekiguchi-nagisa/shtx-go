@@ -13,7 +13,7 @@ preprompt() {
 shctl set errraise
 
 # install mise
-curl https://mise.run | sh
+MISE_VERSION=v2024.12.0 curl https://mise.run | sh
 ~/.local/bin/mise --version
 
 # activate mise

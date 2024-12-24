@@ -14,10 +14,10 @@ curl -fL https://raw.githubusercontent.com/sekiguchi-nagisa/shtx-go/main/scripts
 
 ## Tested Plugin
 
-| **name**         | **version** |
-|------------------|-------------|
-| direnv           | v2.32.2     |
-| mise             | 2024.7.4 - 2024.10.0 |
-| pyenv            | v2.3.32     |
-| pyenv-virtualenv | v1.2.3      |
-| venv             | 3.9         |
+| **name**         | **version**            |
+|------------------|------------------------|
+| direnv           | v2.32.2                |
+| mise             | v2024.7.4 - v2024.12.0 |
+| pyenv            | v2.3.32                |
+| pyenv-virtualenv | v1.2.3                 |
+| venv             | 3.9                    |

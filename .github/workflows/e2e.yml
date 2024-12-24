@@ -49,5 +49,5 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
-      - name: mise test
-        uses: ./test/e2e/mise
+      - name: mise-v2024.12.0 test
+        uses: ./test/e2e/mise-v2024.12.0
