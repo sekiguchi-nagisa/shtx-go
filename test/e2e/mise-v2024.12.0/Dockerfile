@@ -13,4 +13,4 @@ RUN cd arsh && cd build && cmake .. -G Ninja && cmake --build . && cmake --build
 
 WORKDIR /home/tux/dev/
 CMD ls ./ && go build -buildvcs=false -v ./... && \
-    RUN_IN_CONTAINER=on arsh ./test/e2e/mise/test_mise.arsh
+    RUN_IN_CONTAINER=on MISE_VERSION=v2024.12.0 arsh ./test/e2e/mise-v2024.12.0/test_mise.arsh
