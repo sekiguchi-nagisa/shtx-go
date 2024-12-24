@@ -252,6 +252,7 @@ var declReplacement = map[string]string{
 	"declare": "__shtx_declare",
 	"export":  "__shtx_export",
 	"local":   "__shtx_local",
+	"typeset": "__shtx_typeset",
 }
 
 func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect) {
@@ -582,6 +583,7 @@ func toLiteralCmdName(word *syntax.Word) string {
 var cmdNameReplacement = map[string]string{
 	"[":       "__shtx_[",
 	"declare": "__shtx_declare",
+	"typeset": "__shtx_typeset",
 	"export":  "__shtx_export",
 	"local":   "__shtx_local",
 	"unset":   "__shtx_unset",
@@ -811,9 +813,9 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 		stmts := n.Stmts
 
 		_ = !option.dQuoted && !option.pattern && !option.regex && !option.singleWord && t.todo(n.Pos(), "support unquoted command substitution")
-		if option.dQuoted && n.Backquotes { // unescape and re-parse
+		if option.dQuoted && n.Backquotes { // unescape and reparse
 			tmpBuf := t.in[n.Pos().Offset()+1 : n.End().Offset()-1] // remove prefix and suffix back-quote
-			t.offset = Offset{                                      // adjust line num offset for better error message
+			t.offset = Offset{ // adjust line num offset for better error message
 				line: n.Pos().Line() - 1,
 				col:  n.Pos().Col(),
 			}

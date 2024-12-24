@@ -151,6 +151,11 @@ false;
   __shtx_declare AAA="12"
 }
 `},
+	"builtin-typeset": {`typeset 1234; \typeset`, `{
+  __shtx_typeset "1234"
+  __shtx_typeset
+}
+`},
 	"builtin-unset": {`\uns\e\t A; unset B`, `{
   __shtx_unset A
   __shtx_unset B

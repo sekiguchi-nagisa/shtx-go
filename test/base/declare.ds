@@ -32,7 +32,7 @@ ggg() {
  echo "hello";
 }
 declare -f fff
-declare -f
+"typeset" -f
 ')"
 assert $out == 'fff() { true; }
 fff() { true; }
@@ -105,6 +105,12 @@ $out = "$(fake_eval '
 declare "&@"=1234 2>&1
 ')"
 assert $out == "bash: declare: &@=1234: not a valid identifier"
+assert $? == 1
+
+$out = "$(fake_eval '
+typeset "&@"=4567 2>&1
+')"
+assert $out == "bash: typeset: &@=4567: not a valid identifier"
 assert $? == 1
 
 true

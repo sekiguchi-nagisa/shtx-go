@@ -829,6 +829,11 @@ __shtx_declare() {
     return $__shtx_define_vars("declare", $@)
 }
 
+# for bash typeset command
+__shtx_typeset() {
+    return $__shtx_define_vars("typeset", $@)
+}
+
 # for bash local command
 __shtx_local() {
     $_VARS.inFunc() || {
@@ -1343,6 +1348,7 @@ fake_call() {
     $@[0] = case $cmd {
         '[' => '__shtx_['
         'declare' => '__shtx_declare'
+        'typeset' => '__shtx_typeset'
         'export' => '__shtx_export'
         'local' => '__shtx_local'
         'unset' => '__shtx_unset'
