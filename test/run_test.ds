@@ -6,51 +6,40 @@ _usage() : Nothing {
     exit 2
 }
 
-_main() {
-    # parse command argument
+[<CLI(toplevel:$true, verbose: $true)>]
+type _Param() {
+    [<Option(short: 'b', help: 'litecheck path', required: $true)>]
     var litecheck = ""
+
+    [<Arg(help: "test case directory", required: $true)>]
     var target_dir = ""
-    for (var i = 0; $i < $#; $i++) {
-        let arg = $@[$i]
-        case $arg {
-            "-b" =>
-                if $i + 1 < $# {
-                    $i++
-                    $litecheck = $@[$i]
-                } else {
-                    _usage -b option require litecheck path
-                }
-            $/^-.*/ => _usage "invalid option: $arg"
-            else => {
-                $target_dir = $arg
-                break
-            }
-        }
-    }
-    assert (test -f "$litecheck") : "require litecheck"
-    assert (test -d "$target_dir") : "require test directory"
+}
+
+_main(p: _Param) {
+    assert (test -f ${p.litecheck}) : "require litecheck"
+    assert (test -d ${p.target_dir}) : "require test directory"
 
     # run each test script
     shctl set nullglob
     var targets : [String]
-    for target in @($target_dir/*) {
+    for target in @(${p.target_dir}/*) {
         test -d $target && continue
         $targets.add($target)
     }
 
     $targets.empty() && {
-        echo no test cases are found in $target_dir
+        echo no test cases are found in ${p.target_dir}
         return 125
     }
 
     if (checkenv SHTX_DEV_MODE) {
-        echo found ${$targets.size()} test cases in $target_dir with SHTX_DEV_MODE=on
+        echo found ${$targets.size()} test cases in ${p.target_dir} with SHTX_DEV_MODE=on
     } else {
-        echo found ${$targets.size()} test cases in $target_dir 
+        echo found ${$targets.size()} test cases in ${p.target_dir} 
     }
     var failed : [String]
     for target in $targets {
-        var r = call $BIN_NAME $litecheck -b $BIN_NAME $target
+        var r = call $BIN_NAME ${p.litecheck} -b $BIN_NAME $target
         echo ${$r ? "[OK]" : "[NG]"} $target
         if !$r {
             $failed.add($target)
