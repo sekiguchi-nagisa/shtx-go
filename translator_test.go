@@ -194,6 +194,11 @@ false;
   __shtx_trap -- "" INT
 }
 `},
+	"builtin-builtin": {`builtin ls; "builtin" echo`, `{
+  __shtx_builtin ls
+  fake_call "builtin" echo
+}
+`},
 	"non-callable-command1": {`__shtx_printf`, `{
   fake_call __shtx_printf
 }

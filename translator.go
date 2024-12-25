@@ -582,6 +582,7 @@ func toLiteralCmdName(word *syntax.Word) string {
 
 var cmdNameReplacement = map[string]string{
 	"[":       "__shtx_[",
+	"builtin": "__shtx_builtin",
 	"declare": "__shtx_declare",
 	"typeset": "__shtx_typeset",
 	"export":  "__shtx_export",
@@ -815,7 +816,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 		_ = !option.dQuoted && !option.pattern && !option.regex && !option.singleWord && t.todo(n.Pos(), "support unquoted command substitution")
 		if option.dQuoted && n.Backquotes { // unescape and reparse
 			tmpBuf := t.in[n.Pos().Offset()+1 : n.End().Offset()-1] // remove prefix and suffix back-quote
-			t.offset = Offset{ // adjust line num offset for better error message
+			t.offset = Offset{                                      // adjust line num offset for better error message
 				line: n.Pos().Line() - 1,
 				col:  n.Pos().Col(),
 			}

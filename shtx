@@ -823,6 +823,23 @@ function __shtx_cond(v: Bool): Bool {
     return $v
 }
 
+let _builtin_map = [
+    '[': '__shtx_[',
+    'builtin': '__shtx_builtin',
+    'declare': '__shtx_declare',
+    'typeset': '__shtx_typeset',
+    'export': '__shtx_export',
+    'local': '__shtx_local',
+    'unset': '__shtx_unset',
+    'shift': '__shtx_shift',
+    'read': '__shtx_read',
+    'printf': '__shtx_printf',
+    'return': '__shtx_return',
+    'trap': '__shtx_trap',
+    'eval': 'fake_eval',
+    '.': 'fake_source',
+    'source': 'fake_source',
+]
 
 # for bash declare command
 __shtx_declare() {
@@ -935,6 +952,20 @@ __shtx_[() {
     ($# == 0 || $@.peek() != ']') && { $_error("[", "missing \`]'"); return 2; }
     $@.pop()    # skip last ']'
     test $@
+}
+
+__shtx_builtin() {
+    $# == 0 && return 0
+    if let cmd = $_builtin_map.get($1) {
+        $@[0] = $cmd
+        call $@
+        return $?
+    } elif (command -V $1 | grep 'is a shell builtin command' &>> /dev/null) {
+        call $@
+        return $?
+    }
+    $_error("builtin", "$1: not a shell builtin command");
+    return 1
 }
 
 __shtx_read() {
@@ -1343,24 +1374,8 @@ fake_call() {
         }
         return $?
     }
-
     var cmd = $@[0]
-    $@[0] = case $cmd {
-        '[' => '__shtx_['
-        'declare' => '__shtx_declare'
-        'typeset' => '__shtx_typeset'
-        'export' => '__shtx_export'
-        'local' => '__shtx_local'
-        'unset' => '__shtx_unset'
-        'shift' => '__shtx_shift'
-        'read' => '__shtx_read'
-        'printf' => '__shtx_printf'
-        'return' => '__shtx_return'
-        'trap' => '__shtx_trap'
-        'eval' => 'fake_eval'
-        '.' | 'source' => 'fake_source'
-        else => $cmd
-    }
+    $@[0] = $_builtin_map.get($cmd) ?? $cmd
     call $@
  }
 

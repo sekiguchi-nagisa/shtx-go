@@ -49,6 +49,25 @@ hello
 world
 global2: hello'
 
+## builtin
+assert "$(fake_eval 'builtin ls' 2>&1)" == 'bash: builtin: ls: not a shell builtin command'
+assert $? == 1
+
+assert "$(fake_eval 'll() echo hello; builtin ll' 2>&1)" == 'bash: builtin: ll: not a shell builtin command'
+assert $? == 1
+
+assert "$(fake_eval 'builtin __shtx_read' 2>&1)" == 'bash: builtin: __shtx_read: not a shell builtin command'
+assert $? == 1
+
+assert_fake_eval '
+  builtin printf "<%s>\n" a b c
+  builtin builtin echo hello
+  builtin command -v echo
+' '<a>
+<b>
+<c>
+hello
+echo'
 
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
