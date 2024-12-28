@@ -476,6 +476,18 @@ esac
   }
 }
 `},
+	"for1": {`for aa in 1 2 3; do echo "<$aa>"; done`, `{
+  for aa in @(1 2 3) {
+    $__shtx_enter_loop(); defer { $__shtx_exit_loop(); }
+    $__shtx_set_var(['aa', $aa])
+    try {
+      echo "<${$__shtx_get_var(@( 'aa' ))}>"
+    } catch e: _BreakContinue {
+      let c = $__shtx_check_loop($e); $c == 0 ? (break) : $c == 1 ? (continue) : throw $e;
+    }
+  }
+}
+`},
 	"assign-param-expand": {
 		`AAA=$aaa`, `{
   $__shtx_set_var(@( AAA ${$__shtx_get_var(@( 'aaa' ))} ))

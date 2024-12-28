@@ -1011,6 +1011,20 @@ __shtx_return() {
     throw new _Return('', $status)
 }
 
+type _BreakContinue: Error
+
+function __shtx_enter_loop() {
+
+}
+
+function __shtx_exit_loop() {
+
+}
+
+function __shtx_check_loop(e: _BreakContinue): Int {
+    return 0
+}
+
 type _Context() {
     ## set runtime options
     let option = { shctl set -d; $REPLY; }

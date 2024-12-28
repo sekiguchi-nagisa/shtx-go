@@ -297,6 +297,14 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 		t.visitFuncDecl(n)
 	case *syntax.TestClause:
 		t.visitTestExpr(n.X)
+	case *syntax.ForClause:
+		_ = n.Select && t.todo(n.Pos(), "not support select")
+		switch loop := n.Loop.(type) {
+		case *syntax.WordIter:
+			t.visitForWordIter(loop, n.Do)
+		default: // CStyle loop
+			t.fixmeCase(n.Pos(), n)
+		}
 	default:
 		t.fixmeCase(n.Pos(), n)
 	}
@@ -454,6 +462,35 @@ func (t *Translator) visitIfClause(clause *syntax.IfClause, elif bool) {
 			t.emitWithIndent("}")
 		}
 	}
+}
+
+func (t *Translator) visitForWordIter(loop *syntax.WordIter, stmts []*syntax.Stmt) {
+	t.emit("for ")
+	t.emit(loop.Name.Value)
+	t.emit(" in @(")
+	for i, word := range loop.Items {
+		if i > 0 {
+			t.emit(" ")
+		}
+		t.visitWord(word)
+	}
+	t.emitLine(") {")
+	t.indentLevel++
+	t.emitLineWithIndent("$__shtx_enter_loop(); defer { $__shtx_exit_loop(); }")
+	t.emitWithIndent("$__shtx_set_var(['")
+	t.emit(loop.Name.Value)
+	t.emit("', $")
+	t.emit(loop.Name.Value)
+	t.emitLine("])")
+	t.emitLineWithIndent("try {")
+	t.visitStmts(stmts)
+	t.emitLineWithIndent("} catch e: _BreakContinue {")
+	t.indentLevel++
+	t.emitLineWithIndent("let c = $__shtx_check_loop($e); $c == 0 ? (break) : $c == 1 ? (continue) : throw $e;")
+	t.indentLevel--
+	t.emitLineWithIndent("}")
+	t.indentLevel--
+	t.emitWithIndent("}")
 }
 
 func (t *Translator) visitCasePattern(pattern *syntax.Word, caseVarName string) {
@@ -806,7 +843,8 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 
 		_ = !option.dQuoted && !option.pattern && !option.regex && !option.singleWord && t.todo(n.Pos(), "support unquoted command substitution")
 		if option.dQuoted && n.Backquotes { // unescape and reparse
-			tmpBuf := t.in[n.Pos().Offset()+1 : n.End().Offset()-1] // remove prefix and suffix back-quote
+			// remove prefix and suffix back-quote
+			tmpBuf := t.in[n.Pos().Offset()+1 : n.End().Offset()-1]
 			t.offset = Offset{ // adjust line num offset for better error message
 				line: n.Pos().Line() - 1,
 				col:  n.Pos().Col(),

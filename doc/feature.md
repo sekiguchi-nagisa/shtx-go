@@ -94,6 +94,8 @@
     * [x] non-const glob pattern
     * [ ] tilde expansion with quote removal and parameter expansion
 * [ ] for
+    * [x] iter
+    * [ ] c-style
 * [ ] while
 * [ ] until
 * [x] function

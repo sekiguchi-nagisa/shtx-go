@@ -1,0 +1,63 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+## for-in global
+assert_fake_eval '
+for aaa in 1 2 3 4 5; do
+  echo "<$aaa>"
+done
+echo "[$aaa]"
+' '<1>
+<2>
+<3>
+<4>
+<5>
+[5]'
+
+assert_fake_eval '
+for aaa in "hello world"; do
+  echo "<$aaa>"
+done
+echo "[$aaa]"
+' '<hello world>
+[hello world]'
+
+
+## for-in local
+assert_fake_eval '
+ff() {
+  for aaa in 11 22 33; do echo "<$aaa>"; done
+  echo "[$aaa]"
+}
+ff
+echo "($aaa)"
+' '<11>
+<22>
+<33>
+[33]
+(33)'
+
+assert_fake_eval '
+ff() {
+  local aaa
+  for aaa in 11 22 33; do echo "<$aaa>"; done
+  echo "[$aaa]"
+}
+ff
+echo "($aaa)"
+' '<11>
+<22>
+<33>
+[33]
+()'
+
+## for-in empty
+assert_fake_eval '
+for do do echo hello; done
+' ''
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0
