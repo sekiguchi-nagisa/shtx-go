@@ -483,9 +483,39 @@ esac
     try {
       echo "<${$__shtx_get_var(@( 'aa' ))}>"
     } catch e: _BreakContinue {
-      let c = $__shtx_check_loop($e); $c == 0 ? (break) : $c == 1 ? (continue) : throw $e;
+      $__shtx_check_loop($e) ? (continue) : (break)
     }
   }
+}
+`},
+	"for2": {`for aaa; do echo "<$aaa>"; done`, `{
+  for aaa in $__shtx_get_array_var('@') {
+    $__shtx_enter_loop(); defer { $__shtx_exit_loop(); }
+    $__shtx_set_var(['aaa', $aaa!])
+    try {
+      echo "<${$__shtx_get_var(@( 'aaa' ))}>"
+    } catch e: _BreakContinue {
+      $__shtx_check_loop($e) ? (continue) : (break)
+    }
+  }
+}
+`},
+	"for3": {`for aaa in; do echo "<$aaa>"; done`, `{
+  for aaa in @() {
+    $__shtx_enter_loop(); defer { $__shtx_exit_loop(); }
+    $__shtx_set_var(['aaa', $aaa])
+    try {
+      echo "<${$__shtx_get_var(@( 'aaa' ))}>"
+    } catch e: _BreakContinue {
+      $__shtx_check_loop($e) ? (continue) : (break)
+    }
+  }
+}
+`},
+	"break-continue": {`break; continue; "break"`, `{
+  __shtx_break
+  __shtx_continue
+  fake_call "break"
 }
 `},
 	"assign-param-expand": {

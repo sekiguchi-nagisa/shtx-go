@@ -467,26 +467,33 @@ func (t *Translator) visitIfClause(clause *syntax.IfClause, elif bool) {
 func (t *Translator) visitForWordIter(loop *syntax.WordIter, stmts []*syntax.Stmt) {
 	t.emit("for ")
 	t.emit(loop.Name.Value)
-	t.emit(" in @(")
-	for i, word := range loop.Items {
-		if i > 0 {
-			t.emit(" ")
+	if !loop.InPos.IsValid() {
+		t.emitLine(" in $__shtx_get_array_var('@') {")
+	} else {
+		t.emit(" in @(")
+		for i, word := range loop.Items {
+			if i > 0 {
+				t.emit(" ")
+			}
+			t.visitWord(word)
 		}
-		t.visitWord(word)
+		t.emitLine(") {")
 	}
-	t.emitLine(") {")
 	t.indentLevel++
 	t.emitLineWithIndent("$__shtx_enter_loop(); defer { $__shtx_exit_loop(); }")
 	t.emitWithIndent("$__shtx_set_var(['")
 	t.emit(loop.Name.Value)
 	t.emit("', $")
 	t.emit(loop.Name.Value)
+	if !loop.InPos.IsValid() {
+		t.emit("!")
+	}
 	t.emitLine("])")
 	t.emitLineWithIndent("try {")
 	t.visitStmts(stmts)
 	t.emitLineWithIndent("} catch e: _BreakContinue {")
 	t.indentLevel++
-	t.emitLineWithIndent("let c = $__shtx_check_loop($e); $c == 0 ? (break) : $c == 1 ? (continue) : throw $e;")
+	t.emitLineWithIndent("$__shtx_check_loop($e) ? (continue) : (break)")
 	t.indentLevel--
 	t.emitLineWithIndent("}")
 	t.indentLevel--
@@ -609,21 +616,23 @@ func toLiteralCmdName(word *syntax.Word) string {
 }
 
 var cmdNameReplacement = map[string]string{
-	"[":       "__shtx_[",
-	"builtin": "__shtx_builtin",
-	"declare": "__shtx_declare",
-	"typeset": "__shtx_typeset",
-	"export":  "__shtx_export",
-	"local":   "__shtx_local",
-	"unset":   "__shtx_unset",
-	"shift":   "__shtx_shift",
-	"read":    "__shtx_read",
-	"printf":  "__shtx_printf",
-	"return":  "__shtx_return",
-	"trap":    "__shtx_trap",
-	"eval":    "fake_eval",
-	".":       "fake_source",
-	"source":  "fake_source",
+	"[":        "__shtx_[",
+	"builtin":  "__shtx_builtin",
+	"declare":  "__shtx_declare",
+	"typeset":  "__shtx_typeset",
+	"export":   "__shtx_export",
+	"local":    "__shtx_local",
+	"unset":    "__shtx_unset",
+	"shift":    "__shtx_shift",
+	"read":     "__shtx_read",
+	"printf":   "__shtx_printf",
+	"return":   "__shtx_return",
+	"break":    "__shtx_break",
+	"continue": "__shtx_continue",
+	"trap":     "__shtx_trap",
+	"eval":     "fake_eval",
+	".":        "fake_source",
+	"source":   "fake_source",
 }
 
 func remapCmdName(name string) string {

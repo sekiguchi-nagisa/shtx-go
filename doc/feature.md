@@ -120,6 +120,6 @@
 * [x] return
     * [x] return from function
     * [x] return from sourced
-* [ ] break
-* [ ] continue
+* [x] break
+* [x] continue
 * [x] trap

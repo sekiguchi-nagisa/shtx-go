@@ -55,8 +55,212 @@ echo "($aaa)"
 
 ## for-in empty
 assert_fake_eval '
-for do do echo hello; done
+for a; do echo hello; done
 ' ''
+
+assert_fake_eval '
+ff() { for do; do echo "<hello: $do>"; done; }
+ff aa 2 56 "4 5  "
+' '<hello: aa>
+<hello: 2>
+<hello: 56>
+<hello: 4 5  >'
+
+assert_fake_eval '
+ff() { for do in; do echo "<hello: $do>"; done; }
+ff aa 2 56 "4 5  "
+' ''
+
+## break
+assert_fake_eval '
+fff() {
+  local aaa
+  local bbb
+  for aaa in 1 2 3; do
+    echo "[$aaa]"
+    for bbb in 11 22 33 44; do
+      if test "$1" = "$bbb"; then 
+        if [ "$3" = continue ]; then continue "$2"; 
+        else break "$2"; fi 
+      fi
+      echo "<$aaa=$bbb>"
+    done
+  done
+}
+echo break
+fff 33 1
+fff 33 2
+fff 22 3
+fff 22 4
+' 'break
+[1]
+<1=11>
+<1=22>
+[2]
+<2=11>
+<2=22>
+[3]
+<3=11>
+<3=22>
+[1]
+<1=11>
+<1=22>
+[1]
+<1=11>
+[1]
+<1=11>'
+
+assert_fake_eval '
+  for aa in 11 22 33; do echo "[$aa=$(break;echo hello)]"; done
+' '[11=]
+[22=]
+[33=]'
+
+## continue
+assert_fake_eval '
+fff() {
+  local aaa
+  local bbb
+  for aaa in 1 2 3; do
+    echo "[$aaa]"
+    for bbb in 11 22 33 44; do
+      if test "$1" = "$bbb"; then 
+        if [ "$3" = continue ]; then continue "$2"; 
+        else break "$2"; fi 
+      fi
+      echo "<$aaa=$bbb>"
+    done
+  done
+}
+echo continue
+fff 33 1 continue
+fff 33 2 continue
+fff 22 3 continue
+fff 22 4 continue
+' 'continue
+[1]
+<1=11>
+<1=22>
+<1=44>
+[2]
+<2=11>
+<2=22>
+<2=44>
+[3]
+<3=11>
+<3=22>
+<3=44>
+[1]
+<1=11>
+<1=22>
+[2]
+<2=11>
+<2=22>
+[3]
+<3=11>
+<3=22>
+[1]
+<1=11>
+[2]
+<2=11>
+[3]
+<3=11>
+[1]
+<1=11>
+[2]
+<2=11>
+[3]
+<3=11>'
+
+assert_fake_eval '
+  for aa in 11 22 33; do echo "[$aa=$(continue;echo hello)]"; done
+' '[11=]
+[22=]
+[33=]'
+
+## break/continue in subshell
+assert_fake_eval '
+ff() {
+  for aa; do
+    echo "<$aa=$(
+    printf before:
+    for bb in 11 "$aa"; do
+      [ "$bb" = 0 ] && break 2
+      printf "%s:" "$bb"
+    done;
+    printf after:
+    )>"
+    echo end
+  done
+  echo fin
+}
+ff 1 2
+ff 0 1
+' '<1=before:11:1:after:>
+end
+<2=before:11:2:after:>
+end
+fin
+<0=before:11:>
+end
+<1=before:11:1:after:>
+end
+fin'
+
+assert_fake_eval '
+    for a in 1 2; do echo "<$(break 2>&1; echo hey 2>&1)>"; done
+' '<>
+<>'
+
+## break/continue error
+assert "$(fake_eval 'break' 2>&1)" == 'bash: break: only available in for, until, while loop'
+assert $? == 1
+assert "$(fake_eval 'continue' 2>&1)" == 'bash: continue: only available in for, until, while loop'
+assert $? == 1
+assert "$(fake_eval 'aa="<$(break 2>&1; echo hey)>"; echo "$aa=$?"')" == 
+    '<bash: break: only available in for, until, while loop' + $'\n' + 'hey>=0'
+assert $? == 0
+assert "$(fake_eval 'aa="<$(continue 2>&1; echo hey)>"; echo "$aa=$?"')" == 
+    '<bash: continue: only available in for, until, while loop' + $'\n' + 'hey>=0'
+assert $? == 0
+
+assert "$(fake_eval 'for a in 1; do break frfre; done' 2>&1)" == 'bash: break: frfre: numeric argument required'
+assert $? == 1
+assert "$(fake_eval 'for a in 1; do continue frfre; done' 2>&1)" == 'bash: continue: frfre: numeric argument required'
+assert $? == 1
+assert "$(fake_eval 'for a in 1; do aa="<$(break frfre 2>&1;echo hey 2>&1)>"; echo "$aa=$?"; done')" == 
+    '<bash: break: frfre: numeric argument required>=1'
+assert $? == 0
+assert "$(fake_eval 'for a in 1; do aa="<$(continue frfre 2>&1;echo hey 2>&1)>"; echo "$aa=$?"; done')" == 
+    '<bash: continue: frfre: numeric argument required>=1'
+assert $? == 0
+
+assert "$(fake_eval 'for a in 1; do break -1; done' 2>&1)" == 'bash: break: -1: loop count out of range'
+assert $? == 1
+assert "$(fake_eval 'for a in 1; do continue -2; done' 2>&1)" == 'bash: continue: -2: loop count out of range'
+assert $? == 1
+assert "$(fake_eval 'for a in 1; do break 0; done' 2>&1)" == 'bash: break: 0: loop count out of range'
+assert $? == 1
+assert "$(fake_eval 'for a in 1; do continue 0; done' 2>&1)" == 'bash: continue: 0: loop count out of range'
+assert $? == 1
+assert "$(fake_eval 'for a in 1; do e="<$(break 0 2>&1; echo eee)>"; echo "$e=$?"; done')" == 
+    '<bash: break: 0: loop count out of range>=1'
+assert $? == 0
+assert "$(fake_eval 'for a in 1; do aa="<$(continue 0 2>&1; echo eee)>"; echo "$aa=$?"; done')" == 
+    '<bash: continue: 0: loop count out of range>=1'
+assert $? == 0
+
+assert "$(fake_eval 'for a in 1; do break 1 1; done' 2>&1)" == 'bash: break: too many arguments'
+assert $? == 1
+assert "$(fake_eval 'for a in 1; do continue 2 2; done' 2>&1)" == 'bash: continue: too many arguments'
+assert $? == 1
+assert "$(fake_eval 'for a in 1; do ec="<$(break 1 2 2>&1; echo hhh)>"; echo "$ec=$?"; done')" == 
+    '<bash: break: too many arguments>=1'
+assert $? == 0
+assert "$(fake_eval 'for a in 1; do echo="<$(continue 1 2 2>&1; echo hhh)>"; echo "$echo=$?"; done')" == 
+    '<bash: continue: too many arguments>=1'
+assert $? == 0
+
 
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$

@@ -214,6 +214,7 @@ type _VarMap(_arg0 : String, _args : [String]) {
     var args = $_args
     let entries : [String : _VarEntry]
     let pid = $PID
+    let loopPids: [Int]  # maintains current loop pid
 }
 
 # get variable entry. if entry is not found, but corresponding env is found, set and return entry
@@ -249,19 +250,24 @@ type _VarScope(_arg0 : String, _args : [String]) {
     $global.put('BASHPID', "$PID", $__VAR_ATTR_BASHPID)
 }
 
+function _current(): _VarMap for _VarScope {
+    return $this.locals.empty() ? $this.global : $this.locals.peek()
+}
+
 function arg0() : String for _VarScope {
-    var v = $this.locals.empty() ? $this.global : $this.locals.peek()
-    return $v.arg0
+    return $this._current().arg0
 }
 
 function args() : [String] for _VarScope {
-    var v = $this.locals.empty() ? $this.global : $this.locals.peek()
-    return $v.args
+    return $this._current().args
 }
 
 function setArgs(args : [String]) for _VarScope {
-    var v = $this.locals.empty() ? $this.global : $this.locals.peek()
-    $v.args = $args
+    $this._current().args = $args
+}
+
+function loopPids(): [Int] for _VarScope {
+    return $this._current().loopPids
 }
 
 function get(name : String, use_env : Bool?) : _VarEntry? for _VarScope {
@@ -835,6 +841,8 @@ let _builtin_map = [
     'read': '__shtx_read',
     'printf': '__shtx_printf',
     'return': '__shtx_return',
+    'break': '__shtx_break',
+    'continue': '__shtx_continue',
     'trap': '__shtx_trap',
     'eval': 'fake_eval',
     '.': 'fake_source',
@@ -1014,15 +1022,61 @@ __shtx_return() {
 type _BreakContinue: Error
 
 function __shtx_enter_loop() {
-
+    $_VARS.loopPids().add($PID)
 }
 
 function __shtx_exit_loop() {
-
+    $_VARS.loopPids().pop()
 }
 
-function __shtx_check_loop(e: _BreakContinue): Int {
-    return 0
+# return true: do-continue, false: do-break
+function __shtx_check_loop(e: _BreakContinue): Bool {
+    let depth = $_VARS.loopPids().size()
+    case $e.message() {
+        'break' => $e.status() == $depth && return $false
+        'continue' => $e.status() == $depth && return $true
+        else => { assert $false; }
+    }
+    assert $depth > 1
+    if $_VARS.loopPids()[-2] != $PID {
+        _exit 0
+    }
+    throw $e
+}
+
+function _break_continue_impl(name: String, args: [String]): Int {
+    $? = 0 # reset exit status
+    let depth = $_VARS.loopPids().size()
+    if $depth == 0 {
+        $_error($name, 'only available in for, until, while loop')
+        return 1
+    }
+    let force_exit = $_VARS.loopPids().peek() != $PID
+    if $args.size() > 1 {
+        $_error($name, 'too many arguments')
+        $force_exit ? (_exit 1) : return 1
+    }
+    var arg = $args.get(0) ?? '1'
+    var n = $arg.toInt(10) ?? {
+        $_error($name, "$arg: numeric argument required")
+        $force_exit ? (_exit 1) : return 1
+    }
+    if $n < 1 {
+        $_error($name, "$arg: loop count out of range")
+        $force_exit ? (_exit 1) : return 1
+    }
+    $force_exit && _exit 0
+    $n = ($n < $depth ? $n : $depth) - 1
+    $n = $depth - $n
+    throw new _BreakContinue($name, $n)
+}
+
+__shtx_break() {
+    return $_break_continue_impl('break', $@)
+}
+
+__shtx_continue() {
+    return $_break_continue_impl('continue', $@)
 }
 
 type _Context() {
