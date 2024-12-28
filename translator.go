@@ -180,17 +180,12 @@ func (t *Translator) Translate(buf []byte, out io.Writer) (err error) {
 		case TranslateSource:
 			t.emitLine("function(argv: [String]): Int => {")
 			t.indentLevel++
-			t.indent()
-			t.emitLine("let old_argv = $__shtx_set_argv($argv)")
-			t.indent()
-			t.emitLine("defer { $__shtx_set_argv($old_argv); }")
-			t.indent()
-			t.emitLine("try {")
+			t.emitLineWithIndent("let old_argv = $__shtx_set_argv($argv)")
+			t.emitLineWithIndent("defer { $__shtx_set_argv($old_argv); }")
+			t.emitLineWithIndent("try {")
 			t.visitStmts(f.Stmts)
-			t.indent()
-			t.emitLine("} catch e: _Return { return $e.status(); }")
-			t.indent()
-			t.emitLine("return $?")
+			t.emitLineWithIndent("} catch e: _Return { return $e.status(); }")
+			t.emitLineWithIndent("return $?")
 			t.indentLevel--
 			t.emitLine("}")
 		case TranslatePattern:
@@ -206,8 +201,18 @@ func (t *Translator) emit(s string) {
 	_, _ = fmt.Fprint(t.out, s)
 }
 
+func (t *Translator) emitWithIndent(s string) {
+	t.indent()
+	t.emit(s)
+}
+
 func (t *Translator) emitLine(s string) {
 	_, _ = fmt.Fprintln(t.out, s)
+}
+
+func (t *Translator) emitLineWithIndent(s string) {
+	t.indent()
+	t.emitLine(s)
 }
 
 func (t *Translator) newline() {
@@ -283,8 +288,7 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 	case *syntax.Block:
 		t.emitLine("{")
 		t.visitStmts(n.Stmts)
-		t.indent()
-		t.emit("}")
+		t.emitWithIndent("}")
 	case *syntax.IfClause:
 		t.visitIfClause(n, false)
 	case *syntax.CaseClause:
@@ -432,15 +436,13 @@ func (t *Translator) visitIfClause(clause *syntax.IfClause, elif bool) {
 	} else {
 		t.emitLine("$__shtx_cond({")
 		t.visitStmts(clause.Cond)
-		t.indent()
-		t.emit("})")
+		t.emitWithIndent("})")
 	}
 
 	// then
 	t.emitLine(" {")
 	t.visitStmts(clause.Then)
-	t.indent()
-	t.emit("}")
+	t.emitWithIndent("}")
 
 	// else or elif
 	if clause.Else != nil {
@@ -449,8 +451,7 @@ func (t *Translator) visitIfClause(clause *syntax.IfClause, elif bool) {
 		} else { // else
 			t.emitLine(" else {")
 			t.visitStmts(clause.Else.Then)
-			t.indent()
-			t.emit("}")
+			t.emitWithIndent("}")
 		}
 	}
 }
@@ -475,8 +476,7 @@ func (t *Translator) visitCaseClause(clause *syntax.CaseClause) {
 
 	t.emitLine("{")
 	t.indentLevel++
-	t.indent()
-	t.emit("var " + caseVarName + "=''; " + caseVarName + "=")
+	t.emitWithIndent("var " + caseVarName + "=''; " + caseVarName + "=")
 	t.visitWordWith(clause.Word, WordPartOption{singleWord: true})
 	t.emitLine("")
 
@@ -484,11 +484,10 @@ func (t *Translator) visitCaseClause(clause *syntax.CaseClause) {
 	for i, item := range clause.Items {
 		_ = item.Op != syntax.Break && t.todo(item.OpPos, "not support "+item.Op.String())
 
-		t.indent()
 		if i == 0 {
-			t.emit("if ")
+			t.emitWithIndent("if ")
 		} else {
-			t.emit("elif ")
+			t.emitWithIndent("elif ")
 		}
 		for i2, pattern := range item.Patterns {
 			if i2 > 0 {
@@ -498,13 +497,11 @@ func (t *Translator) visitCaseClause(clause *syntax.CaseClause) {
 		}
 		t.emitLine(" {")
 		t.visitStmts(item.Stmts)
-		t.indent()
-		t.emitLine("}")
+		t.emitLineWithIndent("}")
 	}
 
 	t.indentLevel--
-	t.indent()
-	t.emit("}")
+	t.emitWithIndent("}")
 }
 
 func (t *Translator) isStaticReturn(args []*syntax.Word) bool {
@@ -540,28 +537,22 @@ func (t *Translator) visitFuncDecl(clause *syntax.FuncDecl) {
 	funcSrc := string(t.in[clause.Pos().Offset():clause.End().Offset()])
 	funcSrc = escapeAsDoubleQuoted(funcSrc)
 	t.emitLine(fmt.Sprintf("let src_%d = %s", clause.Pos().Offset(), funcSrc))
-	t.indent()
-	t.emit("$__shtx_func('")
+	t.emitWithIndent("$__shtx_func('")
 	t.emit(clause.Name.Value) // FIXME: escape command name
 	t.emitLine(fmt.Sprintf("', $src_%d, (){", clause.Pos().Offset()))
 	t.indentLevel++
-	t.indent()
-	t.emitLine("let ctx = $__shtx_enter_func($0, $@)")
-	t.indent()
-	t.emitLine("defer { $__shtx_exit_func($ctx); }")
-	t.indent()
-	t.emitLine("try {")
+	t.emitLineWithIndent("let ctx = $__shtx_enter_func($0, $@)")
+	t.emitLineWithIndent("defer { $__shtx_exit_func($ctx); }")
+	t.emitLineWithIndent("try {")
 	t.indentLevel++
 	t.indent()
 	t.resolveStaticReturn(clause.Body)
 	t.visitStmt(clause.Body)
 	t.newline()
 	t.indentLevel--
-	t.indent()
-	t.emitLine("} catch e: _Return { return $e.status(); }")
+	t.emitLineWithIndent("} catch e: _Return { return $e.status(); }")
 	t.indentLevel--
-	t.indent()
-	t.emit("})")
+	t.emitWithIndent("})")
 	t.funcLevel--
 	t.staticReturnMap = make(map[*syntax.CallExpr]struct{}) // clear map
 }
@@ -816,7 +807,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 		_ = !option.dQuoted && !option.pattern && !option.regex && !option.singleWord && t.todo(n.Pos(), "support unquoted command substitution")
 		if option.dQuoted && n.Backquotes { // unescape and reparse
 			tmpBuf := t.in[n.Pos().Offset()+1 : n.End().Offset()-1] // remove prefix and suffix back-quote
-			t.offset = Offset{                                      // adjust line num offset for better error message
+			t.offset = Offset{ // adjust line num offset for better error message
 				line: n.Pos().Line() - 1,
 				col:  n.Pos().Col(),
 			}
@@ -838,8 +829,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 		} else {
 			t.emitLine("$({")
 			t.visitStmts(stmts)
-			t.indent()
-			t.emit("})")
+			t.emitWithIndent("})")
 		}
 		if option.pattern || option.regex || option.singleWord {
 			t.emit("\"")
@@ -855,8 +845,7 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 		} else {
 			t.emitLine("{")
 			t.visitStmts(n.Stmts)
-			t.indent()
-			t.emit("}")
+			t.emitWithIndent("}")
 		}
 		t.emit(")")
 	default:
@@ -921,12 +910,10 @@ func (t *Translator) expandDblQuoted(quoted *syntax.DblQuoted) {
 	for _, part := range quoted.Parts {
 		if name := resolveArrayExpandParamName(part); name != "" {
 			t.emitLine("\")[0] )")
-			t.indent()
-			t.emit(".add($__shtx_get_array_var('")
+			t.emitWithIndent(".add($__shtx_get_array_var('")
 			t.emit(name)
 			t.emitLine("'))")
-			t.indent()
-			t.emit(".add( @(\"")
+			t.emitWithIndent(".add( @(\"")
 			continue
 		}
 		option := WordPartOption{}
@@ -956,8 +943,7 @@ func (t *Translator) visitWordWith(word *syntax.Word, option WordPartOption) {
 
 	t.emitLine("$__shtx_concat(new [Any]()")
 	t.indentLevel++
-	t.indent()
-	t.emit(".add( @(")
+	t.emitWithIndent(".add( @(")
 	for _, part := range word.Parts {
 		switch n := part.(type) {
 		case *syntax.DblQuoted:
@@ -970,8 +956,7 @@ func (t *Translator) visitWordWith(word *syntax.Word, option WordPartOption) {
 	}
 	t.emitLine(")[0] )")
 	t.indentLevel--
-	t.indent()
-	t.emit(")")
+	t.emitWithIndent(")")
 }
 
 func (t *Translator) visitWord(word *syntax.Word) {
