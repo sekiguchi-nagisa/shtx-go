@@ -217,6 +217,10 @@ assert "$(fake_eval 'break' 2>&1)" == 'bash: break: only available in for, until
 assert $? == 1
 assert "$(fake_eval 'continue' 2>&1)" == 'bash: continue: only available in for, until, while loop'
 assert $? == 1
+assert "$(fake_eval 'aa() { break; }; for a in 1 2; do aa; done' 2>&1)" == 
+    'bash: break: only available in for, until, while loop
+bash: break: only available in for, until, while loop'
+assert $? == 1
 assert "$(fake_eval 'aa="<$(break 2>&1; echo hey)>"; echo "$aa=$?"')" == 
     '<bash: break: only available in for, until, while loop' + $'\n' + 'hey>=0'
 assert $? == 0
