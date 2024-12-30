@@ -1059,6 +1059,27 @@ function __shtx_signal_handler(s: Signal) {
     }
 }
 
+let _sort_wrapper = {
+    var ss = $VERSION.split('.')
+    let majar = $ss[0].toInt()!
+    let minor = $ss[1].toInt()!
+    
+    var src = ""
+    if $majar > 0 || $minor >= 36 {  # 
+        $src = '
+            function(values: [(Signal, String)]) => 
+                $values.sortBy(function(x,y) => $x._0.value() < $y._0.value())
+        '
+    } else {
+        $src = '
+            function(values: [(Signal, String)]) => 
+                $values.sortWith(function(x,y) => $x._0.value() < $y._0.value())
+        '
+    }
+    var func = $MODULE._func($src)()! as ([(Signal, String)]) -> [(Signal, String)]
+    $func
+}
+
 __shtx_trap() {
     let param : _TrapParam
     try {
@@ -1079,7 +1100,7 @@ __shtx_trap() {
             for k, v in $_TRAP {
                 $values.add(($k, $v._0))
             }
-            $values.sortWith(function(x,y) => $x._0.value() < $y._0.value())
+            $_sort_wrapper($values)
             for value in $values {
                 printf "trap -- %s SIG%s\n" $__doubleQuote($value._1) ${$value._0.name()}
             }
