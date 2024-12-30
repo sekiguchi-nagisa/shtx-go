@@ -1169,12 +1169,12 @@ let _sort_wrapper = {
     let minor = $ss[1].toInt()!
     
     var src = ""
-    if $majar > 0 || $minor >= 36 {  # 
+    if $majar > 0 || $minor >= 36 {
         $src = '
             function(values: [(Signal, String)]) => 
                 $values.sortBy(function(x,y) => $x._0.value() < $y._0.value())
         '
-    } else {
+    } else {  # for older version
         $src = '
             function(values: [(Signal, String)]) => 
                 $values.sortWith(function(x,y) => $x._0.value() < $y._0.value())
@@ -1209,7 +1209,7 @@ __shtx_trap() {
                 printf "trap -- %s SIG%s\n" $__doubleQuote($value._1) ${$value._0.name()}
             }
             return 0
-        } else {  # print specifed signal setting
+        } else {  # print specified signal setting
             var errors = 0
             for arg in $param.args {
                 var sig = $SIG.get($arg) ?? {
