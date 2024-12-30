@@ -1,6 +1,10 @@
 name: "End-to-End test"
 
-on: [ push ]
+on:
+  push:
+    branches: [ "main" ]
+  schedule:
+    - cron: '0 8 * * 5'
 
 jobs:
   test:
