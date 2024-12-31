@@ -20,6 +20,21 @@ empty
 3333
 after: 1111'
 
+## array
+assert_fake_eval '
+ff() { 
+  local -a AAA
+  local -a BBB=
+  local -a CCC=123
+  printf "<(%s)>\n" "${AAA[0]}"
+  printf "<(%s)>\n" "${BBB[0]}"
+  printf "<(%s)>\n" "${CCC[0]}"
+}
+ff
+' '<()>
+<()>
+<(123)>'
+
 ## unset
 assert !checkenv AAA
 assert_fake_eval '

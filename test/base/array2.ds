@@ -24,12 +24,25 @@ printf "[%s]\n" "${BBB[0]}"
 printf "[%s]\n" "${BBB[1]}"
 printf "[[%s]]\n" "${BBB[*]}"
 
+## empty array (declare)
+declare -a BBB11
+printf "[<%s>]\n" "${BBB11[0]}"
+printf "[<%s>]\n" "${BBB11[1]}"
+printf "[[<%s>]]\n" "${BBB11[*]}"
+
 ## not array (string)
 CCC=abcd
 printf "(%s)\n" "${CCC[0]}"
 printf "(%s)\n" "${CCC[1]}"
 printf "(%s)\n" "${CCC[2]}"
 printf "((%s))\n" "${CCC[*]}"
+
+## not array (declare)
+declare -a CCC11=abcd
+printf "<(%s)>\n" "${CCC11[0]}"
+printf "<(%s)>\n" "${CCC11[1]}"
+printf "<(%s)>\n" "${CCC11[2]}"
+printf "<((%s))>\n" "${CCC11[*]}"
 
 ' '<1>
 <2>
@@ -40,10 +53,17 @@ printf "((%s))\n" "${CCC[*]}"
 []
 []
 [[]]
+[<>]
+[<>]
+[[<>]]
 (abcd)
 ()
 ()
-((abcd))'
+((abcd))
+<(abcd)>
+<()>
+<()>
+<((abcd))>'
 
 assert "$(fake_eval 'AAA=(1 2 3); IFS=@%; printf "<%s>\n" "${AAA[*]}"')" == '<1@2@3>'
 

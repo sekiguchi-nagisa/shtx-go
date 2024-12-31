@@ -86,6 +86,14 @@ declare -x BBB="2344"
 @3
 declare -- AAA="34525"' : $out
 
+## for array
+$out = "$(fake_eval '
+declare -a AAA BBB= CCC=ss
+typeset -p AAA BBB CCC
+')"
+assert $out == 'declare -a AAA=()
+declare -a BBB=([0]="")
+declare -a CCC=([0]="ss")'
 
 $out = "$(fake_eval '
 AAA=1234

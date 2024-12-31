@@ -302,7 +302,7 @@ function put(name : String, value : Any) : String for _VarScope {
     return $this.global.put($name, $value)
 }
 
-function local(name : String, value : String) for _VarScope {
+function local(name : String, value : Any) for _VarScope {
     var local = $this.locals.peek()
     if let e = $local.entries.get($name) {
         $e.update($value)
@@ -697,6 +697,9 @@ type _DeclareOpt() {
     [<Flag(short: 'p', help: 'display the attribute and value of variable')>]
     var printVar = $false
 
+    [<Flag(short: 'a', help: 'define variable as array' )>]
+    var array = $false
+
     [<Arg()>]
     var args : [String]
 }
@@ -752,7 +755,17 @@ function __shtx_define_vars(cmd: String, args: [String]) : Int {
             continue
         }
         $name =~ $/^[a-zA-Z_][0-9a-zA-Z_]*$/ || { $_error($cmd, "$arg: not a valid identifier"); return 1; }
-        let value = $i != -1 ? $arg.slice($i + 1) : ""
+        # let value = ($i != -1 ? $arg.slice($i + 1) : "")
+        var value = "" as Any
+        if $opt.array {
+            if $i == -1 {   # empty array
+                $value = new [String?]()
+            } else {
+                $value = [$arg.slice($i + 1) as String?]
+            }
+        } else {
+            $value = ($i != -1 ? $arg.slice($i + 1) : "")
+        }
         $local ? $_VARS.local($name, $value) : $_VARS.put($name, $value)
     }
     return $fail ? 1 : 0
