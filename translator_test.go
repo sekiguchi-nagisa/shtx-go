@@ -491,7 +491,7 @@ esac
 	"for2": {`for aaa; do echo "<$aaa>"; done`, `{
   for aaa in $__shtx_get_array_var('@') {
     $__shtx_enter_loop(); defer { $__shtx_exit_loop(); }
-    $__shtx_set_var(['aaa', $aaa!])
+    $__shtx_set_var(['aaa', $aaa])
     try {
       echo "<${$__shtx_get_var(@( 'aaa' ))}>"
     } catch e: _BreakContinue {
