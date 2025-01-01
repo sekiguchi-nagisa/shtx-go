@@ -1,0 +1,98 @@
+# RUN: call $cmd $self
+
+source ../../shtx as shtx
+
+let _eval_wrapper = {
+    var func = $shtx._func('function(src: String) => eval $src')()! as (String) -> Void
+    $func
+}
+
+eval_wrap() {
+    $_eval_wrapper($@.join(" "))
+}
+
+# sparse array api test
+eval_wrap '
+    var aa = new _SparseArray()
+    assert $aa.isDense()
+    assert ! $aa.get(0)
+    assert ! $aa.get(2)
+    assert $aa.str() == "()"
+
+    $aa = new _SparseArray(@(11 22 33))
+    assert $aa.isDense()
+    assert $aa.get(0)! == "11"
+    assert $aa.get(1)! == "22"
+    assert $aa.get(2)! == "33"
+    assert ! $aa.get(3)
+    assert ! $aa.get(-1)
+    assert $aa.str() == "([0]=\"11\" [1]=\"22\" [2]=\"33\")"
+
+    $aa.set(0, "aaa")
+    assert $aa.get(0)! == "aaa"
+    assert $aa.isDense()
+    $aa.set(9,"u")
+    assert ! $aa.isDense()
+    assert $aa.str() == "([0]=\"aaa\" [1]=\"22\" [2]=\"33\" [9]=\"u\")"
+
+    $aa.set(6, "www")
+    assert ! $aa.isDense()
+    assert $aa.get(9)! == "u"
+    assert $aa.get(6)! == "www"
+    assert $aa.str() == "([0]=\"aaa\" [1]=\"22\" [2]=\"33\" [6]=\"www\" [9]=\"u\")"
+
+    $aa.set(4, "@@@@")
+    assert $aa.get(4)! == "@@@@"
+    assert $aa.str() == "([0]=\"aaa\" [1]=\"22\" [2]=\"33\" [4]=\"@@@@\" [6]=\"www\" [9]=\"u\")"
+'
+
+## append
+eval_wrap '
+  ## dense += dense
+  var aa = new _SparseArray(@(111 222 333))
+  var bb = new _SparseArray(@(aaa bbb ccc))
+  assert $aa.isDense() && $bb.isDense()
+  $aa.addAll($bb)
+  assert $aa.isDense()
+  assert $aa.str() == "([0]=\"111\" [1]=\"222\" [2]=\"333\" [3]=\"aaa\" [4]=\"bbb\" [5]=\"ccc\")"
+
+  ## dense += sparse
+  $aa = new _SparseArray(@(111 222 333))
+  $bb = new _SparseArray()
+  $bb.set(9, "@@@")
+  assert $aa.isDense() && ! $bb.isDense()
+  $aa.addAll($bb)
+  assert ! $aa.isDense()
+  assert $aa.str() == "([0]=\"111\" [1]=\"222\" [2]=\"333\" [9]=\"@@@\")"
+
+  ## sparse += dense
+  $aa = new _SparseArray()
+  $aa.set(0, "aaa")
+  $bb = new _SparseArray(@(111 222 333))
+  assert !$aa.isDense() && $bb.isDense()
+  $aa.addAll($bb)
+  assert $aa.str() == "([0]=\"aaa\" [1]=\"111\" [2]=\"222\" [3]=\"333\")"
+
+  $aa = new _SparseArray()
+  $aa.set(9, "aaa")
+  $bb = new _SparseArray(@(111 222 333))
+  assert !$aa.isDense() && $bb.isDense()
+  $aa.addAll($bb)
+  assert $aa.str() == "([9]=\"aaa\" [10]=\"111\" [11]=\"222\" [12]=\"333\")"
+
+  ## sparse += sparse
+  $aa = new _SparseArray()
+  $aa.set(0, "aaa")
+  $aa.set(3, "bbb")
+  $bb = new _SparseArray()
+  $bb.set(0, "111")
+  $bb.set(10, "222")
+  assert ! $aa.isDense() && ! $bb.isDense()
+  $aa.addAll($bb)
+  assert $aa.str() == "([0]=\"111\" [3]=\"bbb\" [10]=\"222\")"
+  assert ! $aa.isDense()
+'
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

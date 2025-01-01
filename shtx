@@ -82,6 +82,115 @@ function __doubleQuote(v : String) : String {
     return $ret
 }
 
+# +++++ for shell specific data structure
+type _SparseArray(values: [String]?) {
+    let _indexes: [Int]  # if empty, sense array
+    let _values: [String]
+    if let a = $values {
+        $_values.addAll($a)
+    }
+}
+
+function isDense(): Bool for _SparseArray {
+    return $this._indexes.empty()
+}
+
+function _toSparse() for _SparseArray {
+    if $this.isDense() {
+        for _ in $this._values {
+            $this._indexes.add($this._indexes.size())
+        }
+    }
+}
+
+function str(): String for _SparseArray {
+    var ret = "("
+    let size = $this._values.size()
+    var count = 0
+    for(var i = 0; $i < $size; $i++) {
+        var index = $this._indexes.get($i) ?? $i
+        if $count > 0 {
+            $ret += " "
+        }
+        $ret += "[$index]="
+        $ret += $__doubleQuote($this._values[$i])
+        $count++
+    }
+    $ret += ')'
+    return $ret
+}
+
+# set value
+function set(index: Int, value: String) for _SparseArray {
+    $index < 0 && return
+    if $this.isDense() && $index < $this._values.size() {
+        $this._values[$index] = $value
+        return
+    }
+    
+    ## for sparse layput (FIXME: binary seearch)
+    $this._toSparse()
+    let size = $this._indexes.size()
+    for (var p = 0; $p < $size; $p++) {
+        let i = $this._indexes[$p]
+        if $i == $index {
+            $this._values[$p] = $value
+            return
+        }
+        if $index < $i {
+            $this._indexes.insert($p, $index)
+            $this._values.insert($p, $value)
+            return
+        }
+    }
+    $this._indexes.add($index)
+    $this._values.add($value)
+}
+
+function get(index: Int): String? for _SparseArray {
+    $index < 0 && return $none
+    if $this.isDense() {
+        return $this._values.get($index)
+    }
+    
+    ## for sparse layput (FIXME: binary seearch)
+    let size = $this._indexes.size()
+    for(var p = 0; $p < $size; $p++) {
+        if $this._indexes[$p] == $index {
+            return $this._values[$p]
+        }
+    }
+    return $none
+}
+
+function addAll(other: _SparseArray) for _SparseArray {
+    if $this.isDense() {
+        if $other.isDense() {
+            $this._values.addAll($other._values)
+        } else {
+            $this._toSparse()
+            let size = $other._values.size()
+            for (var i = 0; $i < $size; $i++) {
+                $this.set($other._indexes[$i], $other._values[$i])
+            }
+        }
+    } else {
+        if $other.isDense() {
+            var index = $this._indexes.peek() + 1
+            for v in $other._values {
+                $this._indexes.add($index)
+                $this._values.add($v)
+                $index++
+            }
+        } else {
+            let size = $other._values.size()
+            for (var i = 0; $i < $size; $i++) {
+                $this.set($other._indexes[$i], $other._values[$i])
+            }
+        }
+    }
+}
+
 
 # +++++ for shell variable +++++
 
