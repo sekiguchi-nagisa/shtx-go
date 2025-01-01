@@ -485,9 +485,6 @@ func (t *Translator) visitForWordIter(loop *syntax.WordIter, stmts []*syntax.Stm
 	t.emit(loop.Name.Value)
 	t.emit("', $")
 	t.emit(loop.Name.Value)
-	if !loop.InPos.IsValid() {
-		t.emit("!")
-	}
 	t.emitLine("])")
 	t.emitLineWithIndent("try {")
 	t.visitStmts(stmts)
