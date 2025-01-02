@@ -113,7 +113,7 @@ false;
 }
 `},
 	"env-assign1": {`AAA=12 BBB="$(false)" CCC=`, `{
-  $__shtx_set_var(@( AAA "12" )); $__shtx_set_var(@( BBB "$(false)" )); $__shtx_set_var(@( CCC  ))
+  $__shtx_set_var(@( AAA = "12" )); $__shtx_set_var(@( BBB = "$(false)" )); $__shtx_set_var(@( CCC =  ))
 }
 `},
 	"env_assign2": {
@@ -479,7 +479,7 @@ esac
 	"for1": {`for aa in 1 2 3; do echo "<$aa>"; done`, `{
   for aa in @(1 2 3) {
     $__shtx_enter_loop(); defer { $__shtx_exit_loop(); }
-    $__shtx_set_var(['aa', $aa])
+    $__shtx_set_var(['aa', '=', $aa])
     try {
       echo "<${$__shtx_get_var(@( 'aa' ))}>"
     } catch e: _BreakContinue {
@@ -491,7 +491,7 @@ esac
 	"for2": {`for aaa; do echo "<$aaa>"; done`, `{
   for aaa in $__shtx_get_array_var('@') {
     $__shtx_enter_loop(); defer { $__shtx_exit_loop(); }
-    $__shtx_set_var(['aaa', $aaa])
+    $__shtx_set_var(['aaa', '=', $aaa])
     try {
       echo "<${$__shtx_get_var(@( 'aaa' ))}>"
     } catch e: _BreakContinue {
@@ -503,7 +503,7 @@ esac
 	"for3": {`for aaa in; do echo "<$aaa>"; done`, `{
   for aaa in @() {
     $__shtx_enter_loop(); defer { $__shtx_exit_loop(); }
-    $__shtx_set_var(['aaa', $aaa])
+    $__shtx_set_var(['aaa', '=', $aaa])
     try {
       echo "<${$__shtx_get_var(@( 'aaa' ))}>"
     } catch e: _BreakContinue {
@@ -520,32 +520,32 @@ esac
 `},
 	"assign-param-expand": {
 		`AAA=$aaa`, `{
-  $__shtx_set_var(@( AAA ${$__shtx_get_var(@( 'aaa' ))} ))
+  $__shtx_set_var(@( AAA = ${$__shtx_get_var(@( 'aaa' ))} ))
 }
 `},
 	"assign-cmdsub": {
 		`AAA=$(echo a b c)`, `{
-  $__shtx_set_var(@( AAA "$(echo a b c)" ))
+  $__shtx_set_var(@( AAA = "$(echo a b c)" ))
 }
 `},
 	"assign-glob": {
 		`AAA=*\*`, `{
-  $__shtx_set_var(@( AAA "**" ))
+  $__shtx_set_var(@( AAA = "**" ))
 }
 `},
 	"assign-special1": {
 		`AAA=$@`, `{
-  $__shtx_set_var(@( AAA ${$__shtx_get_var(@( '@' ))} ))
+  $__shtx_set_var(@( AAA = ${$__shtx_get_var(@( '@' ))} ))
 }
 `},
 	"assign-special2": {
 		`AAA="$@"`, `{
-  $__shtx_set_var(@( AAA "${$__shtx_get_var(@( '@' ))}" ))
+  $__shtx_set_var(@( AAA = "${$__shtx_get_var(@( '@' ))}" ))
 }
 `},
 	"assign-special3": {
 		`AAA=$*`, `{
-  $__shtx_set_var(@( AAA ${$__shtx_get_var(@( '*' ))} ))
+  $__shtx_set_var(@( AAA = ${$__shtx_get_var(@( '*' ))} ))
 }
 `},
 	"test-expr1": {`[[ $HOME && ! ($HOME == *.txt) ]]`, `{
@@ -588,19 +588,19 @@ esac
 }
 `},
 	"array_assign1": {`AAA=(aaa '123' "$(ls)")`, `{
-  $__shtx_set_array_var(@( AAA )[0], @(aaa '123' "$(ls)"))
+  $__shtx_set_array_var('AAA', '=', @(aaa '123' "$(ls)"))
 }
 `},
 	"array_assign2": {`de=()`, `{
-  $__shtx_set_array_var(@( de )[0], @())
+  $__shtx_set_array_var('de', '=', @())
 }
 `},
 	"array_assign3": {`de=([1]=111 222 [4]=444)`, `{
-  (new _SparseArrayBuilder(@( de )[0])).at(@( 1 111 )).add(@( 222 )).at(@( 4 444 )).build()
+  (new _SparseArrayBuilder('de')).at(@( 1 111 )).add(@( 222 )).at(@( 4 444 )).build()
 }
 `},
 	"array_index1": {`de=(); echo "${de[0]}"`, `{
-  $__shtx_set_array_var(@( de )[0], @())
+  $__shtx_set_array_var('de', '=', @())
   echo "${$__shtx_get_var_at(@( 'de' 0 ))}"
 }
 `},
@@ -609,7 +609,7 @@ esac
 }
 `},
 	"array_expand1": {`de=(); echo "${de[@]}"`, `{
-  $__shtx_set_array_var(@( de )[0], @())
+  $__shtx_set_array_var('de', '=', @())
   echo $__shtx_get_array_var('de')
 }
 `},

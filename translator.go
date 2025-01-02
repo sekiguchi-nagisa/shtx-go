@@ -374,9 +374,9 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 			}
 			if assign.Array != nil { // aaa=(a b c)
 				if isSparseArray(assign.Array) {
-					t.emit("(new _SparseArrayBuilder(@( ")
+					t.emit("(new _SparseArrayBuilder('")
 					t.emit(assign.Name.Value)
-					t.emit(" )[0]))")
+					t.emit("'))")
 					for _, elem := range assign.Array.Elems {
 						if elem.Index != nil {
 							t.emit(".at(@( ")
@@ -390,9 +390,9 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 					}
 					t.emit(".build()")
 				} else {
-					t.emit("$__shtx_set_array_var(@( ")
+					t.emit("$__shtx_set_array_var('")
 					t.emit(assign.Name.Value)
-					t.emit(" )[0], @(")
+					t.emit("', '=', @(")
 					for i, elem := range assign.Array.Elems {
 						if i > 0 {
 							t.emit(" ")
@@ -404,7 +404,7 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 			} else {
 				t.emit("$__shtx_set_var(@( ")
 				t.emit(assign.Name.Value)
-				t.emit(" ")
+				t.emit(" = ")
 				if assign.Value != nil {
 					t.visitWordWith(assign.Value, WordPartOption{singleWord: true})
 				}
@@ -483,7 +483,7 @@ func (t *Translator) visitForWordIter(loop *syntax.WordIter, stmts []*syntax.Stm
 	t.emitLineWithIndent("$__shtx_enter_loop(); defer { $__shtx_exit_loop(); }")
 	t.emitWithIndent("$__shtx_set_var(['")
 	t.emit(loop.Name.Value)
-	t.emit("', $")
+	t.emit("', '=', $")
 	t.emit(loop.Name.Value)
 	t.emitLine("])")
 	t.emitLineWithIndent("try {")

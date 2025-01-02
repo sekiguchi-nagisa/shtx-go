@@ -884,7 +884,8 @@ function __shtx_get_var(args: [String]): String {
 
 function __shtx_set_var(args: [String]): Bool {
     var param = $args[0].ifEmpty() ?? return $true
-    var word = $args.get(1) ?? ''
+    var _ = $args[1]
+    var word = $args.get(2) ?? ''
     $_VARS.put($param, $word)
     return $true
 }
@@ -904,7 +905,7 @@ function __shtx_get_array_var(name: String): [String] {
     return $ret
 }
 
-function __shtx_set_array_var(name: String, args: [String]): Bool {
+function __shtx_set_array_var(name: String, op: String, args: [String]): Bool {
     $_VARS.put($name, new _SparseArray($args))
     return $true
 }
