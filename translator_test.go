@@ -548,6 +548,11 @@ esac
   $__shtx_set_var(@( AAA = ${$__shtx_get_var(@( '*' ))} ))
 }
 `},
+	"append1": {
+		`AAA+=$aaa`, `{
+  $__shtx_set_var(@( AAA += ${$__shtx_get_var(@( 'aaa' ))} ))
+}
+`},
 	"test-expr1": {`[[ $HOME && ! ($HOME == *.txt) ]]`, `{
   ((test ${$__shtx_get_var(@( 'HOME' ))}) && (!(($__shtx_glob_match(@( ${$__shtx_get_var(@( 'HOME' ))} "*.txt" ))))))
 }
@@ -596,7 +601,15 @@ esac
 }
 `},
 	"array_assign3": {`de=([1]=111 222 [4]=444)`, `{
-  (new _SparseArrayBuilder('de')).at(@( 1 111 )).add(@( 222 )).at(@( 4 444 )).build()
+  (new _SparseArrayBuilder('de')).at(@( 1 111 )).add(@( 222 )).at(@( 4 444 )).build($false)
+}
+`},
+	"array_append1": {`de+=(111 222)`, `{
+  $__shtx_set_array_var('de', '+=', @(111 222))
+}
+`},
+	"array_append2": {`de+=([1]=111 222 [4]=444)`, `{
+  (new _SparseArrayBuilder('de')).at(@( 1 111 )).add(@( 222 )).at(@( 4 444 )).build($true)
 }
 `},
 	"array_index1": {`de=(); echo "${de[0]}"`, `{

@@ -248,6 +248,31 @@ function update(value : Any) : String for _VarEntry {
     }
 }
 
+function append(other: Any) for _VarEntry {
+    $this._attr = $this._attr and !$__VAR_ATTR_UNSET
+    if let o = $other as? String {
+        if let sa = $this._value as? _SparseArray {
+            var v = $sa.get(0) ?? ""
+            $v += $o
+            $sa.set(0, $v)
+        } else {
+            var v = $this.getAsStr() ?? ""
+            $v += $o
+            $this.update($v)
+        }
+    } else {
+        var sa = $other as _SparseArray
+        if let v = $this._value as? _SparseArray {
+            $v.addAll($sa)
+        } else {
+            var e = $this.getAsStr() ?? ""
+            var v = new _SparseArray([$e])
+            $v.addAll($sa)
+            $this.update($v)
+        }
+    }
+}
+
 # for local variable unset
 function unset() for _VarEntry {
     $this._attr = $this._attr or $__VAR_ATTR_UNSET
@@ -737,7 +762,13 @@ function at(args: [String]): _SparseArrayBuilder for _SparseArrayBuilder {
     return $this
 }
 
-function build(): Bool for _SparseArrayBuilder {
+function build(append: Bool): Bool for _SparseArrayBuilder {
+    if $append {
+        if var entry = $_VARS.find($this.name) {
+            $entry.append($this.values)
+            return $true
+        }
+    }
     $_VARS.put($this.name, $this.values)
     return $true
 }
@@ -884,8 +915,14 @@ function __shtx_get_var(args: [String]): String {
 
 function __shtx_set_var(args: [String]): Bool {
     var param = $args[0].ifEmpty() ?? return $true
-    var _ = $args[1]
+    var op = $args[1]
     var word = $args.get(2) ?? ''
+    if $op == '+=' {
+        if var entry = $_VARS.find($param) {
+            $entry.append($word)
+            return $true
+        }
+    }
     $_VARS.put($param, $word)
     return $true
 }
@@ -906,6 +943,12 @@ function __shtx_get_array_var(name: String): [String] {
 }
 
 function __shtx_set_array_var(name: String, op: String, args: [String]): Bool {
+    if $op == '+=' {
+        if var entry = $_VARS.find($name) {
+            $entry.append(new _SparseArray($args))
+            return $true
+        }
+    }
     $_VARS.put($name, new _SparseArray($args))
     return $true
 }

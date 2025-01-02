@@ -347,7 +347,6 @@ func (t *Translator) visitRedirects(redirs []*syntax.Redirect, cmd bool) {
 
 func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 	for i, assign := range assigns {
-		_ = assign.Append && t.todo(assign.Pos(), "support +=")
 		_ = (assign.Naked && !shellAssign) && t.todo(assign.Pos(), "support Naked")
 		_ = assign.Index != nil && t.todo(assign.Index.Pos(), "support indexed assign")
 		if shellAssign {
@@ -388,11 +387,19 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 						t.visitWord(elem.Value)
 						t.emit(" ))")
 					}
-					t.emit(".build()")
+					if assign.Append {
+						t.emit(".build($true)")
+					} else {
+						t.emit(".build($false)")
+					}
 				} else {
 					t.emit("$__shtx_set_array_var('")
 					t.emit(assign.Name.Value)
-					t.emit("', '=', @(")
+					if assign.Append {
+						t.emit("', '+=', @(")
+					} else {
+						t.emit("', '=', @(")
+					}
 					for i, elem := range assign.Array.Elems {
 						if i > 0 {
 							t.emit(" ")
@@ -404,7 +411,11 @@ func (t *Translator) visitAssigns(assigns []*syntax.Assign, shellAssign bool) {
 			} else {
 				t.emit("$__shtx_set_var(@( ")
 				t.emit(assign.Name.Value)
-				t.emit(" = ")
+				if assign.Append {
+					t.emit(" += ")
+				} else {
+					t.emit(" = ")
+				}
 				if assign.Value != nil {
 					t.visitWordWith(assign.Value, WordPartOption{singleWord: true})
 				}
