@@ -1,0 +1,69 @@
+
+source $SCRIPT_DIR/../../../shtx as shtx
+
+assert checkenv RUN_IN_CONTAINER  # guard
+
+source $MODULE_DIR/repl.arsh as repl
+preprompt() {
+    for a in $repl.PRE_PROMPTS {
+        $a()
+    }
+}
+
+shctl set errraise
+
+# install mise
+curl https://mise.run | sh
+~/.local/bin/mise --version
+
+# activate mise
+shtx fake_eval "$(~/.local/bin/mise activate bash)"
+
+# install node
+assert ! command -V node
+preprompt
+mise use --global node@22.5.1
+
+preprompt
+assert node -v | grep 'v22.5.1'
+
+# switch local version 1
+mkdir ./node-local1
+mkdir ./node-local2
+pushd ./node-local1
+
+preprompt
+mise use --env local node@20.15.1
+
+preprompt
+assert node -v | grep 'v20.15.1'
+
+# switch local version2
+cd ../node-local2
+preprompt
+mise use --env local node@18.20.4
+
+preprompt
+assert node -v | grep 'v18.20.4'
+
+# switch back to global version
+popd
+preprompt
+assert node -v | grep 'v22.5.1'
+
+# deactivate
+mise deactivate
+preprompt
+assert ! command -V node
+
+# re-activate
+shtx fake_eval "$(~/.local/bin/mise activate bash)"
+preprompt
+assert node -v | grep 'v22.5.1'
+assert command -v npm
+
+## completion
+shtx fake_source <(npm completion)
+assert "$(complete 'npm up')" == 'update'
+
+true

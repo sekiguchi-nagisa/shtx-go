@@ -8,50 +8,57 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: End-to-end test target
         uses: ./test/
 
   test-latest-package:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: End-to-end test target
         uses: ./test/dockerfiles/arsh-latest-package/
 
   test-e2e-pyenv:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: pyenv test
         uses: ./test/e2e/pyenv
 
   test-e2e-venv:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: venv test
         uses: ./test/e2e/venv
 
   test-e2e-pyenv-virtualenv:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: pyenv-virtualenv test
         uses: ./test/e2e/pyenv-virtualenv
 
   test-e2e-direnv:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: direnv test
         uses: ./test/e2e/direnv
 
-  test-e2e-mise:
-    runs-on: ubuntu-20.04
+  test-e2e-mise-v2024120:
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: mise-v2024.12.0 test
         uses: ./test/e2e/mise-v2024.12.0
+
+  test-e2e-mise:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: mise test
+        uses: ./test/e2e/mise
