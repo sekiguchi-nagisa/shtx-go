@@ -1313,7 +1313,12 @@ let _sort_wrapper = {
     let minor = $ss[1].toInt()!
     
     var src = ""
-    if $majar > 0 || $minor >= 36 {
+    if $majar > 0 || $minor >= 37 {
+        $src = '
+            function(values: [(Signal, String)]) => 
+                $values.sortBy(function(x,y) => $x._0.value().compare($y._0.value()))
+        '
+    } elif $majar > 0 || $minor >= 36 {
         $src = '
             function(values: [(Signal, String)]) => 
                 $values.sortBy(function(x,y) => $x._0.value() < $y._0.value())
