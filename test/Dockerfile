@@ -9,5 +9,5 @@ RUN mkdir -p ./arsh/build
 RUN cd arsh && cd build && cmake .. -G Ninja && cmake --build . && cmake --build . -- install
 
 WORKDIR /home/tux/dev/
-CMD ls ./ && ./script/build.sh && \
+CMD ls ./ && ./scripts/build.sh && \
     arsh ./test/run_all_tests.ds /usr/local/share/arsh/tools/litecheck

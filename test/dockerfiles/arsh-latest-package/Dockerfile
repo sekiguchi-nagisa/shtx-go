@@ -8,5 +8,5 @@ RUN zypper addrepo --no-gpgcheck -f https://download.opensuse.org/repositories/h
     zypper install -y arsh
 
 WORKDIR /home/tux/dev/
-CMD ls ./ && ./script/build.sh && \
+CMD ls ./ && ./scripts/build.sh && \
     arsh ./test/run_all_tests.ds /usr/share/arsh/tools/litecheck

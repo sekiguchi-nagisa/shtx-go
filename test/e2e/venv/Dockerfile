@@ -14,5 +14,5 @@ RUN mkdir -p ./arsh/build
 RUN cd arsh && cd build && cmake .. -G Ninja && cmake --build . && cmake --build . -- install
 
 WORKDIR /home/tux/dev/
-CMD ls ./ && ./script/build.sh && \
+CMD ls ./ && ./scripts/build.sh && \
     RUN_IN_CONTAINER=on arsh ./test/e2e/venv/test_venv.ar

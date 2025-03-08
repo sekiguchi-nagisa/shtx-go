@@ -12,5 +12,5 @@ RUN mkdir -p ./arsh/build
 RUN cd arsh && cd build && cmake .. -G Ninja && cmake --build . && cmake --build . -- install
 
 WORKDIR /home/tux/dev/
-CMD ls ./ && ./script/build.sh && \
+CMD ls ./ && ./scripts/build.sh && \
     RUN_IN_CONTAINER=on MISE_VERSION=v2024.12.0 arsh ./test/e2e/mise-v2024.12.0/test_mise.arsh
