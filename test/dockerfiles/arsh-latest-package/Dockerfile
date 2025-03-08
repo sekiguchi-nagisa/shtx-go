@@ -1,6 +1,6 @@
 FROM opensuse/tumbleweed
 
-RUN zypper in -y git go1.23 diffutils
+RUN zypper in -y git go1.22 diffutils
 
 COPY . /home/tux/dev
 RUN zypper addrepo --no-gpgcheck -f https://download.opensuse.org/repositories/home:nsekiguchi/openSUSE_Tumbleweed/home:nsekiguchi.repo && \
@@ -8,5 +8,5 @@ RUN zypper addrepo --no-gpgcheck -f https://download.opensuse.org/repositories/h
     zypper install -y arsh
 
 WORKDIR /home/tux/dev/
-CMD ls ./ && go build -buildvcs=false -v ./... && \
+CMD ls ./ && ./script/build.sh && \
     arsh ./test/run_all_tests.ds /usr/share/arsh/tools/litecheck
