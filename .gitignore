@@ -17,5 +17,4 @@ shtx-go*
 # vendor/
 .idea/
 
-bin/*
-!bin/.gitkeep
+build

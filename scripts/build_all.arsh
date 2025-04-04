@@ -26,8 +26,8 @@ var build_matrix = [
 
 shctl set errraise
 for conf in $build_matrix {
-  echo build for GOOS=${conf._0} GOARCH=${conf._3}
+  var bin = "${$PWD.basename()}-$version-${conf._0}-${conf._1}${conf._2}"
+  echo build for $bin
   GOOS=${conf._0} GOARCH=${conf._3} \
-    GOTOOLCHAIN=auto go build -ldflags "-s -w -X main.version=v$version" -trimpath \
-        -o "${$PWD.basename()}-$version-${conf._0}-${conf._1}${conf._2}"
+    GOTOOLCHAIN=auto go build -ldflags "-s -w -X main.version=v$version" -trimpath -o $bin
 }
