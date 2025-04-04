@@ -5,7 +5,7 @@ go 1.23
 toolchain go1.23.7
 
 require (
-	github.com/alecthomas/kong v1.8.1
+	github.com/alecthomas/kong v1.10.0
 	github.com/stretchr/testify v1.10.0
 	mvdan.cc/sh/v3 v3.11.0
 )
