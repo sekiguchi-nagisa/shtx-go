@@ -22,7 +22,7 @@ var SHTX_DEV_MODE = (checkenv SHTX_DEV_MODE)
 
 var SHTX_CRASH_DUMP = $false
 
-let SHTX_VERSION = "0.8.2"
+let SHTX_VERSION = "0.8.3"
 
 # +++++ helper functions +++++
 
