@@ -283,6 +283,13 @@ false;
   ! (test -e ~"/test")
 }
 `},
+	"subshell": {`(ls&&echo hello;echo hey)`, `{
+  (&({
+    (ls && echo hello)
+    echo hey
+  }))
+}
+`},
 	"group": {
 		`{ echo 1; echo 2;}`, `{
   {

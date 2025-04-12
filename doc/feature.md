@@ -85,7 +85,7 @@
     * [x] test command
 * [x] and/or list
 * [ ] asynchronous list
-* [ ] group command ``( )``
+* [x] group command ``( )``
 * [x] group command ``{ }``
 * [x] assignment
 * [x] if
@@ -114,7 +114,7 @@
 * [ ] set
 * [x] unset
 * [ ] export
-    * not support options
+    * [x] not support options
 * [x] declare
 * [x] local
 * [x] return
