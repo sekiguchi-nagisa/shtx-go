@@ -102,7 +102,15 @@ func main() {
 		buf = b
 	}
 
-	tx := NewTranslator(transTypes[CLI.Type])
+	// resolve features
+	v, err := ParseVersion(os.Getenv("ARSH_VERSION"))
+	if err != nil { // set to version limit (enable all feature)
+		tmp := NewVersionFill()
+		v = &tmp
+	}
+	featureSet := NewFeatureSetFromVersion(*v)
+
+	tx := NewTranslatorWithFeatures(transTypes[CLI.Type], featureSet)
 	if CLI.DumpAST != nil {
 		dump := *CLI.DumpAST
 		if dump == "" {

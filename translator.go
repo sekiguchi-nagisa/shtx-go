@@ -72,11 +72,17 @@ type Translator struct {
 	errorCallback    ErrorCallback
 	staticReturnMap  map[*syntax.CallExpr]struct{}
 	glob2RegexOption Glob2RegexOption
+	featureSet       FeatureSet
 }
 
 func NewTranslator(tt TranslationType) *Translator {
+	return NewTranslatorWithFeatures(tt, NewFeatureSetFromVersion(NewVersionFill()))
+}
+
+func NewTranslatorWithFeatures(tt TranslationType, set FeatureSet) *Translator {
 	return &Translator{
-		tranType: tt,
+		tranType:   tt,
+		featureSet: set,
 	}
 }
 
@@ -286,9 +292,13 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 		t.visitStmt(n.Y)
 		t.emit(")")
 	case *syntax.Subshell:
-		t.emitLine("(&({")
-		t.visitStmts(n.Stmts)
-		t.emitWithIndent("}))")
+		if t.featureSet.Has(FeatureSubshell) {
+			t.emitLine("(&({")
+			t.visitStmts(n.Stmts)
+			t.emitWithIndent("}))")
+		} else {
+			t.fixmeCase(n.Pos(), n)
+		}
 	case *syntax.Block:
 		t.emitLine("{")
 		t.visitStmts(n.Stmts)
