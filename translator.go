@@ -16,6 +16,7 @@ type ErrorType int
 const (
 	ErrorTodo ErrorType = iota
 	ErrorFixme
+	ErrorVersion
 )
 
 type Error struct {
@@ -31,6 +32,7 @@ func (e Error) Error() string {
 		prefix = "[TODO]"
 	case ErrorFixme:
 		prefix = "[FIXME]"
+	case ErrorVersion: //do nothing
 	}
 	return fmt.Sprintf("%s: %s %s", e.pos.String(), prefix, e.msg)
 }
@@ -76,7 +78,7 @@ type Translator struct {
 }
 
 func NewTranslator(tt TranslationType) *Translator {
-	return NewTranslatorWithFeatures(tt, NewFeatureSetFromVersion(NewVersionFill()))
+	return NewTranslatorWithFeatures(tt, NewFeatureSetFromVersion(NewDummyVersion()))
 }
 
 func NewTranslatorWithFeatures(tt TranslationType, set FeatureSet) *Translator {
@@ -113,6 +115,14 @@ func (t *Translator) todo(pos syntax.Pos, s string) bool {
 
 func (t *Translator) fixmeCase(pos syntax.Pos, a any) {
 	e := Error{pos: adjustPos(pos, t.offset), t: ErrorFixme, msg: fmt.Sprintf("unsupported switch-case type %T", a)}
+	if t.errorCallback != nil {
+		t.errorCallback(&e)
+	}
+	panic(e)
+}
+
+func (t *Translator) versionRequire(pos syntax.Pos, f Feature, s string) {
+	e := Error{pos: adjustPos(pos, t.offset), t: ErrorVersion, msg: fmt.Sprintf("%s, %s", s, f.Message())}
 	if t.errorCallback != nil {
 		t.errorCallback(&e)
 	}
@@ -297,7 +307,7 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 			t.visitStmts(n.Stmts)
 			t.emitWithIndent("}))")
 		} else {
-			t.fixmeCase(n.Pos(), n)
+			t.versionRequire(n.Pos(), FeatureSubshell, "subshell syntax not supported")
 		}
 	case *syntax.Block:
 		t.emitLine("{")

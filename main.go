@@ -104,8 +104,8 @@ func main() {
 
 	// resolve features
 	v, err := ParseVersion(os.Getenv("ARSH_VERSION"))
-	if err != nil { // set to version limit (enable all feature)
-		tmp := NewVersionFill()
+	if err != nil { // set to version limit (enable all versionRequire)
+		tmp := NewDummyVersion()
 		v = &tmp
 	}
 	featureSet := NewFeatureSetFromVersion(*v)

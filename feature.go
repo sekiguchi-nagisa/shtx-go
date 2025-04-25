@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
+	"strings"
 )
 
 type Version struct {
@@ -13,8 +14,12 @@ type Version struct {
 	Patch uint
 }
 
-func NewVersionFill() Version {
-	return Version{9999, 9999, 9999}
+const (
+	versionLimit uint = 10000
+)
+
+func NewDummyVersion() Version {
+	return Version{versionLimit - 1, versionLimit - 1, versionLimit - 1}
 }
 
 var versionRegex = regexp.MustCompile(`^v?(?P<major>[0-9]+)\.(?P<minor>[0-9]+)\.(?P<patch>[0-9]+)$`)
@@ -36,9 +41,17 @@ func ParseVersion(v string) (*Version, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Version{
-		uint(major), uint(minar), uint(patch),
-	}, nil
+
+	version := Version{uint(major), uint(minar), uint(patch)}
+	dummy := NewDummyVersion()
+	if version.Compare(&dummy) <= 0 {
+		return &version, nil
+	}
+	return &dummy, nil
+}
+
+func (v *Version) String() string {
+	return fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
 }
 
 func (v *Version) Compare(o *Version) int {
@@ -55,15 +68,41 @@ const (
 
 func (f Feature) String() string { return string(f) }
 
+func (f Feature) RequiredVersion() (*Version, *Version) {
+	switch f {
+	case FeatureSubshell:
+		return &Version{0, 38, 0}, &Version{versionLimit, 0, 0}
+	}
+	return nil, nil
+}
+
+func (f Feature) Message() string {
+	v1, _ := f.RequiredVersion()
+	if v1 != nil {
+		sb := strings.Builder{}
+		sb.WriteString("require arsh version ")
+		sb.WriteString(v1.String())
+		sb.WriteString(" or later")
+		return sb.String()
+	}
+	return ""
+}
+
 type FeatureSet struct {
 	set map[Feature]struct{}
 }
 
+var features = []Feature{
+	FeatureSubshell,
+}
+
 func NewFeatureSetFromVersion(v Version) FeatureSet {
 	featureSet := FeatureSet{map[Feature]struct{}{}}
-
-	if v.Compare(&Version{0, 38, 0}) >= 0 {
-		featureSet.set[FeatureSubshell] = struct{}{}
+	for _, feature := range features {
+		v1, v2 := feature.RequiredVersion()
+		if v.Compare(v1) >= 0 && v.Compare(v2) < 0 {
+			featureSet.set[feature] = struct{}{}
+		}
 	}
 	return featureSet
 }
