@@ -932,16 +932,27 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 	}
 }
 
+func isUnsupportedArrayExpansion(exp *syntax.ParamExp) bool {
+	return exp.Excl || exp.Length || exp.Width || exp.Slice != nil || exp.Repl != nil ||
+		exp.Names == syntax.NamesPrefix || exp.Names == syntax.NamesPrefixWords || exp.Exp != nil
+}
+
 func resolveArrayExpandParamName(part syntax.WordPart) string {
 	switch n := part.(type) {
 	case *syntax.ParamExp:
 		if n.Param.Value == "@" {
+			if isUnsupportedArrayExpansion(n) {
+				panic("[TODO] unsupported array expansion")
+			}
 			return "@"
 		}
 		if n.Index != nil {
 			switch e := n.Index.(type) {
 			case *syntax.Word:
 				if e.Lit() == "@" {
+					if isUnsupportedArrayExpansion(n) {
+						panic("[TODO] unsupported array expansion")
+					}
 					return n.Param.Value
 				}
 			}
