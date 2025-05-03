@@ -85,6 +85,10 @@ func (g *glob2RegexTranslator) translate(glob string) string {
 	if g.option.startsWith {
 		sb.WriteString("^")
 	}
+	if g.option.backward {
+		sb.WriteString("(.*)(")
+	}
+
 	for ; g.index < g.length; g.index++ {
 		ch := g.runes[g.index]
 		switch ch {
@@ -109,6 +113,9 @@ func (g *glob2RegexTranslator) translate(glob string) string {
 			sb.WriteRune('.')
 		case '*':
 			sb.WriteString(".*")
+			if g.option.reluctant {
+				sb.WriteRune('?')
+			}
 			g.consumeStar()
 		case '[':
 			sb.WriteString(g.translateCharSet())
@@ -118,6 +125,9 @@ func (g *glob2RegexTranslator) translate(glob string) string {
 		default:
 			sb.WriteRune(ch)
 		}
+	}
+	if g.option.backward {
+		sb.WriteString(")")
 	}
 	if g.option.endsWith {
 		sb.WriteString("$")
