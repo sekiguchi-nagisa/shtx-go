@@ -86,7 +86,11 @@ func (g *glob2RegexTranslator) translate(glob string) string {
 		sb.WriteString("^")
 	}
 	if g.option.backward {
-		sb.WriteString("(.*)(")
+		sb.WriteString("(.*")
+		if g.option.reluctant {
+			sb.WriteRune('?')
+		}
+		sb.WriteString(")(")
 	}
 
 	for ; g.index < g.length; g.index++ {
@@ -113,7 +117,7 @@ func (g *glob2RegexTranslator) translate(glob string) string {
 			sb.WriteRune('.')
 		case '*':
 			sb.WriteString(".*")
-			if g.option.reluctant {
+			if g.option.reluctant && !g.option.backward {
 				sb.WriteRune('?')
 			}
 			g.consumeStar()
