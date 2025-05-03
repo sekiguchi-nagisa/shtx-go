@@ -74,10 +74,10 @@ var glob2RegexOptions = map[string]Glob2RegexOption{
 	"start":   {startsWith: true, endsWith: false},
 	"end":     {startsWith: false, endsWith: true},
 	// for `##`, `%%` op
-	"forward-short":  {startsWith: false, endsWith: false}, // '#' TODO
-	"forward-long":   {startsWith: false, endsWith: false}, // '##'
-	"backward-short": {startsWith: false, endsWith: false}, // '%' TODO
-	"backward-long":  {startsWith: false, endsWith: false}, // '##' TODO
+	"forward-short":  {startsWith: false, endsWith: false, reluctant: true},                 // '#'
+	"forward-long":   {startsWith: false, endsWith: false},                                  // '##'
+	"backward-short": {startsWith: false, endsWith: false, backward: true},                  // '%'
+	"backward-long":  {startsWith: false, endsWith: false, reluctant: true, backward: true}, // '%%'
 }
 
 func main() {

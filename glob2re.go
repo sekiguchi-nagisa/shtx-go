@@ -5,6 +5,8 @@ import "strings"
 type Glob2RegexOption struct {
 	startsWith bool // starts with pattern
 	endsWith   bool // ends with pattern
+	reluctant  bool // for reluctant quantifier
+	backward   bool // match backward
 }
 
 type glob2RegexTranslator struct {
