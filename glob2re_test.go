@@ -165,6 +165,9 @@ var globTestCases2 = []struct {
 	{"123", "^123", Glob2RegexOption{startsWith: true, endsWith: false}},
 	{"123", "123$", Glob2RegexOption{startsWith: false, endsWith: true}},
 	{"123", "123", Glob2RegexOption{startsWith: false, endsWith: false}},
+	{"123", "(.*)(123)", Glob2RegexOption{startsWith: false, endsWith: false, backward: true}},
+	{"123*", "123.*?", Glob2RegexOption{startsWith: false, endsWith: false, reluctant: true}},
+	{"123*", "(.*?)(123.*)", Glob2RegexOption{startsWith: false, endsWith: false, reluctant: true, backward: true}},
 }
 
 func TestGlobToRegexWith(t *testing.T) {
