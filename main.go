@@ -3,11 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/alecthomas/kong"
 	"os"
 	"path/filepath"
 	"runtime/debug"
 	"time"
+
+	"github.com/alecthomas/kong"
 )
 
 var CLI struct {
@@ -16,7 +17,7 @@ var CLI struct {
 	String        *string `short:"c" placeholder:"string" help:"Use string as input"`
 	DumpAST       *string `name:"dump" short:"d" placeholder:"file" help:"Dump internal ast to specified file (default to stderr)" optional:""`
 	SaveCrashDump bool    `name:"crash-dump" help:"Save crash dump to file"`
-	PatternType   string  `name:"pattern-type" short:"p" help:"Set type of pattern (whole, partial, start, end)" enum:"whole,partial,start,end" default:"whole"`
+	PatternType   string  `name:"pattern-type" short:"p" help:"Set type of pattern (whole, partial, start, end, forward-short, forward-long, backward-short, backward-long)" enum:"whole,partial,start,end,forward-short,forward-long,backward-short,backward-long" default:"whole"`
 	Script        string  `arg:"" optional:""`
 }
 
@@ -73,6 +74,11 @@ var glob2RegexOptions = map[string]Glob2RegexOption{
 	"partial": {startsWith: false, endsWith: false},
 	"start":   {startsWith: true, endsWith: false},
 	"end":     {startsWith: false, endsWith: true},
+	// for `##`, `%%` op
+	"forward-short":  {startsWith: true, endsWith: false, reluctant: true},                  // '#'
+	"forward-long":   {startsWith: true, endsWith: false},                                   // '##'
+	"backward-short": {startsWith: false, endsWith: false, backward: true},                  // '%'
+	"backward-long":  {startsWith: false, endsWith: false, reluctant: true, backward: true}, // '%%'
 }
 
 func main() {

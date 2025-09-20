@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"mvdan.cc/sh/v3/syntax"
 	"regexp"
 	"runtime/debug"
 	"strconv"
 	"strings"
+
+	"mvdan.cc/sh/v3/syntax"
 )
 
 type ErrorType int
@@ -756,7 +757,8 @@ func (t *Translator) toExpansionOpStr(pos syntax.Pos, expansion *syntax.Expansio
 	var op = expansion.Op
 	switch op {
 	case syntax.AlternateUnset, syntax.AlternateUnsetOrNull, syntax.DefaultUnset, syntax.DefaultUnsetOrNull,
-		syntax.ErrorUnset, syntax.ErrorUnsetOrNull, syntax.AssignUnset, syntax.AssignUnsetOrNull:
+		syntax.ErrorUnset, syntax.ErrorUnsetOrNull, syntax.AssignUnset, syntax.AssignUnsetOrNull,
+		syntax.RemSmallSuffix, syntax.RemLargeSuffix, syntax.RemSmallPrefix, syntax.RemLargePrefix:
 		return op.String()
 	default:
 		t.todo(pos, "unsupported expansion op: "+op.String())

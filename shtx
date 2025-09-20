@@ -476,6 +476,10 @@ let _GLOB2RE_TYPE_WHOLE = "whole"
 let _GLOB2RE_TYPE_PARTIAL = "partial"
 let _GLOB2RE_TYPE_START = "start"
 let _GLOB2RE_TYPE_END = "end"
+let _GLOB2RE_TYPE_FORWARD_SHORT = "forward-short" # for `#`
+let _GLOB2RE_TYPE_FORWARD_LONG = "forward-long" # for `##`
+let _GLOB2RE_TYPE_BACKWARD_SHORT = "backward-short" # for `%`
+let _GLOB2RE_TYPE_BACKWARD_LONG = "backward-long" # for `%%`
 
 let _GLOB_META = $/[?*\[]/
 
@@ -532,19 +536,25 @@ function __shtx_escape_glob_meta(pattern : String) : String {
     return $ret
 }
 
-function __glob_replace(value: String, pattern: String, repl: String, once: Bool): String {
-    var type = $_GLOB2RE_TYPE_PARTIAL
-    if $once {
-        if $pattern.startsWith('#') {
-            $type = $_GLOB2RE_TYPE_START
-            $pattern = $pattern.slice(1)
-        } elif $pattern.startsWith('%') {
-            $type = $_GLOB2RE_TYPE_END
-            $pattern = $pattern.slice(1)
+function __glob_replace(value: String, pattern: String, op:String, repl: String): String {
+    let re_type = case $op {
+        "/" => {
+            if $pattern.startsWith('#') {
+                $pattern = $pattern.slice(1)
+                $_GLOB2RE_TYPE_START
+            } elif $pattern.startsWith('%') {
+                $pattern = $pattern.slice(1)
+                $_GLOB2RE_TYPE_END
+            } else { $_GLOB2RE_TYPE_PARTIAL }
         }
+        "#" => $_GLOB2RE_TYPE_FORWARD_SHORT
+        "##" => $_GLOB2RE_TYPE_FORWARD_LONG
+        "%" => $_GLOB2RE_TYPE_BACKWARD_SHORT
+        "%%" => $_GLOB2RE_TYPE_BACKWARD_LONG
+        else => $_GLOB2RE_TYPE_PARTIAL
     }
-    var re = $__glob_to_regex($pattern, $type) ?? return ""
-    return $re.replace($value, $repl, $once: $once)
+     var re = $__glob_to_regex($pattern, $re_type) ?? return ""
+     return $re.replace($value, $repl, $once: $op != "//")
 }
 
 let _REGEX_CACHE : [String: Regex]
@@ -898,17 +908,25 @@ function __shtx_define_vars(cmd: String, args: [String]) : Int {
 
 # +++++ runtime helper functions (starts with __shtx_) +++++
 
-# for global varibale access
+function _is_replace_op(op: String): Bool {
+    return case $op {
+        "/" | "//" |
+        "%" | "%%" | "#" | "##" => $true
+        else => $false
+    }
+}
+
+# for global variable access
 function __shtx_get_var(args: [String]): String {
     let param = $args[0]
     let op = $args.get(1) ?? ''
     let word = $args.get(2) ?? ''
-    let replace = $op == '/' || $op == '//'
+    let replace = $_is_replace_op($op)
     var ret = $__shtx_var_get_impl($param, $replace ? "" : $op, $word)
     if $replace && $ret {
         var pattern = $word
         var repl = $args.get(3) ?? ''
-        $ret = $__glob_replace($value:$ret!, $pattern:$pattern, $repl:$repl, $once:$op == '/')
+        $ret = $__glob_replace($value:$ret!, $pattern:$pattern, $repl:$repl, $op:$op)
     }
     return $ret ?? ""
 }
@@ -958,12 +976,12 @@ function __shtx_get_var_at(args: [String]): String {
     let index = $args[1]
     let op = $args.get(2) ?? ''
     let word = $args.get(3) ?? ''
-    let replace = $op == '/' || $op == '//'
+    let replace = $_is_replace_op($op)
     var ret = $__shtx_get_var_at_impl($param, $index, $replace ? "" : $op, $word)
     if $replace {
         var pattern = $word
         var repl = $args.get(4) ?? ''
-        $ret = $__glob_replace($value:$ret, $pattern:$pattern, $repl:$repl, $once:$op == '/')
+        $ret = $__glob_replace($value:$ret, $pattern:$pattern, $repl:$repl, $op:$op)
     }
     return $ret
 }

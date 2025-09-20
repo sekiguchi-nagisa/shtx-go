@@ -5,6 +5,8 @@ import "strings"
 type Glob2RegexOption struct {
 	startsWith bool // starts with pattern
 	endsWith   bool // ends with pattern
+	reluctant  bool // for reluctant quantifier
+	backward   bool // match backward
 }
 
 type glob2RegexTranslator struct {
@@ -83,6 +85,14 @@ func (g *glob2RegexTranslator) translate(glob string) string {
 	if g.option.startsWith {
 		sb.WriteString("^")
 	}
+	if g.option.backward {
+		sb.WriteString("(.*")
+		if g.option.reluctant {
+			sb.WriteRune('?')
+		}
+		sb.WriteString(")(")
+	}
+
 	for ; g.index < g.length; g.index++ {
 		ch := g.runes[g.index]
 		switch ch {
@@ -107,6 +117,9 @@ func (g *glob2RegexTranslator) translate(glob string) string {
 			sb.WriteRune('.')
 		case '*':
 			sb.WriteString(".*")
+			if g.option.reluctant && !g.option.backward {
+				sb.WriteRune('?')
+			}
 			g.consumeStar()
 		case '[':
 			sb.WriteString(g.translateCharSet())
@@ -116,6 +129,9 @@ func (g *glob2RegexTranslator) translate(glob string) string {
 		default:
 			sb.WriteRune(ch)
 		}
+	}
+	if g.option.backward {
+		sb.WriteString(")")
 	}
 	if g.option.endsWith {
 		sb.WriteString("$")

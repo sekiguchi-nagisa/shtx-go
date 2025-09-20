@@ -3,8 +3,9 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var evalTestCases = map[string]struct {
@@ -384,6 +385,22 @@ fi
 `},
 	"param-expand-replace3": {`echo "${a/#~"root"/$HOME}"`, `{
   echo "${$__shtx_get_var(@( 'a' '/' "#~"$__shtx_escape_glob_meta("root") ${$__shtx_get_var(@( 'HOME' ))} ))}"
+}
+`},
+	"param-expand-rem1": {`echo "${a%hello}"`, `{
+  echo "${$__shtx_get_var(@( 'a' '%' "hello" ))}"
+}
+`},
+	"param-expand-rem2": {`echo "${a[0]%%hello}"`, `{
+  echo "${$__shtx_get_var_at(@( 'a' 0 '%%' "hello" ))}"
+}
+`},
+	"param-expand-rem3": {`echo "${a#hello}"`, `{
+  echo "${$__shtx_get_var(@( 'a' '#' "hello" ))}"
+}
+`},
+	"param-expand-rem4": {`echo "${a##hello}"`, `{
+  echo "${$__shtx_get_var(@( 'a' '##' "hello" ))}"
 }
 `},
 	"function1": {`function hoge() true`, `{

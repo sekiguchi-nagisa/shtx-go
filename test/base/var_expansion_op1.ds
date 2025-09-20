@@ -164,6 +164,28 @@ assert_fake_eval '  # ${parameter/%pattern/word}
 ' '<that that that this>
 <%that this>'
 
+assert_fake_eval '  # ${parameter#word}
+    a=/var/log1/log2/message
+    echo "${a#/}"
+    echo "${a#*/}"
+    echo "${a#log}"
+    echo "${a#*log}"
+' 'var/log1/log2/message
+var/log1/log2/message
+/var/log1/log2/message
+1/log2/message'
+
+assert_fake_eval '  # ${parameter##word}
+    a=/var/log1/log2/message
+    echo "${a##/}"
+    echo "${a##*/}"
+    echo "${a##log}"
+    echo "${a##*log}"
+' 'var/log1/log2/message
+message
+/var/log1/log2/message
+2/message'
+
 
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$
