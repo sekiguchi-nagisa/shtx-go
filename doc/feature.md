@@ -52,6 +52,11 @@
 | `${parameter//pattern/word}` | ✔️     | ✔️    | ❌          | ❌   | ❌   | ❌              | ❌          | ❌          |
 | `${parameter/#pattern/word}` | ✔️     | ✔️    | ❌          | ❌   | ❌   | ❌              | ❌          | ❌          |
 | `${parameter/%pattern/word}` | ✔️     | ✔️    | ❌          | ❌   | ❌   | ❌              | ❌          | ❌          |
+| `${parameter#word}`          | ✔️     | ✔️    | ❌          | ❌   | ❌   | ❌              | ❌          | ❌          |
+| `${parameter##word}`         | ✔️     | ✔️    | ❌          | ❌   | ❌   | ❌              | ❌          | ❌          |
+| `${parameter%word}`          | ✔️     | ✔️    | ❌          | ❌   | ❌   | ❌              | ❌          | ❌          |
+| `${parameter%%word}`         | ✔️     | ✔️    | ❌          | ❌   | ❌   | ❌              | ❌          | ❌          |
+
 
 ### Glob Expansion Op
 

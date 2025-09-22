@@ -186,6 +186,54 @@ message
 /var/log1/log2/message
 2/message'
 
+assert_fake_eval '  # ${parameter%word}
+    a=/var/log/log/message
+    echo "${a%/}"
+    echo "${a%/*}"
+    echo "${a%log}"
+    echo "${a%log*}"
+
+    ff() {
+        local b=/var/log/log/message
+        echo "[${b%/}]"
+        echo "[${b%/*}]"
+        echo "[${b%log}]"
+        echo "[${b%log*}]"
+    }
+    ff
+' '/var/log/log/message
+/var/log/log
+/var/log/log/message
+/var/log/
+[/var/log/log/message]
+[/var/log/log]
+[/var/log/log/message]
+[/var/log/]'
+
+assert_fake_eval '  # ${parameter%word}
+    a=/var/log/log/message
+    echo "${a%%/}"
+    echo "<${a%%/*}>"
+    echo "${a%%log}"
+    echo "${a%%log*}"
+
+    ff() {
+        local b=/var/log/log/message
+        echo "[${b%%/}]"
+        echo "[<${b%%/*}>]"
+        echo "[${b%%log}]"
+        echo "[${b%%log*}]"
+    }
+    ff
+' '/var/log/log/message
+<>
+/var/log/log/message
+/var/
+[/var/log/log/message]
+[<>]
+[/var/log/log/message]
+[/var/]'
+
 
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$

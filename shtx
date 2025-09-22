@@ -553,8 +553,12 @@ function __glob_replace(value: String, pattern: String, op:String, repl: String)
         "%%" => $_GLOB2RE_TYPE_BACKWARD_LONG
         else => $_GLOB2RE_TYPE_PARTIAL
     }
-     var re = $__glob_to_regex($pattern, $re_type) ?? return ""
-     return $re.replace($value, $repl, $once: $op != "//")
+    var re = $__glob_to_regex($pattern, $re_type) ?? return ""
+    if $op == "%" || $op == "%%" {
+        return $re.replace($value, '$1', $once:$true)
+    } else {
+        return $re.replace($value, $repl, $once: $op != "//")
+    }
 }
 
 let _REGEX_CACHE : [String: Regex]
