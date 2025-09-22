@@ -669,6 +669,7 @@ function __shtx_var_get_impl(param : String, op : String, word : String) : Strin
         '?' => return $v ?? throw new _SHError("${$_VARS.arg0()}: ${param}: ${word}", 127)
         ':+' => return $v && !$v!.empty() ? $word : ""
         '+' => return $v ? $word : ""
+        'len' => return ($v ?? "").count() as String
         else => return $v
     }
 }

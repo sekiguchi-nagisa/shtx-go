@@ -234,6 +234,20 @@ assert_fake_eval '  # ${parameter%word}
 [/var/log/log/message]
 [/var/]'
 
+assert_fake_eval '  # ${#parameter}
+    a=123
+    echo "${#a}"
+    echo "${#bb}"
+    ff() { local a=あ; echo "${#a}"; echo "${#b}"; }
+    ff
+' '3
+0
+1
+0'
+
+assert "$(fake_eval 'A=邉󠄔; echo "${#A}";')" == '1'  # unlike other shell `#parameter` op count grapheme clusters (not code points)
+assert "$(fake_eval 'A=*️⃣; echo "${#A}";')" == '1'  # unlike other shell `#parameter` op count grapheme clusters (not code points)
+
 
 # CHECK_RE: ^$
 # CHECKERR_RE: ^$

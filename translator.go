@@ -832,7 +832,6 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 			t.todo(n.Pos(), "support unquoted parameter expansion")
 		}
 		_ = n.Excl && t.todo(n.Pos(), "not support ${!a}")
-		_ = n.Length && t.todo(n.Pos(), "support ${#a}")
 		_ = n.Width && t.todo(n.Pos(), "not support ${%a}")
 		_ = n.Slice != nil && t.todo(n.Pos(), "not support ${a:x:y}")
 		_ = n.Names != 0 && t.todo(n.Pos(), "not support ${!prefix*}")
@@ -851,6 +850,9 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 			} else {
 				t.visitArithmExpr(n.Index)
 			}
+		}
+		if n.Length {
+			t.emit(" len")
 		}
 		if n.Exp != nil {
 			t.emit(" '")

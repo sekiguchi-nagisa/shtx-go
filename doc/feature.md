@@ -48,6 +48,7 @@
 | `${parameter?word}`          | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
 | `${parameter:+word}`         | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
 | `${parameter+word}`          | ✔️     | ✔️    | ✔️         | ❌   | ❌   | ✔️             | ✔️         | ❌          |
+| `${#parameter}`              | ✔️     | ✔️    | ❌          | ❌   | ❌   | ❌              | ❌          | ❌          |
 | `${parameter/pattern/word}`  | ✔️     | ✔️    | ❌          | ❌   | ❌   | ❌              | ❌          | ❌          |
 | `${parameter//pattern/word}` | ✔️     | ✔️    | ❌          | ❌   | ❌   | ❌              | ❌          | ❌          |
 | `${parameter/#pattern/word}` | ✔️     | ✔️    | ❌          | ❌   | ❌   | ❌              | ❌          | ❌          |

@@ -387,6 +387,10 @@ fi
   echo "${$__shtx_get_var(@( 'a' '/' "#~"$__shtx_escape_glob_meta("root") ${$__shtx_get_var(@( 'HOME' ))} ))}"
 }
 `},
+	"param-expand-len1": {`echo "${#AAA}"`, `{
+  echo "${$__shtx_get_var(@( 'AAA' len ))}"
+}
+`},
 	"param-expand-rem1": {`echo "${a%hello}"`, `{
   echo "${$__shtx_get_var(@( 'a' '%' "hello" ))}"
 }
