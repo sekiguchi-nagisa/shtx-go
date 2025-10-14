@@ -83,8 +83,12 @@ false;
   echo 12 >| /dev/null
 }
 `},
-	"redirection89": {"declare -p AAA BBB 2>&1", `{
+	"redirection9": {"declare -p AAA BBB 2>&1", `{
   __shtx_declare "-p" AAA BBB 2>& 1
+}
+`},
+	"empty-cmd-redirection": {">> file", `{
+  __gets >> file
 }
 `},
 	"back-quote": {"echo \"`echo hello`\" `  # this is a comment` A", `{

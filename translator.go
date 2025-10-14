@@ -282,7 +282,7 @@ func (t *Translator) visitCommand(cmd syntax.Command, redirs []*syntax.Redirect)
 	switch n := cmd.(type) {
 	case nil:
 		cmdRedir = true
-		t.emit(":") //FIXME: '> /dev/null' or '< /dev/null' semantics
+		t.emit("__gets")
 	case *syntax.CallExpr:
 		cmdRedir = true
 		t.visitCallExpr(n)
