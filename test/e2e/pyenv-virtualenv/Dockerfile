@@ -10,7 +10,8 @@ COPY . /home/tux/dev
 
 RUN git clone https://github.com/sekiguchi-nagisa/arsh.git
 RUN mkdir -p ./arsh/build
-RUN cd arsh && cd build && cmake .. -G Ninja && cmake --build . && cmake --build . -- install
+RUN cd arsh && cd build && cmake .. -G Ninja -DCMAKE_CXX_COMPILER=clang++ \
+    && cmake --build . && cmake --build . -- install
 
 WORKDIR /home/tux/dev/
 CMD ls ./ && git config --global --add safe.directory "${PWD}" && ./scripts/build.sh && \
