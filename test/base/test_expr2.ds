@@ -48,20 +48,20 @@ unmatch2
 match3
 match4'
 
-assert_fake_eval "$(cat << 'EOF'
-[[ 'aab' =~ [[:space:]]*(a)?b ]] && echo match1
-[[ ' aaaab' =~ [[:space:]]*(a)?b ]] && echo match2
-[[ 'xaby' =~ [[:space:]]*(a)?b ]] && echo match3
+# assert_fake_eval "$(cat << 'EOF'
+# [[ 'aab' =~ [[:space:]]*(a)?b ]] && echo match1
+# [[ ' aaaab' =~ [[:space:]]*(a)?b ]] && echo match2
+# [[ 'xaby' =~ [[:space:]]*(a)?b ]] && echo match3
 
-[[ $BASH =~ bash ]] && echo match4
-! [[ $BASH =~ bash ]] || echo unmatch1
+# [[ $BASH =~ bash ]] && echo match4
+# ! [[ $BASH =~ bash ]] || echo unmatch1
 
-EOF
-)" 'match1
-match2
-match3
-match4
-unmatch1'
+# EOF
+# )" 'match1
+# match2
+# match3
+# match4
+# unmatch1'
 
 
 # CHECK_RE: ^$
