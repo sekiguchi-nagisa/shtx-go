@@ -9,10 +9,16 @@ shtx() {
 assert "$(shtx -v)" =~ $/[0-9]+\.[0-9]+\.[0-9]+/
 assert "$(shtx -c 'echo hello')" == 'hello'
 
-assert "$(shtx -c 'echo (' 2>&1)" == '1:1: `foo(` must be followed by `)`'
+assert "$(shtx -c 'echo (' 2>&1)" == '1:1: [error] `foo(` must be followed by `)`
+echo (
+^'
+
 assert $? == 1
 
-assert "$(shtx -c 'echo |& echo' 2>&1)" == '1:6: [TODO] unsupported: |&'
+assert "$(shtx -c 'echo |& echo' 2>&1)" == '1:6: [TODO] unsupported: |&
+echo |& echo
+     ^'
+
 assert $? == 1
 
 true

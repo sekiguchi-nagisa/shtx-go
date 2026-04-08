@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -18,12 +19,32 @@ const (
 	ErrorTodo ErrorType = iota
 	ErrorFixme
 	ErrorVersion
+	ErrorSyntax
 )
 
 type Error struct {
 	pos syntax.Pos
 	t   ErrorType
 	msg string
+	in  []byte
+}
+
+func formatErrorLine(buf []byte, pos syntax.Pos) string {
+	lines := bytes.SplitAfter(buf, []byte("\n"))
+	if int(pos.Line()) > len(lines) {
+		return ""
+	}
+	sbuf := strings.Builder{}
+	line := string(lines[pos.Line()-1])
+	sbuf.WriteString(line)
+	if line[len(line)-1] != '\n' {
+		sbuf.WriteByte('\n')
+	}
+	for i := 0; i < int(pos.Col())-1; i++ {
+		sbuf.WriteByte(' ')
+	}
+	sbuf.WriteByte('^')
+	return sbuf.String()
 }
 
 func (e Error) Error() string {
@@ -33,9 +54,17 @@ func (e Error) Error() string {
 		prefix = "[TODO]"
 	case ErrorFixme:
 		prefix = "[FIXME]"
-	case ErrorVersion: //do nothing
+	case ErrorVersion, ErrorSyntax: //do nothing
 	}
-	return fmt.Sprintf("%s: %s %s", e.pos.String(), prefix, e.msg)
+	return fmt.Sprintf("%s: %s %s\n%s", e.pos.String(), prefix, e.msg, formatErrorLine(e.in, e.pos))
+}
+
+func wrapParseError(in []byte, err error) error {
+	var parseError syntax.ParseError
+	if errors.As(err, &parseError) {
+		return Error{pos: parseError.Pos, t: ErrorSyntax, msg: parseError.Text, in: in}
+	}
+	return err
 }
 
 var _ error = Error{} // check error interface implementation
@@ -107,7 +136,7 @@ func adjustPos(pos syntax.Pos, offset Offset) syntax.Pos {
 }
 
 func (t *Translator) todo(pos syntax.Pos, s string) bool {
-	e := Error{pos: adjustPos(pos, t.offset), t: ErrorTodo, msg: s}
+	e := Error{pos: adjustPos(pos, t.offset), t: ErrorTodo, msg: s, in: t.in}
 	if t.errorCallback != nil {
 		t.errorCallback(&e)
 	}
@@ -115,7 +144,7 @@ func (t *Translator) todo(pos syntax.Pos, s string) bool {
 }
 
 func (t *Translator) fixmeCase(pos syntax.Pos, a any) {
-	e := Error{pos: adjustPos(pos, t.offset), t: ErrorFixme, msg: fmt.Sprintf("unsupported switch-case type %T", a)}
+	e := Error{pos: adjustPos(pos, t.offset), t: ErrorFixme, msg: fmt.Sprintf("unsupported switch-case type %T", a), in: t.in}
 	if t.errorCallback != nil {
 		t.errorCallback(&e)
 	}
@@ -123,7 +152,7 @@ func (t *Translator) fixmeCase(pos syntax.Pos, a any) {
 }
 
 func (t *Translator) versionRequire(pos syntax.Pos, f Feature, s string) {
-	e := Error{pos: adjustPos(pos, t.offset), t: ErrorVersion, msg: fmt.Sprintf("%s, %s", s, f.Message())}
+	e := Error{pos: adjustPos(pos, t.offset), t: ErrorVersion, msg: fmt.Sprintf("%s, %s", s, f.Message()), in: t.in}
 	if t.errorCallback != nil {
 		t.errorCallback(&e)
 	}
@@ -146,7 +175,7 @@ func (t *Translator) parse(buf []byte) (file *syntax.File, err error) {
 	file, err = syntax.NewParser().Parse(reader, "")
 	if err != nil {
 		if t.errorCallback != nil {
-			t.errorCallback(err)
+			t.errorCallback(wrapParseError(buf, err))
 		}
 		err = fmt.Errorf("+++++  error message  +++++\n%s\n\n"+
 			"+++++  input script  +++++\n%s", err.Error(), withLineNum(buf))
