@@ -614,27 +614,29 @@ func (t *Translator) isStaticReturn(args []*syntax.Word) bool {
 	return (len(args) == 1 || len(args) == 2) && args[0].Lit() == "return" && !t.isToplevel()
 }
 
-func (t *Translator) resolveStaticReturn(funcBody *syntax.Stmt) {
+func (t *Translator) resolveStaticReturn(funcBody *syntax.Stmt, last bool) {
 	switch n := funcBody.Cmd.(type) {
 	case *syntax.CallExpr:
-		if t.isStaticReturn(n.Args) {
+		if t.isStaticReturn(n.Args) && last {
 			t.staticReturnMap[n] = struct{}{}
 		}
 	case *syntax.Block:
-		if len(n.Stmts) > 0 {
-			t.resolveStaticReturn(n.Stmts[len(n.Stmts)-1]) // only check last statement due to unreachable code
+		for i, stmt := range n.Stmts {
+			t.resolveStaticReturn(stmt, i == len(n.Stmts)-1)
 		}
 	case *syntax.IfClause:
-		t.resolveStaticReturnWithinIf(n)
+		t.resolveStaticReturnWithinIf(n, last)
 	}
 }
 
-func (t *Translator) resolveStaticReturnWithinIf(clause *syntax.IfClause) {
+func (t *Translator) resolveStaticReturnWithinIf(clause *syntax.IfClause, last bool) {
 	if len(clause.Then) > 0 {
-		t.resolveStaticReturn(clause.Then[len(clause.Then)-1]) // only check last statement due to unreachable code
+		for i, stmt := range clause.Then {
+			t.resolveStaticReturn(stmt, i == len(clause.Then)-1)
+		}
 	}
 	if clause.Else != nil {
-		t.resolveStaticReturnWithinIf(clause.Else)
+		t.resolveStaticReturnWithinIf(clause.Else, last)
 	}
 }
 
@@ -652,7 +654,7 @@ func (t *Translator) visitFuncDecl(clause *syntax.FuncDecl) {
 	t.emitLineWithIndent("try {")
 	t.indentLevel++
 	t.indent()
-	t.resolveStaticReturn(clause.Body)
+	t.resolveStaticReturn(clause.Body, false)
 	t.visitStmt(clause.Body)
 	t.newline()
 	t.indentLevel--
