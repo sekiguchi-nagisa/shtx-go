@@ -654,7 +654,7 @@ func (t *Translator) visitFuncDecl(clause *syntax.FuncDecl) {
 	t.emitLineWithIndent("try {")
 	t.indentLevel++
 	t.indent()
-	t.resolveStaticReturn(clause.Body, false)
+	t.resolveStaticReturn(clause.Body, true)
 	t.visitStmt(clause.Body)
 	t.newline()
 	t.indentLevel--
