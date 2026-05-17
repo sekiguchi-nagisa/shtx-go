@@ -1051,10 +1051,7 @@ func resolveSafeArrayExpansionParamName(word *syntax.Word) string {
 	if param.Exp.Op != syntax.AlternateUnset {
 		return ""
 	}
-	if !isArrayExpandWord(param.Exp.Word) {
-		return ""
-	}
-	return param.Param.Value
+	return resolveSimpleArrayExpand(param.Exp.Word)
 }
 
 func (t *Translator) expandDblQuoted(quoted *syntax.DblQuoted) {
