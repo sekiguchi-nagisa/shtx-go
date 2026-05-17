@@ -972,12 +972,12 @@ func isUnsupportedArrayExpansion(exp *syntax.ParamExp) bool {
 		exp.Names == syntax.NamesPrefix || exp.Names == syntax.NamesPrefixWords || exp.Exp != nil
 }
 
-func resolveArrayExpandParamName(part syntax.WordPart) string {
+func (t *Translator) resolveArrayExpandParamName(part syntax.WordPart) string {
 	switch n := part.(type) {
 	case *syntax.ParamExp:
 		if n.Param.Value == "@" {
 			if isUnsupportedArrayExpansion(n) {
-				panic("[TODO] unsupported array expansion")
+				t.todo(n.Pos(), "unsupported array expansion")
 			}
 			return "@"
 		}
@@ -986,7 +986,7 @@ func resolveArrayExpandParamName(part syntax.WordPart) string {
 			case *syntax.Word:
 				if e.Lit() == "@" {
 					if isUnsupportedArrayExpansion(n) {
-						panic("[TODO] unsupported array expansion")
+						t.todo(n.Pos(), "unsupported array expansion")
 					}
 					return n.Param.Value
 				}
@@ -996,20 +996,20 @@ func resolveArrayExpandParamName(part syntax.WordPart) string {
 	return ""
 }
 
-func isArrayExpandDblQuoted(quoted *syntax.DblQuoted) bool {
+func (t *Translator) isArrayExpandDblQuoted(quoted *syntax.DblQuoted) bool {
 	for _, part := range quoted.Parts {
-		if name := resolveArrayExpandParamName(part); name != "" {
+		if name := t.resolveArrayExpandParamName(part); name != "" {
 			return true
 		}
 	}
 	return false
 }
 
-func isArrayExpandWord(word *syntax.Word) bool {
+func (t *Translator) isArrayExpandWord(word *syntax.Word) bool {
 	for _, part := range word.Parts {
 		switch n := part.(type) {
 		case *syntax.DblQuoted:
-			if isArrayExpandDblQuoted(n) {
+			if t.isArrayExpandDblQuoted(n) {
 				return true
 			}
 		}
@@ -1017,21 +1017,21 @@ func isArrayExpandWord(word *syntax.Word) bool {
 	return false
 }
 
-func resolveSimpleArrayExpand(word *syntax.Word) string {
+func (t *Translator) resolveSimpleArrayExpand(word *syntax.Word) string {
 	if len(word.Parts) == 1 {
 		switch n := word.Parts[0].(type) {
 		case *syntax.DblQuoted:
 			if len(n.Parts) != 1 {
 				return ""
 			}
-			return resolveArrayExpandParamName(n.Parts[0])
+			return t.resolveArrayExpandParamName(n.Parts[0])
 		}
 	}
 	return ""
 }
 
 // workaround for ${param[@]+"${param[@]}"}
-func resolveSafeArrayExpansionParamName(word *syntax.Word) string {
+func (t *Translator) resolveSafeArrayExpansionParamName(word *syntax.Word) string {
 	if len(word.Parts) != 1 {
 		return ""
 	}
@@ -1051,13 +1051,13 @@ func resolveSafeArrayExpansionParamName(word *syntax.Word) string {
 	if param.Exp.Op != syntax.AlternateUnset {
 		return ""
 	}
-	return resolveSimpleArrayExpand(param.Exp.Word)
+	return t.resolveSimpleArrayExpand(param.Exp.Word)
 }
 
 func (t *Translator) expandDblQuoted(quoted *syntax.DblQuoted) {
 	t.emit("\"")
 	for _, part := range quoted.Parts {
-		if name := resolveArrayExpandParamName(part); name != "" {
+		if name := t.resolveArrayExpandParamName(part); name != "" {
 			t.emitLine("\")[0] )")
 			t.emitWithIndent(".add($__shtx_get_array_var('")
 			t.emit(name)
@@ -1073,13 +1073,13 @@ func (t *Translator) expandDblQuoted(quoted *syntax.DblQuoted) {
 }
 
 func (t *Translator) visitWordWith(word *syntax.Word, option WordPartOption) {
-	if name := resolveSafeArrayExpansionParamName(word); name != "" {
+	if name := t.resolveSafeArrayExpansionParamName(word); name != "" {
 		t.emit("$__shtx_get_array_var('")
 		t.emit(name)
 		t.emit("')")
 		return
 	}
-	if !isArrayExpandWord(word) || option.singleWord {
+	if !t.isArrayExpandWord(word) || option.singleWord {
 		for _, part := range word.Parts {
 			t.visitWordPart(part, option)
 		}
@@ -1089,7 +1089,7 @@ func (t *Translator) visitWordWith(word *syntax.Word, option WordPartOption) {
 	_ = (option.pattern || option.regex) && t.todo(word.Pos(), "pattern with array expand is not supported")
 
 	// for `$@` or `${array[@]}`
-	if name := resolveSimpleArrayExpand(word); name != "" {
+	if name := t.resolveSimpleArrayExpand(word); name != "" {
 		t.emit("$__shtx_get_array_var('")
 		t.emit(name)
 		t.emit("')")
@@ -1102,7 +1102,7 @@ func (t *Translator) visitWordWith(word *syntax.Word, option WordPartOption) {
 	for _, part := range word.Parts {
 		switch n := part.(type) {
 		case *syntax.DblQuoted:
-			if isArrayExpandDblQuoted(n) {
+			if t.isArrayExpandDblQuoted(n) {
 				t.expandDblQuoted(n)
 				continue
 			}
