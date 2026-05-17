@@ -1030,6 +1030,33 @@ func resolveSimpleArrayExpand(word *syntax.Word) string {
 	return ""
 }
 
+// workaround for ${param[@]+"${param[@]}"}
+func resolveSafeArrayExpansionParamName(word *syntax.Word) string {
+	if len(word.Parts) != 1 {
+		return ""
+	}
+	param, ok := word.Parts[0].(*syntax.ParamExp)
+	if !ok {
+		return ""
+	}
+	if param.Index == nil {
+		return ""
+	}
+	if word, ok := param.Index.(*syntax.Word); !ok || word.Lit() != "@" {
+		return ""
+	}
+	if param.Exp == nil {
+		return ""
+	}
+	if param.Exp.Op != syntax.AlternateUnset {
+		return ""
+	}
+	if !isArrayExpandWord(param.Exp.Word) {
+		return ""
+	}
+	return param.Param.Value
+}
+
 func (t *Translator) expandDblQuoted(quoted *syntax.DblQuoted) {
 	t.emit("\"")
 	for _, part := range quoted.Parts {
@@ -1049,6 +1076,12 @@ func (t *Translator) expandDblQuoted(quoted *syntax.DblQuoted) {
 }
 
 func (t *Translator) visitWordWith(word *syntax.Word, option WordPartOption) {
+	if name := resolveSafeArrayExpansionParamName(word); name != "" {
+		t.emit("$__shtx_get_array_var('")
+		t.emit(name)
+		t.emit("')")
+		return
+	}
 	if !isArrayExpandWord(word) || option.singleWord {
 		for _, part := range word.Parts {
 			t.visitWordPart(part, option)

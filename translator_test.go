@@ -666,6 +666,10 @@ esac
   )
 }
 `},
+	"safe-array-expand": {`echo ${__MISE_FLAGS[@]+"${__MISE_FLAGS[@]}"}`, `{
+  echo $__shtx_get_array_var('__MISE_FLAGS')
+}
+`},
 }
 
 func TestEval(t *testing.T) {
