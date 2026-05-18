@@ -1330,32 +1330,6 @@ function __shtx_signal_handler(s: Signal) {
     }
 }
 
-let _sort_wrapper = {
-    var ss = $VERSION.split('.')
-    let majar = $ss[0].toInt()!
-    let minor = $ss[1].toInt()!
-    
-    var src = ""
-    if $majar > 0 || $minor >= 37 {
-        $src = '
-            function(values: [(Signal, String)]) => 
-                $values.sortBy(function(x,y) => $x._0.value().compare($y._0.value()))
-        '
-    } elif $majar > 0 || $minor >= 36 {
-        $src = '
-            function(values: [(Signal, String)]) => 
-                $values.sortBy(function(x,y) => $x._0.value() < $y._0.value())
-        '
-    } else {  # for older version
-        $src = '
-            function(values: [(Signal, String)]) => 
-                $values.sortWith(function(x,y) => $x._0.value() < $y._0.value())
-        '
-    }
-    var func = $MODULE._func($src)()! as ([(Signal, String)]) -> [(Signal, String)]
-    $func
-}
-
 __shtx_trap() {
     let param : _TrapParam
     try {
@@ -1376,7 +1350,7 @@ __shtx_trap() {
             for k, v in $_TRAP {
                 $values.add(($k, $v._0))
             }
-            $_sort_wrapper($values)
+            $values.sortBy(function(x,y)=> $x._0.value().compare($y._0.value()))
             for value in $values {
                 printf "trap -- %s SIG%s\n" $__doubleQuote($value._1) ${$value._0.name()}
             }
@@ -1535,20 +1509,12 @@ $__prompt.PRE_PROMPTS.add(function() => {
 source $MODULE_DIR/atexit.arsh
 
 let TEMP_FILES : [String]
-{
-    let hd = function() => {
-        for e in $TEMP_FILES {
-            rm -f $e || true
-        }
-        $TEMP_FILES.clear()
+$atexit(function() =>{
+    for e in $TEMP_FILES {
+        rm -f $e || true
     }
-    let f = $atexit as Any
-    if let _atexit = $f as? ((Int, Any) -> Void, Int?) -> Void {
-        $_atexit(function(s,a) => $hd())  ## for old api
-    } elif let _atexit = $f as? (() -> Void) -> Void {
-        $_atexit($hd)  ## for new api
-    }
-}
+    $TEMP_FILES.clear()
+})
 
 function __save_to_temp(path: String): String? {
     (test -f $path || test -d $path) && return $none

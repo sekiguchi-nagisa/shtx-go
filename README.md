@@ -5,7 +5,7 @@
 experimental bash subset to arsh transpiler
 
 ## Requirement
-- arsh v0.35.0 or later
+- arsh v0.40.0 or later
 
 ## Install
 ```sh
@@ -17,7 +17,7 @@ curl -fL https://raw.githubusercontent.com/sekiguchi-nagisa/shtx-go/main/scripts
 | **name**         | **version** |
 |------------------|-------------|
 | direnv           | v2.32.2     |
-| mise             | v2026.4.7   |
+| mise             | v2026.5.9   |
 | pyenv            | v2.3.32     |
 | pyenv-virtualenv | v1.2.3      |
 | venv             | 3.9         |
