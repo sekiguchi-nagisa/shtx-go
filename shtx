@@ -490,7 +490,7 @@ function __glob_to_regex(pattern: String, type: String): Regex? {
     var re = $_GLOB2RE_CACHE.get($key) ?? { # translate glob to regex
         __shtx_detect_bin
         var re = try {
-            var s = "$(call $SHTX_GO_BIN_PATH --type=pattern --pattern-type=$type -c $pattern)"
+            var s = "$(call $SHTX_GO_BIN_PATH --type=pattern --pattern-type=$type --string=$pattern)"
             assert $? == 0
             new Regex($s)
         } catch e : RegexSyntaxError {
