@@ -1,6 +1,6 @@
 #!/usr/bin/env arsh
 
-# Copyright (C) 2022-2025 Nagisa Sekiguchi
+# Copyright (C) 2022-2026 Nagisa Sekiguchi
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ var SHTX_DEV_MODE = (checkenv SHTX_DEV_MODE)
 
 var SHTX_CRASH_DUMP = $false
 
-let SHTX_VERSION = "0.10.0"
+let SHTX_VERSION = "0.10.1"
 
 # +++++ helper functions +++++
 
