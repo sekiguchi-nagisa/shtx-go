@@ -60,8 +60,7 @@ func (e Error) Error() string {
 }
 
 func wrapParseError(in []byte, err error) error {
-	var parseError syntax.ParseError
-	if errors.As(err, &parseError) {
+	if parseError, ok := errors.AsType[syntax.ParseError](err); ok {
 		return Error{pos: parseError.Pos, t: ErrorSyntax, msg: parseError.Text, in: in}
 	}
 	return err
