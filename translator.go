@@ -7,6 +7,7 @@ import (
 	"io"
 	"regexp"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -702,17 +703,14 @@ func remapCmdName(name string) string {
 	unescaped := unescapeCmdName(name)
 	if v, ok := cmdNameReplacement[unescaped]; ok {
 		return v
-	} else {
-		keywords := []string{
-			"alias", "assert", "defer", "else", "export-env", "exportenv", "import-env", "importenv",
-			"interface", "new", "try", "throw", "typedef", "var"}
-		for _, keyword := range keywords {
-			if name == keyword {
-				return "\\" + name
-			}
-		}
-		return name // if not found replacement, return original value
 	}
+	keywords := []string{
+		"alias", "assert", "defer", "else", "export-env", "exportenv", "import-env", "importenv",
+		"interface", "new", "try", "throw", "typedef", "var"}
+	if slices.Contains(keywords, name) {
+		return "\\" + name
+	}
+	return name // if not found replacement, return original value
 }
 
 func (t *Translator) visitCmdName(word *syntax.Word) {

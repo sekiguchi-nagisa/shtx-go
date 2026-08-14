@@ -3,8 +3,8 @@ package main
 import "strings"
 
 type Glob2RegexOption struct {
-	startsWith bool // starts with pattern
-	endsWith   bool // ends with pattern
+	startsWith bool // starts with a pattern
+	endsWith   bool // ends with a pattern
 	reluctant  bool // for reluctant quantifier
 	backward   bool // match backward
 }
@@ -161,7 +161,7 @@ func LiteralGlobToRegex(value string) string {
 
 // UnescapeNonGlobMeta unescape backslash (if not escape glob meta)
 //
-// value must be command argument part
+// value must be a command argument part
 func UnescapeNonGlobMeta(value string) string {
 	runes := []rune(value)
 	sb := strings.Builder{}
