@@ -290,6 +290,8 @@ func (t *Translator) visitStmt(stmt *syntax.Stmt) {
 		switch n := stmt.Cmd.(type) {
 		case *syntax.CallExpr, *syntax.DeclClause, *syntax.BinaryCmd, *syntax.TestClause:
 			t.emit("! ")
+		case nil:
+			t.emit("! ")
 		default:
 			t.fixmeCase(n.Pos(), n)
 		}

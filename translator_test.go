@@ -91,6 +91,10 @@ false;
   __gets >> file
 }
 `},
+	"empty-cmd-redirection2": {"! >> file", `{
+  ! __gets >> file
+}
+`},
 	"back-quote": {"echo \"`echo hello`\" `  # this is a comment` A", `{
   echo "$(echo hello)"  A
 }
