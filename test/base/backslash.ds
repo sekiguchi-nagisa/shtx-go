@@ -1,0 +1,15 @@
+# RUN: call $cmd $self
+
+source ../../shtx
+source ../common/assert.ds
+
+assert_fake_eval 'echo hey\' 'hey\'
+assert_fake_eval 'echo hey\\' 'hey\'
+assert_fake_eval 'echo hey\\\' 'hey\\'
+
+assert $? == 0
+
+
+# CHECK_RE: ^$
+# CHECKERR_RE: ^$
+# STATUS: 0

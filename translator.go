@@ -822,6 +822,8 @@ func (t *Translator) visitWordPart(part syntax.WordPart, option WordPartOption) 
 			t.emit(quoteCmdArgAsRegexStr(n.Value))
 		} else if option.singleWord {
 			t.emit(quoteCmdArgAsLiteralStr(n.Value))
+		} else if hasUnescapedTrailingBackslash(n.Value) {
+			t.emit(n.Value + "\\")
 		} else {
 			t.emit(n.Value)
 		}

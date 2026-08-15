@@ -8,7 +8,7 @@ func unescapeCmdName(name string) string {
 	sb.Grow(len(runes))
 	for i := 0; i < len(runes); i++ {
 		c := runes[i]
-		if c == '\\' {
+		if c == '\\' && i+1 < len(runes) {
 			i++
 			next := runes[i]
 			switch next {
@@ -148,4 +148,15 @@ func quoteCmdArgAsLiteralStr(value string) string {
 	}
 	sb.WriteRune('"')
 	return sb.String()
+}
+
+func hasUnescapedTrailingBackslash(s string) bool {
+	var c = 0
+	for index := len(s) - 1; index >= 0; index-- {
+		if s[index] != '\\' {
+			break
+		}
+		c++
+	}
+	return c%2 == 1
 }

@@ -134,6 +134,14 @@ false;
   \ls -la
 }
 `},
+	"escaped-simple-command-end-with-backslash": {`ls\`, `{
+  fake_call ls\\
+}
+`},
+	"simple-command-arg-end-with-backslash": {`echo hey\`, `{
+  echo hey\\
+}
+`},
 	"builtin-export1": {`\expor\t AAA=@@@; export BBB CCC=56`, `{
   __shtx_export AAA=@@@
   __shtx_export BBB CCC="56"
