@@ -248,31 +248,6 @@ function update(value : Any) : String for _VarEntry {
     }
 }
 
-function append(other: Any) for _VarEntry {
-    $this._attr = $this._attr and !$__VAR_ATTR_UNSET
-    if let o = $other as? String {
-        if let sa = $this._value as? _SparseArray {
-            var v = $sa.get(0) ?? ""
-            $v += $o
-            $sa.set(0, $v)
-        } else {
-            var v = $this.getAsStr() ?? ""
-            $v += $o
-            $this.update($v)
-        }
-    } else {
-        var sa = $other as _SparseArray
-        if let v = $this._value as? _SparseArray {
-            $v.addAll($sa)
-        } else {
-            var e = $this.getAsStr() ?? ""
-            var v = new _SparseArray([$e])
-            $v.addAll($sa)
-            $this.update($v)
-        }
-    }
-}
-
 # for local variable unset
 function unset() for _VarEntry {
     $this._attr = $this._attr or $__VAR_ATTR_UNSET
@@ -310,6 +285,31 @@ function stringify(): String for _VarEntry {
         return $ss.str()
     } else {
         return $__doubleQuote($this.getAsStr() ?? "")
+    }
+}
+
+function append(other: Any) for _VarEntry {
+    $this._attr = $this._attr and !$__VAR_ATTR_UNSET
+    if let o = $other as? String {
+        if let sa = $this._value as? _SparseArray {
+            var v = $sa.get(0) ?? ""
+            $v += $o
+            $sa.set(0, $v)
+        } else {
+            var v = $this.getAsStr() ?? ""
+            $v += $o
+            $this.update($v)
+        }
+    } else {
+        var sa = $other as _SparseArray
+        if let v = $this._value as? _SparseArray {
+            $v.addAll($sa)
+        } else {
+            var e = $this.getAsStr() ?? ""
+            var v = new _SparseArray([$e])
+            $v.addAll($sa)
+            $this.update($v)
+        }
     }
 }
 
@@ -597,6 +597,60 @@ function __shtx_escape_regex_meta(pattern: String): String {
     return $ret
 }
 
+# +++++ for (sparse) array construction +++++
+
+function __update_as_sparse_array(entry: _VarEntry?, name: String, index: Int, value: String): String {
+    var array = if let e = $entry {
+        if let v = $e._value as? _SparseArray {
+            $v
+        } else {
+            var v = $e._value as String
+            var a = new _SparseArray([$v])
+            $e.update($a)
+            $a
+        }
+    } else {  # not found
+        var a = new _SparseArray()
+        $_VARS.put($name, $a)
+        $a
+    }
+    $array.set($index, $value)
+    return $value
+}
+
+type _SparseArrayBuilder(n: String) {
+    var last_index = 0;
+    let name = $n
+    let values: _SparseArray
+}
+
+function add(args: [String]): _SparseArrayBuilder for _SparseArrayBuilder {
+    for arg in $args {
+        $this.values.set($this.last_index, $arg)
+        $this.last_index++
+    }
+    return $this
+}
+
+function at(args: [String]): _SparseArrayBuilder for _SparseArrayBuilder {
+    var index = $args[0].toInt()!
+    var value = $args[1]
+    $this.values.set($index, $value)
+    $this.last_index = $index + 1
+    return $this
+}
+
+function build(append: Bool): Bool for _SparseArrayBuilder {
+    if $append {
+        if var entry = $_VARS.find($this.name) {
+            $entry.append($this.values)
+            return $true
+        }
+    }
+    $_VARS.put($this.name, $this.values)
+    return $true
+}
+
 # +++++ for parameter expansion +++++
 
 type _SHError : Error
@@ -731,61 +785,6 @@ function __shtx_get_var_at_impl(param: String, index: String, op: String, word: 
             else => return $elem!
         }
     }
-}
-
-
-# +++++ for (sparse) array construction +++++
-
-function __update_as_sparse_array(entry: _VarEntry?, name: String, index: Int, value: String): String {
-    var array = if let e = $entry {
-        if let v = $e._value as? _SparseArray {
-            $v
-        } else {
-            var v = $e._value as String
-            var a = new _SparseArray([$v])
-            $e.update($a)
-            $a
-        }
-    } else {  # not found
-        var a = new _SparseArray()
-        $_VARS.put($name, $a)
-        $a
-    }
-    $array.set($index, $value)
-    return $value
-}
-
-type _SparseArrayBuilder(n: String) {
-    var last_index = 0;
-    let name = $n
-    let values: _SparseArray
-}
-
-function add(args: [String]): _SparseArrayBuilder for _SparseArrayBuilder {
-    for arg in $args {
-        $this.values.set($this.last_index, $arg)
-        $this.last_index++
-    }
-    return $this
-}
-
-function at(args: [String]): _SparseArrayBuilder for _SparseArrayBuilder {
-    var index = $args[0].toInt()!
-    var value = $args[1]
-    $this.values.set($index, $value)
-    $this.last_index = $index + 1
-    return $this
-}
-
-function build(append: Bool): Bool for _SparseArrayBuilder {
-    if $append {
-        if var entry = $_VARS.find($this.name) {
-            $entry.append($this.values)
-            return $true
-        }
-    }
-    $_VARS.put($this.name, $this.values)
-    return $true
 }
 
 
