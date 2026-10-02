@@ -771,12 +771,7 @@ func isVarName(name string) bool {
 
 func isSpecialParam(name string) bool {
 	params := []string{"#", "?", "*", "@", "$"}
-	for _, param := range params {
-		if name == param {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(params, name)
 }
 
 func isValidParamName(name string) bool {
